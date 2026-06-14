@@ -1,0 +1,7 @@
+{
+  "category_accuracy": 1.0,
+  "category_macro_f1": 1.0,
+  "expense_mae": 29484.083984375,
+  "income_mae": 31342.52734375,
+  "note": "Metrics are initial synthetic-data performance only and should not be presented as real-user pilot performance."
+}

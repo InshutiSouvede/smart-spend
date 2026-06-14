@@ -1,0 +1,24 @@
+{
+  "categorisation_model": {
+    "accuracy": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "prediction_models": {
+    "expense_model": {
+      "MAE": 27792.51953125,
+      "RMSE": 35658.357561727375,
+      "R2": 0.6566380262374878
+    },
+    "income_model": {
+      "MAE": 29018.841796875,
+      "RMSE": 38215.53359564668,
+      "R2": 0.8608856797218323
+    }
+  },
+  "note": "Prediction dataset is synthetic demo/scaffold. Real pilot data should be used for final model validation."
+}

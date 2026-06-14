@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+smartspend.db
+storage/uploads/*
+storage/user_models/*
+storage/retraining_jobs/*
