@@ -156,9 +156,7 @@ SmartSpend-initial-solution/
 ├── ml/                   Model training — Jupyter notebooks, datasets, trained model artefacts
 │   └── README.md         Dataset specs, model descriptions, notebook structure, analysis workflow
 │
-├── UI_design/            (Reserved for Android app design assets)
-│
-└── IMPLEMENTATION_SUMMARY.md   Improvements, architectural decisions, assumptions, limitations
+└── UI_design/            (Reserved for Android app design assets)
 ```
 
 ---
@@ -207,7 +205,3 @@ Run `01_categorisation_model.ipynb` first, then `02_prediction_model.ipynb`. Bot
 Dataset specs, notebook structure, and visualisation descriptions → [ml/README.md](ml/README.md)
 
 ---
-
-## Proposal alignment
-
-The implementation follows the SmartSpend BSc. research proposal (May 2026). Any deviations from the proposal are documented with justification in [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md).
