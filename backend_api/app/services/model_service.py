@@ -11,7 +11,25 @@ from app.core.exceptions import ModelNotAvailableError
 
 logger = logging.getLogger(__name__)
 
-PRED_FEATURES = [
+# â”€â”€â”€ Feature definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+# Column name used by the TF-IDF step in the trained category pipeline
+CATEGORY_TEXT_COL = "model_text"
+
+# Numeric columns fed to StandardScaler
+CATEGORY_NUM_COLS = [
+    "quantity",
+    "unit_cost_rwf",
+    "total_cost_rwf",
+    "purchase_month",
+    "purchase_weekday",
+]
+
+# All columns the category DataFrame must have
+CATEGORY_DF_COLS = [CATEGORY_TEXT_COL] + CATEGORY_NUM_COLS
+
+# 15-feature set shared by both forecast models (matches trained XGBoost models)
+PREDICTION_FEATURES = [
     "day_of_month",
     "income_received_to_date",
     "expense_to_date",
@@ -29,24 +47,49 @@ PRED_FEATURES = [
     "personal_transfer_to_date",
 ]
 
+EXPENSE_FORECAST_FEATURES = PREDICTION_FEATURES
+INCOME_FORECAST_FEATURES  = PREDICTION_FEATURES
+
+
+def _build_category_df(features: dict) -> pd.DataFrame:
+    """Convert a purchase-detail feature dict into a DataFrame for the category model."""
+    text = " ".join(filter(None, [
+        str(features.get("item_name") or ""),
+        str(features.get("normalized_item_name") or ""),
+        str(features.get("merchant_name") or ""),
+        str(features.get("to_who") or ""),
+    ]))
+    return pd.DataFrame([{
+        CATEGORY_TEXT_COL:  text,
+        "quantity":         float(features.get("quantity") or 1.0),
+        "unit_cost_rwf":    float(features.get("unit_cost_rwf") or 0.0),
+        "total_cost_rwf":   float(features.get("total_cost_rwf") or 0.0),
+        "purchase_month":   int(features.get("purchase_month") or 0),
+        "purchase_weekday": int(features.get("purchase_weekday") or 0),
+    }])
+
 
 class ModelService:
     """
-    Manages lazy loading and inference for the categorisation and prediction models.
+    Manages lazy loading and inference for three model types:
 
-    Models are loaded on first use to allow the API to start even when model
-    files are not yet present. A clear error is raised at inference time if a
-    required model is missing.
+    1. expense_category    â€” TF-IDF + numeric â†’ LogisticRegression (per-user personalised)
+    2. monthly_expense_forecast â€” XGBoost regression on monthly aggregates
+    3. monthly_income_forecast  â€” XGBoost regression on monthly aggregates
+
+    Models are loaded on first use. A clear ModelNotAvailableError is raised
+    at inference time if the required model file is absent.
     """
 
     def __init__(self) -> None:
-        self._base_category_model = None
-        self._base_expense_model = None
-        self._base_income_model = None
-        self._category_loaded = False
-        self._prediction_loaded = False
+        self._base_category_model    = None
+        self._base_expense_model     = None
+        self._base_income_model      = None
+        self._category_loaded        = False
+        self._expense_fc_loaded      = False
+        self._income_fc_loaded       = False
 
-    # ─── Private loaders ──────────────────────────────────────────────────────
+    # â”€â”€â”€ Loaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _load(self, path: Path):
         if not path.exists():
@@ -69,112 +112,124 @@ class ModelService:
             self._category_loaded = True
         return self._base_category_model
 
-    def _ensure_prediction_models(self) -> None:
-        if not self._prediction_loaded:
-            model_dir = Path(settings.model_dir)
-            self._base_expense_model = self._load(
-                model_dir / "smartspend_expense_prediction_model.joblib"
-            )
-            self._base_income_model = self._load(
-                model_dir / "smartspend_income_prediction_model.joblib"
-            )
-            self._prediction_loaded = True
+    def _ensure_forecast_models(self) -> None:
+        if not self._expense_fc_loaded:
+            d = Path(settings.model_dir)
+            self._base_expense_model = self._load(d / "smartspend_expense_prediction_model.joblib")
+            self._expense_fc_loaded = True
+        if not self._income_fc_loaded:
+            d = Path(settings.model_dir)
+            self._base_income_model = self._load(d / "smartspend_income_prediction_model.joblib")
+            self._income_fc_loaded = True
 
-    def _user_cat_path(self, user_id: str) -> Path:
-        return Path(settings.user_model_dir) / f"{user_id}_category_model.joblib"
+    def _user_model_path(self, user_id: str, model_type: str) -> Path:
+        return Path(settings.user_model_dir) / f"{user_id}_{model_type}.joblib"
 
-    def _user_exp_path(self, user_id: str) -> Path:
-        return Path(settings.user_model_dir) / f"{user_id}_expense_prediction_model.joblib"
-
-    def _user_inc_path(self, user_id: str) -> Path:
-        return Path(settings.user_model_dir) / f"{user_id}_income_prediction_model.joblib"
-
-    # ─── Categorisation ───────────────────────────────────────────────────────────
-
-    def _resolve_category_model(self, user_id: str) -> Tuple[object, str]:
-        """Return the most personalised available category model for this user."""
-        user_path = self._user_cat_path(user_id)
+    def _resolve_model(self, user_id: str, model_type: str, base_model):
+        user_path = self._user_model_path(user_id, model_type)
         if user_path.exists():
-            model = self._load(user_path)
-            if model is not None:
-                return model, "user_personalised"
-        if self._base_cat is not None:
-            return self._base_cat, "base_synthetic"
-        raise ModelNotAvailableError("category_model")
+            m = self._load(user_path)
+            if m is not None:
+                return m, "user_personalised"
+        if base_model is not None:
+            return base_model, "base_synthetic"
+        raise ModelNotAvailableError(model_type)
 
-    def categorize(self, user_id: str, description: str) -> dict:
-        """
-        Classify a transaction description into one of the 10 fixed expense categories.
+    # â”€â”€â”€ Categorisation (item-level) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        Returns the predicted category, confidence score, full probability
-        distribution, and the model scope (base vs. user-personalised).
+    def categorize(self, user_id: str, purchase_features: dict) -> dict:
         """
-        model, scope = self._resolve_category_model(user_id)
-        pred = model.predict([description])[0]
-        probs = model.predict_proba([description])[0]
+        Classify a purchase_details row into one of the expense categories.
+
+        purchase_features must contain at minimum: item_name, total_cost_rwf.
+        Optional: normalized_item_name, merchant_name, to_who, quantity,
+                  unit_cost_rwf, purchase_month, purchase_weekday.
+        """
+        model, scope = self._resolve_model(user_id, "category_model", self._base_cat)
+        df = _build_category_df(purchase_features)
+        pred  = model.predict(df)[0]
+        probs = model.predict_proba(df)[0]
         classes = list(model.classes_)
         return {
-            "category":     pred,
-            "confidence":   float(np.max(probs)),
+            "category":      pred,
+            "confidence":    float(np.max(probs)),
             "probabilities": {c: float(p) for c, p in zip(classes, probs)},
-            "model_scope":  scope,
+            "model_scope":   scope,
         }
 
-    # ─── Prediction ─────────────────────────────────────────────────────────────────
+    # â”€â”€â”€ Expense forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    def predict_month_end(self, user_id: str, features: dict) -> dict:
+    def forecast_expense(self, user_id: str, features: dict) -> dict:
         """
-        Predict month-end expense and income totals and compute the overspend risk score.
+        Predict month-end total expense given current-month aggregates.
 
-        Uses user-specific prediction models when available (after a prediction
-        retraining job has completed for this user), falling back to the base
-        synthetic models otherwise.
-
-        Overspend risk score = (predicted_expense / predicted_income) × 100,
-        clamped to [0, 100].
+        features must include the EXPENSE_FORECAST_FEATURES keys.
         """
-        self._ensure_prediction_models()
-
-        expense_model = None
-        income_model = None
-
-        user_exp = self._user_exp_path(user_id)
-        user_inc = self._user_inc_path(user_id)
-        if user_exp.exists() and user_inc.exists():
-            expense_model = self._load(user_exp)
-            income_model = self._load(user_inc)
-
-        if expense_model is None:
-            expense_model = self._base_expense_model
-        if income_model is None:
-            income_model = self._base_income_model
-
-        if expense_model is None or income_model is None:
-            raise ModelNotAvailableError("prediction_models")
-
-        row = pd.DataFrame([{k: features.get(k, 0.0) for k in PRED_FEATURES}])
-        predicted_expense = float(expense_model.predict(row)[0])
-        predicted_income  = float(income_model.predict(row)[0])
-
-        # Risk: proportion of income consumed by expenses (0 = safe, 100 = fully spent)
-        safe_income = max(predicted_income, 1.0)
-        risk_score  = round(max(0.0, min(100.0, (predicted_expense / safe_income) * 100.0)), 2)
-
+        self._ensure_forecast_models()
+        model, scope = self._resolve_model(
+            user_id, "expense_forecast_model", self._base_expense_model
+        )
+        row = pd.DataFrame([{k: float(features.get(k, 0.0)) for k in EXPENSE_FORECAST_FEATURES}])
+        predicted = float(model.predict(row)[0])
         return {
-            "predicted_month_end_expense": round(max(0.0, predicted_expense), 2),
-            "predicted_month_end_income":  round(max(0.0, predicted_income), 2),
-            "overspend_risk_score":        risk_score,
-            "note": (
-                "Prediction is trained on a synthetic scaffold dataset until "
-                "sufficient user transaction history accumulates. Accuracy improves "
-                "after 2–3 months of active usage and retraining."
-            ),
+            "predicted_month_end_expense": round(predicted, 2),
+            "model_scope": scope,
         }
 
-    def reload_base_models(self) -> None:
-        """Force a reload of base models from disk (e.g., after global retraining)."""
-        self._category_loaded = False
-        self._prediction_loaded = False
+    # â”€â”€â”€ Income forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def forecast_income(self, user_id: str, features: dict) -> dict:
+        """
+        Predict month-end total income given current-month aggregates.
+
+        features must include the INCOME_FORECAST_FEATURES keys.
+        """
+        self._ensure_forecast_models()
+        model, scope = self._resolve_model(
+            user_id, "income_forecast_model", self._base_income_model
+        )
+        row = pd.DataFrame([{k: float(features.get(k, 0.0)) for k in INCOME_FORECAST_FEATURES}])
+        predicted = float(model.predict(row)[0])
+        return {
+            "predicted_month_end_income": round(predicted, 2),
+            "model_scope": scope,
+        }
 
 
 model_service = ModelService()
+
+
+# ─── Shared helpers ────────────────────────────────────────────────────────────
+
+def run_category_prediction(
+    user_id: str,
+    purchase_detail_id: int,
+    features: dict,
+    conn,
+) -> None:
+    """
+    Run the category model and upsert the result into expense_categories.
+
+    Extracted here to avoid duplicating the same logic across transactions.py
+    and receipts.py.  Both routers must call this inside an open DB connection.
+    """
+    try:
+        result = model_service.categorize(user_id, features)
+        conn.execute(
+            """
+            INSERT INTO expense_categories
+                (user_id, purchase_detail_id, predicted_category, confidence,
+                 final_category, category_source)
+            VALUES (?, ?, ?, ?, ?, 'model')
+            ON CONFLICT(purchase_detail_id) DO UPDATE SET
+                predicted_category = excluded.predicted_category,
+                confidence         = excluded.confidence,
+                final_category     = excluded.final_category,
+                category_source    = 'model'
+            """,
+            (user_id, purchase_detail_id,
+             result["category"], result["confidence"], result["category"]),
+        )
+    except Exception as exc:
+        logger.warning("Category prediction failed for pd_id=%d: %s", purchase_detail_id, exc)
+

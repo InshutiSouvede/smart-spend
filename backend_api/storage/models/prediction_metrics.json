@@ -1,0 +1,13 @@
+{
+  "expense_model": {
+    "MAE": 26452.58,
+    "RMSE": 33465.1,
+    "R2": 0.6976
+  },
+  "income_model": {
+    "MAE": 27943.52,
+    "RMSE": 37220.49,
+    "R2": 0.868
+  },
+  "note": "Trained on synthetic scaffold data. Retrain with accumulated user transaction history during the pilot for meaningful accuracy."
+}

@@ -6,45 +6,29 @@ To add support for a new SMS format, implement a new _try_* function
 and register it in the _PARSERS list in priority order.
 """
 
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
 
-# ─── Transaction type constants ────────────────────────────────────────────────
-
-class TransactionType:
-    MERCHANT_PAYMENT       = "MERCHANT_PAYMENT"
-    PEER_TRANSFER          = "PEER_TRANSFER"
-    CASH_WITHDRAWAL        = "CASH_WITHDRAWAL"
-    BANK_TRANSFER          = "BANK_TRANSFER"
-    PEER_TRANSFER_RECEIVED = "PEER_TRANSFER_RECEIVED"
-    BANK_TRANSFER_RECEIVED = "BANK_TRANSFER_RECEIVED"
-    AIRTIME_PURCHASE       = "AIRTIME_PURCHASE"
-    UNKNOWN                = "UNKNOWN"
-
-
-class Direction:
-    INCOMING = "INCOMING"
-    OUTGOING = "OUTGOING"
-
-
 # ─── Result dataclass ──────────────────────────────────────────────────────────
 
 @dataclass
 class ParsedTransaction:
-    raw_sms:          str
-    transaction_type: str
-    direction:        str
-    amount_rwf:       float
-    fee_rwf:          float
-    total_amount_rwf: float   # amount_rwf + fee_rwf for OUTGOING; amount_rwf for INCOMING
-    currency:         str
-    counterpart_name: str
-    timestamp:        str     # ISO-8601 (UTC)
-    balance_after_rwf: Optional[float]
-    description:      str
+    raw_sms_text:          str
+    raw_sms_hash:          str        # SHA-256 of raw_sms_text for deduplication
+    sms_time:              str        # when SMS was received (ISO-8601 UTC)
+    transaction_time:      str        # when transaction occurred (ISO-8601 UTC)
+    transaction_type:      str        # 'income' or 'expense'
+    amount_rwf:            float
+    fee_rwf:               float
+    balance_after_rwf:     Optional[float]
+    to_who:                Optional[str]   # counterpart for expense transactions
+    from_who:              Optional[str]   # counterpart for income transactions
+    transaction_reference: Optional[str]  # MM/FT/TxId reference for deduplication
+    parse_confidence:      float
 
 
 # ─── Shared helper functions ───────────────────────────────────────────────────
@@ -53,9 +37,30 @@ def _to_float(s: str) -> float:
     return float(s.replace(",", "").strip())
 
 
+def _compute_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def _extract_fee(text: str) -> float:
     m = re.search(r"[Ff]ee[:\s]+([0-9][0-9,]*)\s*(?:RWF)?", text)
     return _to_float(m.group(1)) if m else 0.0
+
+
+def _extract_transaction_reference(text: str) -> Optional[str]:
+    """Extract the canonical transaction reference (MM/FT/TxId) from an SMS."""
+    patterns = [
+        r"\bTxId[:\s]*([A-Za-z0-9]+)",          # TxId:12345
+        r"\bTransaction\s+([A-Z]{2}[\d]+)",       # Transaction MM100141
+        r"\bTx\s+([A-Z]{2}[\d]+)",               # Tx MM101557
+        r"\bRef\s+([A-Z]{2}[\d]+)",              # Ref MM101712
+        r"\bFT\s*Id[:\s]*([A-Za-z0-9]+)",        # FT Id: 99988
+        r"\b([A-Z]{2}[\d]{6,})\b",               # bare MM100141 style
+    ]
+    for pat in patterns:
+        m = re.search(pat, text)
+        if m:
+            return m.group(1).strip()
+    return None
 
 
 def _extract_balance(text: str) -> Optional[float]:
@@ -77,8 +82,8 @@ def _extract_datetime(text: str) -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _desc(verb: str, amount: float, prep: str, counterpart: str) -> str:
-    return f"{verb} {int(amount):,} RWF {prep} {counterpart}"
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 # ─── Parser implementations ────────────────────────────────────────────────────
@@ -101,18 +106,20 @@ def _try_mtn_merchant_system(text: str) -> Optional[ParsedTransaction]:
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.MERCHANT_PAYMENT,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Paid", amount, "to", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -132,18 +139,20 @@ def _try_mtn_merchant_explicit(text: str) -> Optional[ParsedTransaction]:
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.MERCHANT_PAYMENT,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Paid", amount, "to", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -163,18 +172,20 @@ def _try_mtn_peer_transfer(text: str) -> Optional[ParsedTransaction]:
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.PEER_TRANSFER,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Transferred", amount, "to", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -194,18 +205,20 @@ def _try_mtn_cash_withdrawal(text: str) -> Optional[ParsedTransaction]:
     counterpart = m.group(1).strip().rstrip(".")
     amount = _to_float(m.group(2))
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.CASH_WITHDRAWAL,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Withdrew", amount, "via agent", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -231,24 +244,22 @@ def _try_mtn_received(text: str) -> Optional[ParsedTransaction]:
         return None
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
-    is_bank_b2c = bool(_RE_B2C.search(text))
-    tx_type = (
-        TransactionType.BANK_TRANSFER_RECEIVED if is_bank_b2c
-        else TransactionType.PEER_TRANSFER_RECEIVED
-    )
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=tx_type,
-        direction=Direction.INCOMING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="income",
         amount_rwf=amount,
         fee_rwf=0.0,
-        total_amount_rwf=amount,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Received", amount, "from", counterpart),
+        to_who=None,
+        from_who=counterpart,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
+
 
 
 # MTN MoMo — transfer to bank account (inferred format)
@@ -268,18 +279,20 @@ def _try_mtn_bank_transfer_out(text: str) -> Optional[ParsedTransaction]:
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.BANK_TRANSFER,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Transferred", amount, "to bank", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -299,18 +312,20 @@ def _try_airtel_sent(text: str) -> Optional[ParsedTransaction]:
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
     fee = _extract_fee(text)
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.PEER_TRANSFER,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=fee,
-        total_amount_rwf=amount + fee,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Sent", amount, "to", counterpart),
+        to_who=counterpart,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -329,18 +344,20 @@ def _try_airtel_received(text: str) -> Optional[ParsedTransaction]:
         return None
     amount = _to_float(m.group(1))
     counterpart = m.group(2).strip().rstrip(".")
+    tx_time = _extract_datetime(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.PEER_TRANSFER_RECEIVED,
-        direction=Direction.INCOMING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=tx_time,
+        transaction_type="income",
         amount_rwf=amount,
         fee_rwf=0.0,
-        total_amount_rwf=amount,
-        currency="RWF",
-        counterpart_name=counterpart,
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=_desc("Received", amount, "from", counterpart),
+        to_who=None,
+        from_who=counterpart,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=1.0,
     )
 
 
@@ -366,8 +383,8 @@ def parse_momo_sms(raw_sms: str) -> ParsedTransaction:
     """
     Parse a raw Mobile Money SMS string into a structured ParsedTransaction.
 
-    Tries each registered parser in priority order. Returns an UNKNOWN
-    transaction if no pattern matches, preserving the raw text for manual review.
+    Tries each registered parser in priority order. Returns an expense of 0 RWF
+    if no pattern matches, preserving the raw text for manual review.
 
     Args:
         raw_sms: Raw SMS text as received on the Android device.
@@ -381,20 +398,21 @@ def parse_momo_sms(raw_sms: str) -> ParsedTransaction:
         if result is not None:
             return result
 
-    # Fallback: no pattern matched
+    # Fallback: no pattern matched — store as unrecognised expense for manual review
     amount = _best_effort_amount(text)
     return ParsedTransaction(
-        raw_sms=text,
-        transaction_type=TransactionType.UNKNOWN,
-        direction=Direction.OUTGOING,
+        raw_sms_text=text,
+        raw_sms_hash=_compute_hash(text),
+        sms_time=_now_iso(),
+        transaction_time=_extract_datetime(text),
+        transaction_type="expense",
         amount_rwf=amount,
         fee_rwf=0.0,
-        total_amount_rwf=amount,
-        currency="RWF",
-        counterpart_name="Unknown",
-        timestamp=_extract_datetime(text),
         balance_after_rwf=_extract_balance(text),
-        description=f"Unrecognised transaction — {int(amount):,} RWF",
+        to_who=None,
+        from_who=None,
+        transaction_reference=_extract_transaction_reference(text),
+        parse_confidence=0.0,
     )
 
 
@@ -402,3 +420,4 @@ def _best_effort_amount(text: str) -> float:
     """Extract the first RWF amount from an unrecognised SMS as a best-effort fallback."""
     m = re.search(r"([\d,]+)\s*RWF", text, re.I)
     return _to_float(m.group(1)) if m else 0.0
+

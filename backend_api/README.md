@@ -105,7 +105,7 @@ All variables are documented in `.env.example`. Key variables:
 | `MOCK_AUTH_ENABLED` | `true` | Bypass JWT verification for local development |
 | `MOCK_USER_ID` | `demo_user_001` | User ID returned in mock auth mode |
 | `SUPABASE_JWT_SECRET` | — | Required when `MOCK_AUTH_ENABLED=false` |
-| `CORS_ORIGINS` | localhost ports | Comma-separated list of allowed CORS origins |
+| `CORS_ORIGINS` | localhost ports | JSON array of allowed CORS origins — e.g. `["http://localhost:3000"]` |
 | `GOOGLE_VISION_ENABLED` | `false` | Enable Google Cloud Vision OCR |
 | `GOOGLE_APPLICATION_CREDENTIALS` | — | Path to Google service account JSON |
 | `MIN_CORRECTIONS_FOR_RETRAINING` | `5` | Minimum corrections before retraining |
@@ -132,21 +132,24 @@ All variables are documented in `.env.example`. Key variables:
 | Method | Path | Description |
 |---|---|---|
 | POST | `/transactions/sms/sync` | Parse and store MoMo SMS messages |
-| GET | `/transactions/` | List transactions (paginated, filterable) |
-| GET | `/transactions/{id}` | Get a single transaction |
-| PATCH | `/transactions/{id}/category` | Update a transaction's category inline |
-| POST | `/transactions/corrections` | Submit a category correction |
+| GET | `/transactions/` | List transactions (paginated, filterable by type/date) |
+| GET | `/transactions/unmatched` | List expense transactions awaiting purchase clarification |
+| POST | `/transactions/{sms_id}/prompt-response` | Submit purchase details for an unmatched expense |
+| PATCH | `/transactions/{sms_id}/match/{pd_id}` | Confirm or reject an auto-suggested purchase match |
+| POST | `/transactions/corrections` | Submit a category correction (triggers retraining) |
 
 ### Models
 | Method | Path | Description |
 |---|---|---|
-| GET | `/models/category/categories` | List all supported expense categories |
-| POST | `/models/category/predict` | Categorise a transaction description |
+| GET | `/models/categories` | List all supported expense categories |
+| POST | `/models/categorize` | Predict category for a purchase item |
+| POST | `/models/expense-forecast` | Predict month-end total expense |
+| POST | `/models/income-forecast` | Predict month-end total income |
 | POST | `/models/category/retrain` | Trigger category model retraining |
-| POST | `/models/prediction/predict` | Predict month-end expense/income and risk score |
-| POST | `/models/prediction/retrain` | Trigger prediction model retraining |
-| GET | `/models/retraining/` | List all retraining jobs for the current user |
-| GET | `/models/retraining/{job_id}` | Check a specific retraining job status |
+| POST | `/models/expense-forecast/retrain` | Trigger expense forecast model retraining |
+| POST | `/models/income-forecast/retrain` | Trigger income forecast model retraining |
+| GET | `/models/jobs` | List all retraining jobs for the current user |
+| GET | `/models/jobs/{job_id}` | Check a specific retraining job status |
 
 ### Receipts
 | Method | Path | Description |
@@ -258,9 +261,15 @@ curl -X POST http://127.0.0.1:8000/transactions/sms/sync \
   -H "Content-Type: application/json" \
   -d '{
     "consent_confirmed": true,
-    "raw_sms_messages": [
-      "MoMo: RWF 3500 paid to Bourbon Coffee Kigali. Transaction MM100141. Remaining balance RWF 224500.",
-      "You have received RWF 50000 from INSHUTI Alice. Tx MM900121. Balance RWF 85000."
+    "messages": [
+      {
+        "raw_sms_text": "TxId:12345*S*Your payment of 2,000 RWF to Bourbon Coffee Kigali was completed at 2026-06-13 10:54:42. Balance: 16,105 RWF. Fee 0 RWF.*EN#",
+        "sender": "MTN"
+      },
+      {
+        "raw_sms_text": "You have received 50000 RWF from ALICE UWERA (*****502) at 2026-06-12 09:00:00. Balance: 66105 RWF.",
+        "sender": "MTN"
+      }
     ]
   }'
 ```
@@ -287,5 +296,5 @@ curl -X PATCH http://127.0.0.1:8000/transactions/1/category \
 2. Start the server: `uvicorn app.main:app --reload`
 3. Test via Swagger UI at `/docs`.
 4. To test SMS parsing, call `POST /transactions/sms/sync`.
-5. To trigger and monitor retraining: `POST /models/category/retrain`, then poll `GET /models/retraining/{job_id}`.
-6. To list all your retraining jobs: `GET /models/retraining/`
+5. To trigger and monitor retraining: `POST /models/category/retrain`, then poll `GET /models/jobs/{job_id}`.
+6. To list all your retraining jobs: `GET /models/jobs`

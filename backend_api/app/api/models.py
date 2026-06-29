@@ -9,8 +9,10 @@ from app.schemas.schemas import (
     CategorizeRequest,
     CategorizeResponse,
     CategoryListResponse,
-    PredictionRequest,
-    PredictionResponse,
+    ExpenseForecastRequest,
+    ExpenseForecastResponse,
+    IncomeForecastRequest,
+    IncomeForecastResponse,
     RetrainResponse,
     RetrainingJobStatus,
 )
@@ -18,13 +20,14 @@ from app.services.model_service import model_service
 from app.services.retraining_service import (
     create_job,
     retrain_category_model,
-    retrain_prediction_models,
+    retrain_expense_forecast,
+    retrain_income_forecast,
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# The 10 fixed expense categories — source of truth for the mobile category picker.
+# The 10 fixed expense categories â€” source of truth for the mobile category picker.
 # Must stay in sync with the training dataset categories and model output classes.
 _EXPENSE_CATEGORIES: list[str] = [
     "Food & Dining",
@@ -40,143 +43,168 @@ _EXPENSE_CATEGORIES: list[str] = [
 ]
 
 
-# ─── Category list (for mobile picker) ───────────────────────────────────────────────
+# â”€â”€â”€ GET /models/categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get(
-    "/category/categories",
+    "/categories",
     response_model=CategoryListResponse,
-    summary="List valid expense category labels",
+    summary="Return the list of valid expense categories",
 )
-def list_categories(
-    user_id: str = Depends(get_current_user_id),
-) -> CategoryListResponse:
-    """
-    Returns the complete list of valid expense category labels.
-    Use this to populate the category picker in the correction and
-    manual transaction UIs.
-    """
+def list_categories(user_id: str = Depends(get_current_user_id)) -> CategoryListResponse:
     return CategoryListResponse(categories=_EXPENSE_CATEGORIES)
 
 
-# ─── Categorise a description ───────────────────────────────────────────────────────
+# â”€â”€â”€ POST /models/categorize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post(
-    "/category/predict",
+    "/categorize",
     response_model=CategorizeResponse,
-    summary="Categorise a transaction description",
+    summary="Predict the expense category for a purchase item",
 )
 def categorize(
     payload: CategorizeRequest,
     user_id: str = Depends(get_current_user_id),
-) -> dict:
+) -> CategorizeResponse:
     """
-    Classify a transaction description into one of the 10 fixed expense categories
-    using the TF-IDF + Logistic Regression model.
+    Run the expense_category model on a set of item-level features.
+    Returns the predicted category and confidence score.
     """
-    return model_service.categorize(user_id, payload.description)
+    features = payload.dict(exclude_none=False)
+    result   = model_service.categorize(user_id, features)
+    return CategorizeResponse(
+        category=result["category"],
+        confidence=result["confidence"],
+        model_type="expense_category",
+    )
 
+
+# â”€â”€â”€ POST /models/expense-forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+@router.post(
+    "/expense-forecast",
+    response_model=ExpenseForecastResponse,
+    summary="Predict month-end total expense",
+)
+def forecast_expense(
+    payload: ExpenseForecastRequest,
+    user_id: str = Depends(get_current_user_id),
+) -> ExpenseForecastResponse:
+    """Run the monthly_expense_forecast model and return the predicted month-end total."""
+    result = model_service.forecast_expense(user_id, payload.dict())
+    return ExpenseForecastResponse(**result)
+
+
+# â”€â”€â”€ POST /models/income-forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+@router.post(
+    "/income-forecast",
+    response_model=IncomeForecastResponse,
+    summary="Predict month-end total income",
+)
+def forecast_income(
+    payload: IncomeForecastRequest,
+    user_id: str = Depends(get_current_user_id),
+) -> IncomeForecastResponse:
+    """Run the monthly_income_forecast model and return the predicted month-end total."""
+    result = model_service.forecast_income(user_id, payload.dict())
+    return IncomeForecastResponse(**result)
+
+
+# â”€â”€â”€ POST /models/category/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post(
     "/category/retrain",
     response_model=RetrainResponse,
-    summary="Trigger category model retraining",
+    status_code=202,
+    summary="Trigger retraining of the expense_category model",
 )
-def start_category_retraining(
+def trigger_category_retrain(
     background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
-    """Queue an asynchronous retraining job for the personalised category model."""
-    job_id = create_job(user_id, "category")
+    job_id = create_job(user_id, "expense_category")
     background_tasks.add_task(retrain_category_model, job_id, user_id)
-    return {
-        "job_id":  job_id,
-        "status":  "queued",
-        "message": "Category retraining started.",
-    }
+    return {"job_id": job_id, "status": "queued",
+            "message": "expense_category model retraining queued."}
 
 
-# ─── Prediction ────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ POST /models/expense-forecast/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post(
-    "/prediction/predict",
-    response_model=PredictionResponse,
-    summary="Predict month-end financial outcome",
-)
-def predict_month_end(
-    payload: PredictionRequest,
-    user_id: str = Depends(get_current_user_id),
-) -> dict:
-    """
-    Predict month-end expense and income totals and return an overspend risk
-    score (0–100) using the XGBoost prediction model.
-    """
-    return model_service.predict_month_end(user_id, payload.model_dump())
-
-
-@router.post(
-    "/prediction/retrain",
+    "/expense-forecast/retrain",
     response_model=RetrainResponse,
-    summary="Trigger prediction model retraining",
+    status_code=202,
+    summary="Trigger retraining of the monthly_expense_forecast model",
 )
-def start_prediction_retraining(
+def trigger_expense_forecast_retrain(
     background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
-    """Queue an asynchronous retraining job for the XGBoost prediction models."""
-    job_id = create_job(user_id, "prediction")
-    background_tasks.add_task(retrain_prediction_models, job_id, user_id)
-    return {
-        "job_id":  job_id,
-        "status":  "queued",
-        "message": "Prediction retraining started.",
-    }
+    job_id = create_job(user_id, "monthly_expense_forecast")
+    background_tasks.add_task(retrain_expense_forecast, job_id, user_id)
+    return {"job_id": job_id, "status": "queued",
+            "message": "monthly_expense_forecast model retraining queued."}
 
 
-# ─── Retraining job status ──────────────────────────────────────────────────────────────
+# â”€â”€â”€ POST /models/income-forecast/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+@router.post(
+    "/income-forecast/retrain",
+    response_model=RetrainResponse,
+    status_code=202,
+    summary="Trigger retraining of the monthly_income_forecast model",
+)
+def trigger_income_forecast_retrain(
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user_id),
+) -> dict:
+    job_id = create_job(user_id, "monthly_income_forecast")
+    background_tasks.add_task(retrain_income_forecast, job_id, user_id)
+    return {"job_id": job_id, "status": "queued",
+            "message": "monthly_income_forecast model retraining queued."}
+
+
+# â”€â”€â”€ GET /models/jobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get(
-    "/retraining/",
+    "/jobs",
     response_model=list[RetrainingJobStatus],
-    summary="List all retraining jobs for the current user",
+    summary="List retraining jobs for the current user",
 )
 def list_retraining_jobs(
     user_id: str = Depends(get_current_user_id),
 ) -> list[dict]:
-    """
-    Returns all retraining jobs for the current user, newest first.
-    Use this to recover job IDs after an app restart.
-    """
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT * FROM retraining_jobs WHERE user_id = ?"
-            " ORDER BY started_at DESC",
+            "SELECT * FROM retraining_jobs WHERE user_id = ? ORDER BY started_at DESC LIMIT 50",
             (user_id,),
         ).fetchall()
     result = []
-    for row in rows:
-        data = dict(row)
-        data["metrics"] = json.loads(data.pop("metrics_json") or "{}")
-        result.append(data)
+    for r in rows:
+        d = dict(r)
+        d["metrics"] = json.loads(d.pop("metrics_json", None) or "{}")
+        result.append(d)
     return result
 
 
+# â”€â”€â”€ GET /models/jobs/{job_id} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 @router.get(
-    "/retraining/{job_id}",
+    "/jobs/{job_id}",
     response_model=RetrainingJobStatus,
-    summary="Get a retraining job by ID",
+    summary="Get the status of a specific retraining job",
 )
-def get_retraining_status(
-    job_id:  str,
+def get_retraining_job(
+    job_id:  int,
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
-    """Check the current status of a specific retraining job."""
     with get_db() as conn:
         row = conn.execute(
-            "SELECT * FROM retraining_jobs WHERE job_id = ? AND user_id = ?",
+            "SELECT * FROM retraining_jobs WHERE id = ? AND user_id = ?",
             (job_id, user_id),
         ).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Retraining job not found.")
-    data = dict(row)
-    data["metrics"] = json.loads(data.pop("metrics_json") or "{}")
-    return data
+    d = dict(row)
+    d["metrics"] = json.loads(d.pop("metrics_json", None) or "{}")
+    return d

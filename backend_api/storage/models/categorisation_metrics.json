@@ -1,0 +1,62 @@
+{
+  "dataset": "..\\backend_api\\data\\smartspend_initial_expense_category_classification_demo_dataset.csv",
+  "feature_columns": [
+    "model_text",
+    "quantity",
+    "unit_cost_rwf",
+    "total_cost_rwf",
+    "purchase_month",
+    "purchase_weekday"
+  ],
+  "text_source_columns": [
+    "item_name",
+    "normalized_item_name",
+    "merchant_name",
+    "to_who",
+    "unit"
+  ],
+  "numeric_feature_columns": [
+    "quantity",
+    "unit_cost_rwf",
+    "total_cost_rwf",
+    "purchase_month",
+    "purchase_weekday"
+  ],
+  "target_column": "category",
+  "weight_column": "training_weight",
+  "prediction_contract": {
+    "required_input_columns": [
+      "item_name",
+      "normalized_item_name",
+      "merchant_name",
+      "to_who",
+      "quantity",
+      "unit",
+      "unit_cost_rwf",
+      "total_cost_rwf",
+      "purchase_month",
+      "purchase_weekday"
+    ],
+    "build_model_text_as": "item + normalized_item + merchant_name + to_who + unit",
+    "amount_currency": "RWF"
+  },
+  "metrics": {
+    "test_accuracy": 0.23076923076923078,
+    "test_precision_macro": 0.3333333333333333,
+    "test_recall_macro": 0.27619047619047615,
+    "test_f1_macro": 0.2833333333333333,
+    "test_f1_weighted": 0.25961538461538464,
+    "cv_mean_accuracy": null,
+    "cv_std_accuracy": null,
+    "feature_columns": [
+      "model_text",
+      "quantity",
+      "unit_cost_rwf",
+      "total_cost_rwf",
+      "purchase_month",
+      "purchase_weekday"
+    ],
+    "target_column": "category",
+    "uses_sample_weight": true
+  }
+}

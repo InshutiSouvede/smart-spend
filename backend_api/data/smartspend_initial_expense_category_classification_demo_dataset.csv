@@ -1,0 +1,127 @@
+item_name,normalized_item_name,merchant_name,to_who,quantity,unit,unit_cost_rwf,total_cost_rwf,purchase_month,purchase_weekday,category,label_source,training_weight
+Hoima Sugar 50kg,sugar,Muteso Shop Ltd,Muteso Shop Ltd,1,bag,60100,60100,6,Tuesday,Groceries,base_seed,1.0
+Kabuye Sugar 1kg,sugar,Simba Supermarket,Simba Supermarket,2,kg,1800,3600,7,Saturday,Groceries,base_seed,1.0
+Nyungwe Rice 25kg,rice,Frulep Market,Frulep Market,1,bag,28000,28000,1,Monday,Groceries,base_seed,1.0
+Basmati Rice 5kg,rice,Sawa Citi Supermarket,Sawa Citi Supermarket,1,bag,9500,9500,9,Monday,Groceries,base_seed,1.0
+Kawunga Maize Flour 5kg,maize flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,6500,6500,6,Friday,Groceries,base_seed,1.0
+Amandazi Flour 2kg,wheat flour,Duhahire Supermarket,Duhahire Supermarket,1,bag,3000,3000,1,Friday,Groceries,base_seed,1.0
+Sunseed Cooking Oil 5L,cooking oil,Muteso Shop Ltd,Muteso Shop Ltd,1,bottle,12500,12500,4,Monday,Groceries,base_seed,1.0
+Akabanga Chili Oil 20ml,chili oil,Simba Supermarket,Simba Supermarket,2,bottle,1200,2400,2,Thursday,Groceries,base_seed,1.0
+Inyange Milk 1L,milk,Inyange Shop,Inyange Shop,3,carton,1200,3600,7,Monday,Groceries,base_seed,1.0
+Nyanza Dairy Yogurt 500ml,yogurt,Sawa Citi Supermarket,Sawa Citi Supermarket,2,cup,1500,3000,4,Monday,Groceries,base_seed,1.0
+Ikivuguto 500ml,fermented milk,Local Dairy Shop,Local Dairy Shop,2,bottle,1000,2000,9,Thursday,Groceries,base_seed,1.0
+Mizero Bread,bread,Bakery Rwanda,Bakery Rwanda,2,loaf,1500,3000,1,Sunday,Groceries,base_seed,1.0
+Blue Band Margarine 500g,margarine,Simba Supermarket,Simba Supermarket,1,tub,3800,3800,10,Monday,Groceries,base_seed,1.0
+Royco Beef Cubes,seasoning cubes,Mugisha Mini Market,Mugisha Mini Market,1,pack,1200,1200,4,Saturday,Groceries,base_seed,1.0
+Nescafe Classic 100g,instant coffee,Simba Supermarket,Simba Supermarket,1,jar,6500,6500,11,Friday,Groceries,base_seed,1.0
+Rwanda Mountain Tea 100 bags,tea,Sawa Citi Supermarket,Sawa Citi Supermarket,1,box,3500,3500,1,Friday,Groceries,base_seed,1.0
+Rwandan Arabica Coffee 250g,coffee,Bourbon Coffee,Bourbon Coffee,1,pack,5000,5000,10,Thursday,Groceries,base_seed,1.0
+Agashya Passion Juice 1L,juice,Inyange Shop,Inyange Shop,2,bottle,1800,3600,1,Tuesday,Groceries,base_seed,1.0
+Fresh Tomatoes,tomatoes,Kimironko Market,Kimironko Market,3,kg,1500,4500,1,Friday,Groceries,base_seed,1.0
+Irish Potatoes,potatoes,Kimironko Market,Kimironko Market,10,kg,700,7000,3,Wednesday,Groceries,base_seed,1.0
+Green Bananas Matoke,green bananas,Nyabugogo Market,Nyabugogo Market,5,kg,900,4500,7,Tuesday,Groceries,base_seed,1.0
+Beans 5kg,beans,Kimironko Market,Kimironko Market,1,bag,6500,6500,9,Monday,Groceries,base_seed,1.0
+Cassava Flour 2kg,cassava flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,2500,2500,10,Wednesday,Groceries,base_seed,1.0
+Sambaza Fish 1kg,fish,Kimironko Market,Kimironko Market,1,kg,4500,4500,9,Sunday,Groceries,base_seed,1.0
+Beef 1kg,beef,Local Butchery,Local Butchery,1,kg,6000,6000,11,Tuesday,Groceries,base_seed,1.0
+Eggs Tray 30,eggs,Poultry Shop Rwanda,Poultry Shop Rwanda,1,tray,4500,4500,2,Friday,Groceries,base_seed,1.0
+Mineral Water 12 pack,bottled water,Simba Supermarket,Simba Supermarket,1,pack,6000,6000,10,Saturday,Groceries,base_seed,1.0
+Biscuits Family Pack,biscuits,Duhahire Supermarket,Duhahire Supermarket,2,pack,1800,3600,4,Wednesday,Groceries,base_seed,1.0
+Sosoma Porridge Flour 1kg,porridge flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,2200,2200,2,Friday,Groceries,base_seed,1.0
+Ubushera 1L,sorghum drink,Local Food Shop,Local Food Shop,2,bottle,1000,2000,12,Monday,Groceries,base_seed,1.0
+PH Super Toilet Paper 10 rolls,toilet paper,Jabino Company Ltd,Jabino Company Ltd,1,pack,12200,12200,10,Monday,Household,base_seed,1.0
+PH Soft Toilet Paper 4 rolls,toilet paper,Muteso Shop Ltd,Muteso Shop Ltd,2,pack,3500,7000,10,Tuesday,Household,base_seed,1.0
+Safi Toilet Paper 10 rolls,toilet paper,Duhahire Supermarket,Duhahire Supermarket,1,pack,11000,11000,8,Saturday,Household,base_seed,1.0
+Toto Toilet Paper 4 rolls,toilet paper,Simba Supermarket,Simba Supermarket,1,pack,3200,3200,9,Thursday,Household,base_seed,1.0
+Supa Towel Kitchen Roll,kitchen towels,Simba Supermarket,Simba Supermarket,1,roll,2500,2500,6,Thursday,Household,base_seed,1.0
+Omo Washing Powder 1kg,laundry detergent,Simba Supermarket,Simba Supermarket,1,pack,4500,4500,10,Thursday,Household,base_seed,1.0
+Sulfo Soap 1kg,bar soap,Sulfo Rwanda Shop,Sulfo Rwanda Shop,1,pack,2500,2500,6,Wednesday,Household,base_seed,1.0
+Kleesoft Dishwashing Liquid 750ml,dish soap,Muteso Shop Ltd,Muteso Shop Ltd,1,bottle,2800,2800,4,Sunday,Household,base_seed,1.0
+Jik Bleach 1L,bleach,Duhahire Supermarket,Duhahire Supermarket,1,bottle,1800,1800,3,Saturday,Household,base_seed,1.0
+Air Freshener 300ml,air freshener,Simba Supermarket,Simba Supermarket,1,can,3000,3000,4,Monday,Household,base_seed,1.0
+Colgate Toothpaste 100ml,toothpaste,Pharmacy Kigali,Pharmacy Kigali,1,tube,2500,2500,10,Wednesday,Personal Care,base_seed,1.0
+Toothbrush Medium,toothbrush,Pharmacy Kigali,Pharmacy Kigali,2,piece,1200,2400,9,Thursday,Personal Care,base_seed,1.0
+Vaseline Body Lotion 400ml,body lotion,Simba Supermarket,Simba Supermarket,1,bottle,5500,5500,6,Saturday,Personal Care,base_seed,1.0
+Nivea Roll On 50ml,deodorant,Pharmacy Kigali,Pharmacy Kigali,1,bottle,3000,3000,8,Wednesday,Personal Care,base_seed,1.0
+Always Sanitary Pads,sanitary pads,Pharmacy Kigali,Pharmacy Kigali,1,pack,2800,2800,10,Monday,Personal Care,base_seed,1.0
+Baby Diapers Size 4,diapers,Duhahire Supermarket,Duhahire Supermarket,1,pack,9500,9500,2,Friday,Personal Care,base_seed,1.0
+Electricity Token,electricity,EUCL,EUCL,1,token,10000,10000,7,Tuesday,Utilities,base_seed,1.0
+WASAC Water Bill,water bill,WASAC,WASAC,1,bill,8000,8000,6,Tuesday,Utilities,base_seed,1.0
+CanalPlus Subscription,tv subscription,CanalPlus Rwanda,CanalPlus Rwanda,1,month,15000,15000,8,Thursday,Utilities,base_seed,1.0
+DSTV Subscription,tv subscription,DSTV Rwanda,DSTV Rwanda,1,month,20000,20000,1,Saturday,Utilities,base_seed,1.0
+MTN Airtime,airtime,MTN Rwanda,MTN Rwanda,1,topup,2000,2000,2,Sunday,Telecom,base_seed,1.0
+Airtel Airtime,airtime,Airtel Rwanda,Airtel Rwanda,1,topup,2000,2000,9,Friday,Telecom,base_seed,1.0
+MTN Internet Bundle 30GB,internet bundle,MTN Rwanda,MTN Rwanda,1,bundle,10000,10000,6,Wednesday,Telecom,base_seed,1.0
+Airtel Data Bundle 10GB,internet bundle,Airtel Rwanda,Airtel Rwanda,1,bundle,5000,5000,12,Wednesday,Telecom,base_seed,1.0
+Liquid Home Internet,home internet,Liquid Telecom Rwanda,Liquid Telecom Rwanda,1,month,30000,30000,10,Thursday,Telecom,base_seed,1.0
+Bboxx Solar Payment,solar energy,Bboxx Rwanda,Bboxx Rwanda,1,payment,12000,12000,10,Sunday,Utilities,base_seed,1.0
+Petrol Fuel 20L,petrol,Engen Rwanda,Engen Rwanda,20,litre,1800,36000,8,Monday,Transport,base_seed,1.0
+Diesel Fuel 15L,diesel,SP Rwanda,SP Rwanda,15,litre,1750,26250,2,Wednesday,Transport,base_seed,1.0
+Motorcycle Taxi Ride,moto ride,Yego Moto,Yego Moto,1,ride,1500,1500,8,Saturday,Transport,base_seed,1.0
+Taxi Cab Ride,taxi ride,Yego Cab,Yego Cab,1,ride,6000,6000,11,Monday,Transport,base_seed,1.0
+Kigali Bus Fare,bus fare,Tap&Go,Tap&Go,1,trip,500,500,1,Saturday,Transport,base_seed,1.0
+Airport Taxi,airport taxi,Kigali Taxi Service,Kigali Taxi Service,1,trip,18000,18000,12,Wednesday,Transport,base_seed,1.0
+Car Wash,car wash,Kigali Car Wash,Kigali Car Wash,1,service,3000,3000,11,Friday,Transport,base_seed,1.0
+Vehicle Parking,parking,Kigali Parking,Kigali Parking,1,ticket,1000,1000,11,Sunday,Transport,base_seed,1.0
+Engine Oil 5L,engine oil,Auto Parts Kigali,Auto Parts Kigali,1,bottle,18000,18000,8,Wednesday,Transport,base_seed,1.0
+Tyre Repair,tyre repair,Roadside Garage,Roadside Garage,1,service,5000,5000,12,Thursday,Transport,base_seed,1.0
+Lunch Buffet,restaurant meal,Java House Kigali,Java House Kigali,1,meal,12000,12000,11,Wednesday,Dining,base_seed,1.0
+Coffee Latte,coffee drink,Bourbon Coffee,Bourbon Coffee,1,cup,3500,3500,1,Thursday,Dining,base_seed,1.0
+Chicken Brochette,brochette,Chez Lando,Chez Lando,2,plate,4000,8000,6,Tuesday,Dining,base_seed,1.0
+Pizza Large,pizza,Sole Luna,Sole Luna,1,box,14000,14000,10,Monday,Dining,base_seed,1.0
+Burger Meal,burger meal,KFC Kigali,KFC Kigali,1,meal,9000,9000,8,Monday,Dining,base_seed,1.0
+Cinema Ticket,movie ticket,Century Cinema Kigali,Century Cinema Kigali,1,ticket,5000,5000,4,Sunday,Entertainment,base_seed,1.0
+Gym Monthly Membership,gym membership,Waka Fitness,Waka Fitness,1,month,25000,25000,5,Tuesday,Health & Fitness,base_seed,1.0
+Swimming Pool Entry,swimming entry,Hotel Pool Kigali,Hotel Pool Kigali,1,ticket,7000,7000,12,Tuesday,Entertainment,base_seed,1.0
+Football Match Ticket,sports ticket,Amahoro Stadium,Amahoro Stadium,1,ticket,3000,3000,7,Thursday,Entertainment,base_seed,1.0
+Netflix Subscription,streaming subscription,Netflix,Netflix,1,month,6000,6000,8,Monday,Entertainment,base_seed,1.0
+Panadol Tablets,paracetamol,Pharmacy Kigali,Pharmacy Kigali,1,pack,1500,1500,3,Thursday,Healthcare,base_seed,1.0
+Ibuprofen 400mg,ibuprofen,Pharmacy Kigali,Pharmacy Kigali,1,pack,2500,2500,7,Friday,Healthcare,base_seed,1.0
+Cough Syrup 100ml,cough syrup,Pharmacy Kigali,Pharmacy Kigali,1,bottle,4500,4500,5,Tuesday,Healthcare,base_seed,1.0
+Malaria Test,malaria test,Clinic Rwanda,Clinic Rwanda,1,test,5000,5000,7,Sunday,Healthcare,base_seed,1.0
+Consultation Fee,doctor consultation,Clinic Rwanda,Clinic Rwanda,1,visit,15000,15000,9,Wednesday,Healthcare,base_seed,1.0
+Medical Insurance Contribution,medical insurance,RSSB Mutuelle,RSSB Mutuelle,1,payment,3000,3000,12,Thursday,Healthcare,base_seed,1.0
+Glasses Frame,eyeglasses,Optica Rwanda,Optica Rwanda,1,piece,35000,35000,6,Saturday,Healthcare,base_seed,1.0
+Vitamin C Tablets,vitamins,Pharmacy Kigali,Pharmacy Kigali,1,pack,4000,4000,7,Tuesday,Healthcare,base_seed,1.0
+School Fees Term Payment,school fees,SchoolPay Rwanda,SchoolPay Rwanda,1,term,150000,150000,3,Monday,Education,base_seed,1.0
+Exercise Books 96 pages,exercise books,Bookshop Kigali,Bookshop Kigali,10,book,800,8000,3,Tuesday,Education,base_seed,1.0
+Blue Pens Pack,pens,Bookshop Kigali,Bookshop Kigali,1,pack,1500,1500,4,Saturday,Education,base_seed,1.0
+School Uniform Shirt,school uniform,Uniform Shop Kigali,Uniform Shop Kigali,2,piece,8000,16000,4,Monday,Education,base_seed,1.0
+Textbook Mathematics S3,textbook,Bookshop Kigali,Bookshop Kigali,1,book,12000,12000,8,Sunday,Education,base_seed,1.0
+Online Course Subscription,online course,Coursera,Coursera,1,month,25000,25000,10,Tuesday,Education,base_seed,1.0
+Printing Documents,printing,Campus Copy Center,Campus Copy Center,20,page,100,2000,5,Wednesday,Education,base_seed,1.0
+Laptop Bag Student,laptop bag,Bookshop Kigali,Bookshop Kigali,1,piece,15000,15000,1,Tuesday,Education,base_seed,1.0
+Stone 32 Smart TV,smart tv,Danex Solution Ltd,Danex Solution Ltd,1,piece,230000,230000,7,Friday,Electronics,base_seed,1.0
+Samsung Phone Charger,phone charger,Phone House Kigali,Phone House Kigali,1,piece,8000,8000,6,Friday,Electronics,base_seed,1.0
+Tecno Spark Smartphone,smartphone,Phone House Kigali,Phone House Kigali,1,piece,145000,145000,10,Wednesday,Electronics,base_seed,1.0
+Infinix Hot Smartphone,smartphone,Mobile Zone Rwanda,Mobile Zone Rwanda,1,piece,160000,160000,3,Saturday,Electronics,base_seed,1.0
+Bluetooth Speaker,speaker,Danex Solution Ltd,Danex Solution Ltd,1,piece,35000,35000,9,Friday,Electronics,base_seed,1.0
+USB Flash Disk 64GB,usb flash drive,Computer Shop Kigali,Computer Shop Kigali,1,piece,12000,12000,11,Saturday,Electronics,base_seed,1.0
+Laptop Lenovo ThinkPad,laptop,Computer Shop Kigali,Computer Shop Kigali,1,piece,650000,650000,12,Monday,Electronics,base_seed,1.0
+Computer Mouse,mouse,Computer Shop Kigali,Computer Shop Kigali,1,piece,7000,7000,8,Sunday,Electronics,base_seed,1.0
+Earphones,earphones,Phone House Kigali,Phone House Kigali,1,piece,5000,5000,11,Sunday,Electronics,base_seed,1.0
+Power Bank 10000mAh,power bank,Mobile Zone Rwanda,Mobile Zone Rwanda,1,piece,18000,18000,9,Thursday,Electronics,base_seed,1.0
+Jeans Trousers,jeans,Kigali Fashion Shop,Kigali Fashion Shop,1,piece,25000,25000,7,Thursday,Clothing,base_seed,1.0
+T-Shirt Cotton,t-shirt,Kigali Fashion Shop,Kigali Fashion Shop,2,piece,8000,16000,7,Monday,Clothing,base_seed,1.0
+Leather Shoes,shoes,Kigali Fashion Shop,Kigali Fashion Shop,1,pair,45000,45000,8,Saturday,Clothing,base_seed,1.0
+Sneakers,sneakers,Sportswear Rwanda,Sportswear Rwanda,1,pair,55000,55000,7,Monday,Clothing,base_seed,1.0
+Dress,dress,Kigali Fashion Shop,Kigali Fashion Shop,1,piece,30000,30000,4,Monday,Clothing,base_seed,1.0
+Umushanana Fabric,traditional fabric,Textile Market Kigali,Textile Market Kigali,1,piece,50000,50000,4,Thursday,Clothing,base_seed,1.0
+Tailoring Service,tailoring,Local Tailor,Local Tailor,1,service,20000,20000,3,Monday,Clothing,base_seed,1.0
+School Shoes,school shoes,Uniform Shop Kigali,Uniform Shop Kigali,1,pair,18000,18000,6,Friday,Clothing,base_seed,1.0
+Rent Payment,rent,Landlord,Landlord,1,month,250000,250000,1,Monday,Housing,base_seed,1.0
+Cement 50kg,cement,Hardware Shop Kigali,Hardware Shop Kigali,5,bag,13500,67500,1,Friday,Home Improvement,base_seed,1.0
+Paint 20L,paint,Hardware Shop Kigali,Hardware Shop Kigali,1,bucket,55000,55000,3,Friday,Home Improvement,base_seed,1.0
+PVC Pipe 3m,pvc pipe,Hardware Shop Kigali,Hardware Shop Kigali,4,piece,3500,14000,2,Wednesday,Home Improvement,base_seed,1.0
+Light Bulb LED,light bulb,Hardware Shop Kigali,Hardware Shop Kigali,4,piece,2500,10000,10,Monday,Home Improvement,base_seed,1.0
+Extension Cable,extension cable,Hardware Shop Kigali,Hardware Shop Kigali,1,piece,10000,10000,2,Sunday,Home Improvement,base_seed,1.0
+Door Lock,door lock,Hardware Shop Kigali,Hardware Shop Kigali,1,piece,18000,18000,4,Friday,Home Improvement,base_seed,1.0
+Cleaning Service,cleaning service,Home Services Kigali,Home Services Kigali,1,service,20000,20000,7,Tuesday,Housing,base_seed,1.0
+Bank Transfer Fee,bank fee,Bank of Kigali,Bank of Kigali,1,fee,500,500,11,Wednesday,Financial Services,base_seed,1.0
+Mobile Money Fee,momo fee,MTN Mobile Money,MTN Mobile Money,1,fee,250,250,6,Friday,Financial Services,base_seed,1.0
+Loan Repayment,loan repayment,Bank of Kigali,Bank of Kigali,1,payment,50000,50000,6,Thursday,Financial Services,base_seed,1.0
+Church Offering,offering,Church,Church,1,donation,5000,5000,2,Monday,Donations,base_seed,1.0
+Wedding Contribution,wedding contribution,Mobile Money Transfer,Mobile Money Transfer,1,contribution,20000,20000,8,Thursday,Gifts & Donations,base_seed,1.0
+Birthday Gift,gift,Gift Shop Kigali,Gift Shop Kigali,1,piece,15000,15000,8,Thursday,Gifts & Donations,base_seed,1.0
+Haircut,haircut,Barber Shop Kigali,Barber Shop Kigali,1,service,3000,3000,5,Monday,Personal Care,base_seed,1.0
+Hair Braiding,hair braiding,Salon Kigali,Salon Kigali,1,service,25000,25000,3,Monday,Personal Care,base_seed,1.0

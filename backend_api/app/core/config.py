@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str | None = None
     jwt_algorithm: str = "HS256"
 
-    # CORS
+    # CORS — use JSON array format in .env: ["url1","url2"]
     cors_origins: List[str] = [
         "http://localhost:3000",
         "http://localhost:8081",
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ]
     cors_allow_credentials: bool = False
 
-    # File uploads
+    # File uploads — use JSON array format in .env: [".jpg",".png"]
     max_upload_size_mb: int = 10
     allowed_upload_extensions: List[str] = [".jpg", ".jpeg", ".png", ".pdf", ".webp"]
 
@@ -46,10 +46,11 @@ class Settings(BaseSettings):
     # ML
     min_corrections_for_retraining: int = 5
 
-    model_config = {
-        "env_file": ".env",
-        "extra": "ignore",
-    }
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        protected_namespaces=("settings_",),
+    )
 
 
 settings = Settings()

@@ -105,10 +105,14 @@ Open and run all cells in **`01_categorisation_model.ipynb`**.
 
 This notebook:
 1. Loads `smartspend_initial_synthetic_momo_sms_dataset.csv`
-2. Filters to OUTGOING transactions and builds TF-IDF features from the `description` column
+2. Filters to OUTGOING transactions and concatenates the text columns (description, counterpart, etc.) into a single `model_text` column for TF-IDF
 3. Runs 5-fold stratified cross-validation and reports accuracy, precision, recall, F1
 4. Evaluates on a hold-out test set and prints a confusion matrix
 5. Retrains on the full dataset and saves the pipeline to `../backend_api/storage/models/smartspend_category_model.joblib`
+
+> **Column-name note:** The saved scikit-learn pipeline expects a DataFrame with a column named `model_text` (the TF-IDF input column). The backend's serving code (`model_service.py`) and retraining code (`retraining_service.py`) both use `CATEGORY_TEXT_COL = "model_text"` to match this.
+
+> **Backend retraining dataset:** When a user triggers retraining via the API, the backend uses `backend_api/data/smartspend_initial_expense_category_classification_demo_dataset.csv` as the cold-start seed, not the SMS dataset. This file contains purchase-detail records (`item_name`, `merchant_name`, etc.) that match the schema produced by the OCR receipt parser.
 
 ### Step 2 — Train the prediction models
 
@@ -116,11 +120,13 @@ Open and run all cells in **`02_prediction_model.ipynb`**.
 
 This notebook:
 1. Loads `smartspend_initial_synthetic_prediction_demo_dataset.csv`
-2. Builds the 15-feature matrix matching `PRED_FEATURES` in the backend service
+2. Builds the 15-feature matrix: `day_of_month`, `income_received_to_date`, `expense_to_date`, `historical_monthly_income_avg`, `historical_monthly_expense_avg`, and the 10 per-category running totals (`food_dining_to_date` … `personal_transfer_to_date`)
 3. Trains and evaluates the expense XGBoost model (MAE, RMSE, R²) with feature importance chart
 4. Trains and evaluates the income XGBoost model
 5. Demonstrates the overspend risk score formula
 6. Saves both models to `../backend_api/storage/models/`
+
+> **Feature consistency:** The 15 feature names used in the notebook must exactly match `PREDICTION_FEATURES` in `backend_api/app/services/model_service.py`. Any mismatch will cause a `feature_names mismatch` error at inference time.
 
 Both notebooks must be run before starting the backend for the first time.
 
