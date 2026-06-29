@@ -350,17 +350,34 @@ def list_transactions(
 
 @router.get(
     "/unmatched",
-    response_model=list[SMSTransactionOut],
+    response_model=SMSTransactionListResponse,
     summary="List expense transactions awaiting purchase detail clarification",
 )
 def list_unmatched(
-    user_id: str = Depends(get_current_user_id),
-) -> list[dict]:
+    page:      int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    user_id:   str = Depends(get_current_user_id),
+) -> SMSTransactionListResponse:
     """
     Returns expense SMS transactions that have no linked purchase_details.
     Each item includes a `clarification_prompt` for the user.
     """
+    offset = (page - 1) * page_size
     with get_db() as conn:
+        total = conn.execute(
+            """
+            SELECT COUNT(*) FROM sms_transactions st
+            WHERE st.user_id = ?
+              AND st.transaction_type = 'expense'
+              AND NOT EXISTS (
+                  SELECT 1 FROM transaction_purchase_matches tpm
+                  WHERE tpm.sms_transaction_id = st.id
+                    AND tpm.match_status NOT IN ('unmatched', 'rejected')
+              )
+            """,
+            (user_id,),
+        ).fetchone()[0]
+
         rows = conn.execute(
             """
             SELECT st.*
@@ -373,12 +390,12 @@ def list_unmatched(
                     AND tpm.match_status NOT IN ('unmatched', 'rejected')
               )
             ORDER BY st.transaction_time DESC
-            LIMIT 100
+            LIMIT ? OFFSET ?
             """,
-            (user_id,),
+            (user_id, page_size, offset),
         ).fetchall()
 
-    return [
+    items = [
         SMSTransactionOut(
             id=r["id"],
             transaction_type=r["transaction_type"],
@@ -396,6 +413,10 @@ def list_unmatched(
         )
         for r in rows
     ]
+    return SMSTransactionListResponse(
+        items=items, total=total, page=page,
+        page_size=page_size, has_next=(offset + page_size) < total,
+    )
 
 
 # â”€â”€â”€ POST /transactions/{sms_id}/prompt-response â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

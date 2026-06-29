@@ -150,6 +150,26 @@ CREATE TABLE IF NOT EXISTS retraining_jobs (
     completed_at        TEXT,
     error_message       TEXT
 );
+
+-- Versioned record of every trained model artifact per user
+CREATE TABLE IF NOT EXISTS model_versions (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id             TEXT    NOT NULL,
+    model_type          TEXT    NOT NULL
+                        CHECK(model_type IN (
+                            'expense_category',
+                            'monthly_expense_forecast',
+                            'monthly_income_forecast'
+                        )),
+    version             INTEGER NOT NULL DEFAULT 1,
+    model_path          TEXT    NOT NULL,
+    metrics_json        TEXT,
+    training_rows_count INTEGER,
+    is_active           INTEGER NOT NULL DEFAULT 1
+                        CHECK(is_active IN (0, 1)),
+    retraining_job_id   INTEGER REFERENCES retraining_jobs(id),
+    created_at          TEXT    DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 _SCHEMA_INDEXES = """
@@ -186,6 +206,10 @@ CREATE INDEX IF NOT EXISTS idx_retraining_jobs_user_id
     ON retraining_jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_retraining_jobs_status
     ON retraining_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_model_versions_user_type
+    ON model_versions(user_id, model_type);
+CREATE INDEX IF NOT EXISTS idx_model_versions_active
+    ON model_versions(user_id, model_type, is_active);
 """
 
 # Joins expense SMS → matches → purchase details → categories into one queryable surface.

@@ -23,6 +23,24 @@ class RegisterResponse(BaseModel):
     auth_mode: str
 
 
+class LoginRequest(BaseModel):
+    email: str = Field(
+        ...,
+        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        description="User email address.",
+    )
+    password: str = Field(..., min_length=8, max_length=128, description="Account password.")
+
+
+class LoginResponse(BaseModel):
+    user_id: str
+    email: str
+    display_name: Optional[str] = None
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+    auth_mode: str
+
+
 class UserProfile(BaseModel):
     user_id: str
     email: Optional[str] = None
@@ -168,6 +186,14 @@ class ReceiptSummary(BaseModel):
     uploaded_at: Optional[str] = None
 
 
+class ReceiptListResponse(BaseModel):
+    items: List[ReceiptSummary]
+    total: int
+    page: int
+    page_size: int
+    has_next: bool
+
+
 # ─── Categorisation schemas ───────────────────────────────────────────────────
 
 class CategoryListResponse(BaseModel):
@@ -260,11 +286,15 @@ class IncomeForecastRequest(BaseModel):
 
 
 class ExpenseForecastResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     predicted_month_end_expense: float
     model_scope: str
 
 
 class IncomeForecastResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     predicted_month_end_income: float
     model_scope: str
 

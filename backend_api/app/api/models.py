@@ -69,12 +69,13 @@ def categorize(
     Run the expense_category model on a set of item-level features.
     Returns the predicted category and confidence score.
     """
-    features = payload.dict(exclude_none=False)
+    features = payload.model_dump()
     result   = model_service.categorize(user_id, features)
     return CategorizeResponse(
         category=result["category"],
         confidence=result["confidence"],
-        model_type="expense_category",
+        probabilities=result["probabilities"],
+        model_scope=result["model_scope"],
     )
 
 
@@ -90,7 +91,7 @@ def forecast_expense(
     user_id: str = Depends(get_current_user_id),
 ) -> ExpenseForecastResponse:
     """Run the monthly_expense_forecast model and return the predicted month-end total."""
-    result = model_service.forecast_expense(user_id, payload.dict())
+    result = model_service.forecast_expense(user_id, payload.model_dump())
     return ExpenseForecastResponse(**result)
 
 
@@ -106,7 +107,7 @@ def forecast_income(
     user_id: str = Depends(get_current_user_id),
 ) -> IncomeForecastResponse:
     """Run the monthly_income_forecast model and return the predicted month-end total."""
-    result = model_service.forecast_income(user_id, payload.dict())
+    result = model_service.forecast_income(user_id, payload.model_dump())
     return IncomeForecastResponse(**result)
 
 

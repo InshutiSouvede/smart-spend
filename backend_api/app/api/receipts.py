@@ -2,13 +2,13 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from app.core.auth import get_current_user_id
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import ConsentRequiredError
-from app.schemas.schemas import PurchaseDetailOut, ReceiptSummary, ReceiptUploadOut
+from app.schemas.schemas import PurchaseDetailOut, ReceiptListResponse, ReceiptSummary, ReceiptUploadOut
 from app.services.model_service import model_service, run_category_prediction
 from app.services.ocr_service import (
     extract_text_from_receipt,
@@ -234,12 +234,22 @@ async def upload_receipt(
 
 @router.get(
     "/",
-    response_model=list[ReceiptSummary],
+    response_model=ReceiptListResponse,
     summary="List uploaded receipts",
 )
-def list_receipts(user_id: str = Depends(get_current_user_id)) -> list[dict]:
-    """Return a summary list of all receipts uploaded by the current user."""
+def list_receipts(
+    page:      int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    user_id:   str = Depends(get_current_user_id),
+) -> ReceiptListResponse:
+    """Return a paginated summary list of all receipts uploaded by the current user."""
+    offset = (page - 1) * page_size
     with get_db() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM receipt_uploads WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
         rows = conn.execute(
             """
             SELECT ru.id AS receipt_id, ru.ocr_status, ru.extraction_status, ru.uploaded_at,
@@ -250,10 +260,18 @@ def list_receipts(user_id: str = Depends(get_current_user_id)) -> list[dict]:
             WHERE ru.user_id = ?
             GROUP BY ru.id
             ORDER BY ru.uploaded_at DESC
+            LIMIT ? OFFSET ?
             """,
-            (user_id,),
+            (user_id, page_size, offset),
         ).fetchall()
-    return [dict(r) for r in rows]
+
+    return ReceiptListResponse(
+        items=[ReceiptSummary(**dict(r)) for r in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+        has_next=(offset + page_size) < total,
+    )
 
 
 @router.get(
