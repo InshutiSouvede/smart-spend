@@ -11,5 +11,8 @@ scikit-learn==1.5.0
 xgboost==2.0.3
 joblib==1.4.2
 python-dotenv==1.0.1
-# Optional — enable when GOOGLE_VISION_ENABLED=true
-# google-cloud-vision==3.7.2
+# Image processing (resize before OCR, magic-byte validation)
+Pillow>=10.0.0
+# PaddleOCR — install separately (large binary, ~1 GB):
+#   pip install paddlepaddle paddleocr
+# Then set PADDLE_OCR_ENABLED=true in .env (default: true, falls back to mock if not installed)

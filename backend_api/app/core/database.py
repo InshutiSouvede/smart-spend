@@ -278,6 +278,20 @@ def _run_migrations(conn) -> None:
         )
         logger.info("Migration: added sms_transactions.currency")
 
+    # receipt_uploads: receipt-level OCR metadata + match state
+    _receipt_cols = [
+        ("merchant_name",    "TEXT"),
+        ("total_amount_rwf", "REAL"),
+        ("receipt_timestamp","TEXT"),
+        ("matched_sms_id",   "INTEGER"),
+        ("match_confidence", "REAL"),
+        ("match_status",     "TEXT DEFAULT 'unmatched'"),
+    ]
+    for col, defn in _receipt_cols:
+        if not _has_column("receipt_uploads", col):
+            conn.execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {defn}")  # noqa: S608
+            logger.info("Migration: added receipt_uploads.%s", col)
+
 
 @contextmanager
 def get_db():

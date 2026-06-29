@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 .env
 smartspend.db
-storage/uploads/*
-storage/user_models/*
-storage/retraining_jobs/*
+# Ignore all upload contents recursively (user receipt images, etc.)
+storage/uploads/**
+!storage/uploads/.gitkeep
+storage/user_models/**
+!storage/user_models/.gitkeep
+storage/retraining_jobs/**
+!storage/retraining_jobs/.gitkeep

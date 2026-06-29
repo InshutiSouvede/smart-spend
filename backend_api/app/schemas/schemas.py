@@ -201,11 +201,22 @@ class UserPromptResponse(BaseModel):
 
 # ─── Receipt schemas ──────────────────────────────────────────────────────────
 
+class ReceiptMatchOut(BaseModel):
+    """Current match state for a receipt."""
+    matched_sms_id: Optional[int] = None
+    match_confidence: Optional[float] = None
+    match_status: str = "unmatched"
+
+
 class ReceiptUploadOut(BaseModel):
     receipt_id: int
     ocr_status: str
     extraction_status: str
     ocr_mode: Optional[str] = None
+    merchant_name: Optional[str] = None
+    total_amount_rwf: Optional[float] = None
+    receipt_timestamp: Optional[str] = None
+    match: Optional[ReceiptMatchOut] = None
     purchase_details: List[PurchaseDetailOut] = []
     uploaded_at: Optional[str] = None
 
@@ -214,6 +225,12 @@ class ReceiptSummary(BaseModel):
     receipt_id: int
     ocr_status: str
     extraction_status: str
+    merchant_name: Optional[str] = None
+    total_amount_rwf: Optional[float] = None
+    receipt_timestamp: Optional[str] = None
+    match_status: str = "unmatched"
+    match_confidence: Optional[float] = None
+    matched_sms_id: Optional[int] = None
     item_count: int = 0
     uploaded_at: Optional[str] = None
 
@@ -224,6 +241,19 @@ class ReceiptListResponse(BaseModel):
     page: int
     page_size: int
     has_next: bool
+
+
+class ReceiptLinkRequest(BaseModel):
+    """Body for POST /receipts/{id}/link — manually match a receipt to an SMS transaction."""
+    sms_transaction_id: int
+
+
+class ReceiptManualLinkOut(BaseModel):
+    """Result of a manual or confirmed receipt ↔ SMS link operation."""
+    receipt_id: int
+    sms_transaction_id: int
+    match_confidence: Optional[float] = None
+    match_status: str
 
 
 # ─── Categorisation schemas ───────────────────────────────────────────────────

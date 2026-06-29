@@ -39,9 +39,14 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
     allowed_upload_extensions: List[str] = [".jpg", ".jpeg", ".png", ".pdf", ".webp"]
 
-    # OCR
-    google_vision_enabled: bool = False
-    google_application_credentials: str | None = None
+    # OCR — PaddleOCR runs locally; no API key required.
+    # Install: pip install paddlepaddle paddleocr  (then set PADDLE_OCR_ENABLED=true)
+    paddle_ocr_enabled: bool = True
+
+    # Receipt-to-SMS matching thresholds
+    receipt_match_amount_tolerance: float = 0.10   # max fractional amount diff (10 %)
+    receipt_match_time_window_seconds: int = 7200  # 2 h — time diff at which time_score → 0
+    receipt_match_min_confidence: float = 0.65     # scores below this are not auto-matched
 
     # ML
     min_corrections_for_retraining: int = 5
