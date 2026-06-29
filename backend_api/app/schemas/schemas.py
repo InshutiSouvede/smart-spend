@@ -101,6 +101,8 @@ class SMSTransactionOut(BaseModel):
     transaction_time: Optional[str] = None
     transaction_reference: Optional[str] = None
     parse_confidence: float = 1.0
+    provider: Optional[str] = None        # 'MTN', 'Airtel', or None
+    currency: str = "RWF"
     created_at: Optional[str] = None
     # Populated for expense transactions — null if no purchase details linked yet
     purchase_details: Optional[List["PurchaseDetailOut"]] = None
@@ -115,6 +117,36 @@ class SMSTransactionListResponse(BaseModel):
     page: int
     page_size: int
     has_next: bool
+
+
+class SMSSyncFailedItem(BaseModel):
+    """An SMS that could not be parsed into a recognised transaction format."""
+    index: int                        # position in the original request array
+    sender: Optional[str] = None
+    sms_time: Optional[str] = None
+    raw_sms_hash: str                 # SHA-256 of raw text for client-side reference
+    reason: str
+
+
+class SMSSyncSensitiveWarning(BaseModel):
+    """An SMS flagged for containing security-sensitive keywords."""
+    index: int                        # position in the original request array
+    sender: Optional[str] = None
+    sms_time: Optional[str] = None
+    sensitive_flags: List[str]        # matched sensitive keyword hints
+    message: str = (
+        "This message appears to contain security-sensitive information "
+        "(e.g. a passcode or OTP) and was not stored. Please review it manually."
+    )
+
+
+class SMSSyncResponse(BaseModel):
+    """Full result of a POST /transactions/sms/sync call."""
+    imported: List[SMSTransactionOut]
+    duplicates_skipped: int
+    failed: List[SMSSyncFailedItem]
+    sensitive_warnings: List[SMSSyncSensitiveWarning]
+    last_import_at: Optional[str] = None   # ISO-8601 UTC of this import batch
 
 
 # ─── Purchase detail schemas ──────────────────────────────────────────────────

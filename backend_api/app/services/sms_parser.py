@@ -8,9 +8,9 @@ and register it in the _PARSERS list in priority order.
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 
 # ─── Result dataclass ──────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ class ParsedTransaction:
     raw_sms_hash:          str        # SHA-256 of raw_sms_text for deduplication
     sms_time:              str        # when SMS was received (ISO-8601 UTC)
     transaction_time:      str        # when transaction occurred (ISO-8601 UTC)
-    transaction_type:      str        # 'income' or 'expense'
+    transaction_type:      str        # 'income' or 'expense' or 'unknown' (parse failure)
     amount_rwf:            float
     fee_rwf:               float
     balance_after_rwf:     Optional[float]
@@ -29,6 +29,65 @@ class ParsedTransaction:
     from_who:              Optional[str]   # counterpart for income transactions
     transaction_reference: Optional[str]  # MM/FT/TxId reference for deduplication
     parse_confidence:      float
+    # Fields with defaults must come last
+    provider:              Optional[str] = None   # 'MTN' or 'Airtel' or None
+    currency:              str = "RWF"
+    sensitive_flags:       List[str] = field(default_factory=list)
+
+
+# ─── Sensitive keyword detection ─────────────────────────────────────────────
+
+# Keywords that hint at authentication or security-sensitive content.
+# Messages containing any of these should be flagged for user review and
+# NOT stored or processed automatically.
+SENSITIVE_KEYWORDS: List[str] = [
+    "passcode",
+    "password",
+    " pin ",
+    "your pin",
+    "enter pin",
+    "otp",
+    "one-time",
+    "one time",
+    "verification code",
+    "security code",
+    "authentication code",
+    "temporary code",
+    "reset code",
+    "don't share",
+    "do not share",
+    "never share",
+    "2fa",
+    "two-factor",
+]
+
+
+def detect_sensitive_flags(text: str) -> List[str]:
+    """
+    Scan SMS text for sensitive keyword hints.
+
+    Returns a list of matched keyword strings (lower-cased).  An empty list
+    means the message contains no recognised sensitive terms.
+    """
+    lower = text.lower()
+    return [kw for kw in SENSITIVE_KEYWORDS if kw in lower]
+
+
+# ─── Provider detection ────────────────────────────────────────────────────────
+
+_RE_MTN_SENDER  = re.compile(r"\bm[.-]?money\b|\bmtn\b", re.I)
+_RE_MTN_TEXT    = re.compile(r"\*16[45]\*|Y'ello", re.I)
+_RE_AIRTEL      = re.compile(r"\bairtel\b|\bairteltigo\b", re.I)
+
+
+def _detect_provider(sender: Optional[str], text: str) -> Optional[str]:
+    """Infer the mobile money provider from the sender name and/or SMS text."""
+    combined = f"{sender or ''} {text}"
+    if _RE_MTN_SENDER.search(combined) or _RE_MTN_TEXT.search(combined):
+        return "MTN"
+    if _RE_AIRTEL.search(combined):
+        return "Airtel"
+    return None
 
 
 # ─── Shared helper functions ───────────────────────────────────────────────────
@@ -379,33 +438,39 @@ _PARSERS: list[Callable[[str], Optional[ParsedTransaction]]] = [
 
 # ─── Public API ────────────────────────────────────────────────────────────────
 
-def parse_momo_sms(raw_sms: str) -> ParsedTransaction:
+def parse_momo_sms(raw_sms: str, sender: Optional[str] = None) -> ParsedTransaction:
     """
     Parse a raw Mobile Money SMS string into a structured ParsedTransaction.
 
-    Tries each registered parser in priority order. Returns an expense of 0 RWF
-    if no pattern matches, preserving the raw text for manual review.
+    Tries each registered parser in priority order.  When no pattern matches,
+    returns a result with ``parse_confidence=0.0`` and
+    ``transaction_type='unknown'`` so callers can route the message to the
+    failed-parse bucket without silently discarding it.
 
     Args:
         raw_sms: Raw SMS text as received on the Android device.
+        sender:  Optional sender name/address from the device (used for
+                 provider detection).
 
     Returns:
         A fully populated ParsedTransaction dataclass instance.
     """
     text = raw_sms.strip()
+    provider = _detect_provider(sender, text)
     for parser in _PARSERS:
         result = parser(text)
         if result is not None:
+            result.provider = provider
             return result
 
-    # Fallback: no pattern matched — store as unrecognised expense for manual review
+    # Fallback: no pattern matched — return unrecognised marker for caller to handle
     amount = _best_effort_amount(text)
     return ParsedTransaction(
         raw_sms_text=text,
         raw_sms_hash=_compute_hash(text),
         sms_time=_now_iso(),
         transaction_time=_extract_datetime(text),
-        transaction_type="expense",
+        transaction_type="unknown",
         amount_rwf=amount,
         fee_rwf=0.0,
         balance_after_rwf=_extract_balance(text),
@@ -413,6 +478,7 @@ def parse_momo_sms(raw_sms: str) -> ParsedTransaction:
         from_who=None,
         transaction_reference=_extract_transaction_reference(text),
         parse_confidence=0.0,
+        provider=provider,
     )
 
 

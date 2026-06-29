@@ -11,13 +11,16 @@ from app.schemas.schemas import (
     CategoryCorrectionRequest,
     RetrainResponse,
     SMSIngestRequest,
+    SMSSyncFailedItem,
+    SMSSyncResponse,
+    SMSSyncSensitiveWarning,
     SMSTransactionListResponse,
     SMSTransactionOut,
     UserPromptResponse,
 )
 from app.services.model_service import model_service, run_category_prediction
 from app.services.retraining_service import create_job, retrain_category_model
-from app.services.sms_parser import parse_momo_sms
+from app.services.sms_parser import detect_sensitive_flags, parse_momo_sms
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -142,35 +145,87 @@ def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> No
 
 @router.post(
     "/sms/sync",
-    response_model=list[SMSTransactionOut],
-    summary="Parse and store MoMo SMS messages",
+    response_model=SMSSyncResponse,
+    summary="Parse and store confirmed MoMo SMS messages",
 )
 def sync_sms(
     payload: SMSIngestRequest,
     user_id: str = Depends(get_current_user_id),
-) -> list[dict]:
+) -> SMSSyncResponse:
     """
-    Parse a batch of MTN MoMo or Airtel Money SMS messages and persist
-    them as structured sms_transactions records.
+    Accept a user-confirmed batch of MTN MoMo or Airtel Money SMS messages,
+    parse them into structured transactions, and persist them.
 
-    - SMS is deduplicated by transaction_reference when present; otherwise by
-      raw_sms_hash + transaction_time + amount_rwf.
-    - Expense transactions are auto-matched to existing purchase_details by
-      amount and time proximity.
-    - Unmatched expenses are flagged with a clarification_prompt.
-    - Income transactions are stored for income analytics/forecasting.
+    **Deduplication** (checked in order):
+    1. ``source_message_id`` (device-side ID, if provided)
+    2. ``transaction_reference`` (MM/FT/TxId from the SMS text)
+    3. Hash + transaction time + amount (fallback when no reference is present)
+
+    **Response buckets**:
+    - ``imported`` — parsed and stored successfully
+    - ``duplicates_skipped`` — already in the database (count only)
+    - ``failed`` — no matching pattern; not stored; returned for manual review
+    - ``sensitive_warnings`` — contained security-sensitive keywords; not stored
     """
     if not payload.consent_confirmed:
         raise ConsentRequiredError()
 
-    created: list[dict] = []
-    months_touched: set[tuple] = set()
+    imported:           list[dict]                    = []
+    duplicates_skipped: int                           = 0
+    failed:             list[SMSSyncFailedItem]       = []
+    sensitive_warnings: list[SMSSyncSensitiveWarning] = []
+    months_touched:     set[tuple]                   = set()
 
     with get_db() as conn:
-        for msg in payload.messages:
-            parsed = parse_momo_sms(msg.raw_sms_text)
+        for idx, msg in enumerate(payload.messages):
 
-            # â”€â”€ Deduplication by transaction_reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── 1. Sensitive keyword check ─────────────────────────────────────
+            flags = detect_sensitive_flags(msg.raw_sms_text)
+            if flags:
+                sensitive_warnings.append(
+                    SMSSyncSensitiveWarning(
+                        index=idx,
+                        sender=msg.sender,
+                        sms_time=msg.sms_time,
+                        sensitive_flags=flags,
+                    )
+                )
+                logger.warning(
+                    "SMS #%d from '%s' flagged as sensitive (%s); not stored.",
+                    idx, msg.sender, flags,
+                )
+                continue
+
+            # ── 2. Parse ───────────────────────────────────────────────────────
+            parsed = parse_momo_sms(msg.raw_sms_text, sender=msg.sender)
+
+            # ── 3. Failed parse ────────────────────────────────────────────────
+            if parsed.parse_confidence == 0.0:
+                failed.append(
+                    SMSSyncFailedItem(
+                        index=idx,
+                        sender=msg.sender,
+                        sms_time=msg.sms_time,
+                        raw_sms_hash=parsed.raw_sms_hash,
+                        reason="No matching pattern found for this SMS format.",
+                    )
+                )
+                logger.debug("SMS #%d from '%s' could not be parsed.", idx, msg.sender)
+                continue
+
+            # ── 4a. Dedup by source_message_id ─────────────────────────────────
+            if msg.source_message_id:
+                existing = conn.execute(
+                    "SELECT id FROM sms_transactions"
+                    " WHERE user_id = ? AND source_message_id = ?",
+                    (user_id, msg.source_message_id),
+                ).fetchone()
+                if existing:
+                    duplicates_skipped += 1
+                    logger.debug("Skipping dup source_message_id=%s", msg.source_message_id)
+                    continue
+
+            # ── 4b. Dedup by transaction_reference ──────────────────────────────
             if parsed.transaction_reference:
                 existing = conn.execute(
                     "SELECT id FROM sms_transactions"
@@ -178,29 +233,35 @@ def sync_sms(
                     (user_id, parsed.transaction_reference),
                 ).fetchone()
                 if existing:
+                    duplicates_skipped += 1
                     logger.debug("Skipping duplicate ref=%s", parsed.transaction_reference)
                     continue
             else:
-                # Fallback dedup: hash + time + amount
+                # -- 4c. Fallback dedup: hash + time + amount -----------------
                 existing = conn.execute(
                     "SELECT id FROM sms_transactions"
                     " WHERE user_id = ? AND raw_sms_hash = ?"
                     "   AND transaction_time = ? AND amount_rwf = ?",
-                    (user_id, parsed.raw_sms_hash,
-                     parsed.transaction_time, parsed.amount_rwf),
+                    (
+                        user_id, parsed.raw_sms_hash,
+                        parsed.transaction_time, parsed.amount_rwf,
+                    ),
                 ).fetchone()
                 if existing:
+                    duplicates_skipped += 1
                     logger.debug("Skipping duplicate by hash/time/amount")
                     continue
 
+            # -- 5. Persist ---------------------------------------------------
             cursor = conn.execute(
                 """
                 INSERT INTO sms_transactions (
                     user_id, source_message_id, sender, raw_sms_text, raw_sms_hash,
                     sms_time, transaction_time, transaction_type,
                     amount_rwf, fee_rwf, balance_after_rwf,
-                    to_who, from_who, transaction_reference, parse_confidence
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    to_who, from_who, transaction_reference, parse_confidence,
+                    provider, currency
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -218,11 +279,12 @@ def sync_sms(
                     parsed.from_who,
                     parsed.transaction_reference,
                     parsed.parse_confidence,
+                    parsed.provider,
+                    parsed.currency,
                 ),
             )
             sms_id = cursor.lastrowid
 
-            # Track month for aggregate refresh
             if parsed.transaction_time:
                 try:
                     dt = datetime.fromisoformat(parsed.transaction_time[:10])
@@ -241,13 +303,15 @@ def sync_sms(
                 "transaction_time":      parsed.transaction_time,
                 "transaction_reference": parsed.transaction_reference,
                 "parse_confidence":      parsed.parse_confidence,
+                "provider":              parsed.provider,
+                "currency":              parsed.currency,
                 "created_at":            None,
                 "purchase_details":      None,
                 "match_status":          None,
                 "clarification_prompt":  None,
             }
 
-            # â”€â”€ Expense: attempt auto-match to purchase_details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # -- 6. Expense: attempt auto-match to purchase_details -----------
             if parsed.transaction_type == "expense":
                 matched_pd_ids = _try_auto_match(
                     conn, user_id, sms_id,
@@ -264,17 +328,34 @@ def sync_sms(
                         )
                     row_out["match_status"] = "auto_matched"
                 else:
-                    row_out["match_status"]         = "unmatched"
-                    row_out["clarification_prompt"]  = _build_clarification_prompt(row_out)
+                    row_out["match_status"]        = "unmatched"
+                    row_out["clarification_prompt"] = _build_clarification_prompt(row_out)
 
-            created.append(row_out)
+            imported.append(row_out)
 
-        # â”€â”€ Refresh monthly aggregates for all touched months â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # -- 7. Refresh monthly aggregates ------------------------------------
         for (yr, mo) in months_touched:
             _rebuild_monthly_aggregates(conn, user_id, yr, mo)
 
-    logger.info("Synced %d SMS(es) for user '%s'.", len(created), user_id)
-    return created
+        # -- 8. Record last successful import timestamp -----------------------
+        now_iso = datetime.now(timezone.utc).isoformat()
+        if imported:
+            conn.execute(
+                "UPDATE users SET last_sms_import_at = ? WHERE id = ?",
+                (now_iso, user_id),
+            )
+
+    logger.info(
+        "SMS sync for user '%s': %d imported, %d skipped, %d failed, %d sensitive.",
+        user_id, len(imported), duplicates_skipped, len(failed), len(sensitive_warnings),
+    )
+    return SMSSyncResponse(
+        imported=[SMSTransactionOut(**r) for r in imported],
+        duplicates_skipped=duplicates_skipped,
+        failed=failed,
+        sensitive_warnings=sensitive_warnings,
+        last_import_at=now_iso if imported else None,
+    )
 
 
 # â”€â”€â”€ GET /transactions/ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -336,6 +417,8 @@ def list_transactions(
             transaction_time=d.get("transaction_time"),
             transaction_reference=d.get("transaction_reference"),
             parse_confidence=d.get("parse_confidence", 1.0),
+            provider=d.get("provider"),
+            currency=d.get("currency", "RWF"),
             created_at=d.get("created_at"),
         )
         items.append(tx_out)
@@ -407,6 +490,8 @@ def list_unmatched(
             transaction_time=r.get("transaction_time"),
             transaction_reference=r.get("transaction_reference"),
             parse_confidence=r.get("parse_confidence", 1.0),
+            provider=r.get("provider"),
+            currency=r.get("currency", "RWF"),
             created_at=r.get("created_at"),
             match_status="unmatched",
             clarification_prompt=_build_clarification_prompt(dict(r)),

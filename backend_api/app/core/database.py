@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 
 _SCHEMA_TABLES = """
 CREATE TABLE IF NOT EXISTS users (
-    id           TEXT PRIMARY KEY,
-    email        TEXT UNIQUE NOT NULL,
-    display_name TEXT,
-    created_at   TEXT DEFAULT CURRENT_TIMESTAMP
+    id                 TEXT PRIMARY KEY,
+    email              TEXT UNIQUE NOT NULL,
+    display_name       TEXT,
+    last_sms_import_at TEXT,
+    created_at         TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 -- SMS financial movements: the money source-of-truth
@@ -32,6 +33,8 @@ CREATE TABLE IF NOT EXISTS sms_transactions (
     from_who              TEXT,
     transaction_reference TEXT,
     parse_confidence      REAL    DEFAULT 1.0,
+    provider              TEXT,
+    currency              TEXT    DEFAULT 'RWF',
     created_at            TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -178,6 +181,9 @@ CREATE INDEX IF NOT EXISTS idx_users_email
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sms_dedup_ref
     ON sms_transactions(user_id, transaction_reference)
     WHERE transaction_reference IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sms_source_message_id
+    ON sms_transactions(user_id, source_message_id)
+    WHERE source_message_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_sms_transactions_user_id
     ON sms_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sms_transactions_user_time
@@ -248,9 +254,33 @@ WHERE st.transaction_type = 'expense';
 """
 
 
+def _run_migrations(conn) -> None:
+    """
+    Safely add new columns to tables that may have been created before the
+    current schema.  This replaces Alembic for the simple ALTER TABLE cases.
+    """
+
+    def _has_column(table: str, column: str) -> bool:
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
+        return any(row["name"] == column for row in rows)
+
+    if not _has_column("users", "last_sms_import_at"):
+        conn.execute("ALTER TABLE users ADD COLUMN last_sms_import_at TEXT")
+        logger.info("Migration: added users.last_sms_import_at")
+
+    if not _has_column("sms_transactions", "provider"):
+        conn.execute("ALTER TABLE sms_transactions ADD COLUMN provider TEXT")
+        logger.info("Migration: added sms_transactions.provider")
+
+    if not _has_column("sms_transactions", "currency"):
+        conn.execute(
+            "ALTER TABLE sms_transactions ADD COLUMN currency TEXT DEFAULT 'RWF'"
+        )
+        logger.info("Migration: added sms_transactions.currency")
+
+
 @contextmanager
 def get_db():
-    """Yield a connected SQLite connection with row_factory and WAL mode enabled."""
     conn = sqlite3.connect(settings.database_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -266,9 +296,10 @@ def get_db():
 
 
 def init_db() -> None:
-    """Create all tables, indexes, and views if they do not yet exist."""
+    """Create all tables, indexes, views, and run incremental column migrations."""
     with get_db() as conn:
         conn.executescript(_SCHEMA_TABLES)
         conn.executescript(_SCHEMA_INDEXES)
         conn.executescript(_SCHEMA_VIEWS)
+        _run_migrations(conn)
     logger.info("Database initialised at '%s'.", settings.database_path)
