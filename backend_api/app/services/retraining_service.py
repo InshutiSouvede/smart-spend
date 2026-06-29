@@ -326,7 +326,7 @@ def retrain_category_model(job_id: str, user_id: str) -> None:
 
         train_df = train_df.dropna(subset=[CATEGORY_TEXT_COL, "category"])
         for col in CATEGORY_NUM_COLS:
-            train_df[col] = train_df[col].fillna(0.0).astype(float)
+            train_df[col] = pd.to_numeric(train_df[col], errors="coerce").fillna(0.0)
 
         X       = train_df[[CATEGORY_TEXT_COL] + CATEGORY_NUM_COLS]
         y       = train_df["category"]
@@ -436,11 +436,16 @@ def retrain_expense_forecast(job_id: str, user_id: str) -> None:
 
         user_df = pd.DataFrame([dict(r) for r in rows])
 
-        # Count distinct months that have at least some expense data
-        has_expense = (
-            user_df[user_df["total_expense_rwf"].fillna(0) > 0][["year", "month"]]
-            .drop_duplicates()
-        )
+        # Count distinct months that have at least some expense data.
+        # When the DataFrame is empty (new user, no history) the column doesn't
+        # exist yet — treat that as zero months and fall back to the seed CSV.
+        if user_df.empty or "total_expense_rwf" not in user_df.columns:
+            has_expense = pd.DataFrame(columns=["year", "month"])
+        else:
+            has_expense = (
+                user_df[user_df["total_expense_rwf"].fillna(0) > 0][["year", "month"]]
+                .drop_duplicates()
+            )
 
         if len(has_expense) < 3:
             if not _BASE_FORECAST_DATASET.exists():
@@ -619,11 +624,16 @@ def retrain_income_forecast(job_id: str, user_id: str) -> None:
 
         user_df = pd.DataFrame([dict(r) for r in rows])
 
-        # Count distinct months that have at least some income data
-        has_income = (
-            user_df[user_df["total_income_rwf"].fillna(0) > 0][["year", "month"]]
-            .drop_duplicates()
-        )
+        # Count distinct months that have at least some income data.
+        # When the DataFrame is empty (new user, no history) the column doesn't
+        # exist yet — treat that as zero months and fall back to the seed CSV.
+        if user_df.empty or "total_income_rwf" not in user_df.columns:
+            has_income = pd.DataFrame(columns=["year", "month"])
+        else:
+            has_income = (
+                user_df[user_df["total_income_rwf"].fillna(0) > 0][["year", "month"]]
+                .drop_duplicates()
+            )
 
         if len(has_income) < 3:
             if not _BASE_FORECAST_DATASET.exists():
