@@ -1,3 +1,29 @@
 .env
 */.env
 */uploads
+
+# ─── Frontend (React Native / Expo) ──────────────────────────────────────────
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Expo web output
+frontend/web-build/
+
+# Metro bundler cache
+frontend/.metro-cache/
+
+# EAS / local builds
+frontend/*.apk
+frontend/*.aab
+frontend/*.ipa
+frontend/android/
+frontend/ios/
+
+# TypeScript build info
+frontend/tsconfig.tsbuildinfo
+frontend/**/*.tsbuildinfo

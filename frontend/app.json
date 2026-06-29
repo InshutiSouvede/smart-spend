@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "SmartSpend",
+    "slug": "smartspend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.smartspend.app"
+    },
+    "android": {
+      "package": "com.smartspend.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#6366f1"
+      },
+      "permissions": [
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SmartSpend to use your camera to photograph receipts."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SmartSpend to access your photos to upload receipts."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
