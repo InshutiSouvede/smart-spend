@@ -9,14 +9,18 @@ import { SMSImportScreen } from '../screens/SMSImportScreen';
 import { ReceiptsScreen } from '../screens/ReceiptsScreen';
 import { ReceiptUploadScreen } from '../screens/ReceiptUploadScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
+import { ExportScreen } from '../screens/ExportScreen';
 import { colors } from '../theme';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
 
 export type AppTabParamList = {
   HomeTab: undefined;
+  AnalyticsTab: undefined;
   TransactionsTab: undefined;
   ReceiptsTab: undefined;
+  ExportTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -88,19 +92,24 @@ export function AppTabs() {
         tabBarStyle: { borderTopColor: colors.border },
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-            HomeTab: 'home-outline',
+            HomeTab:         'home-outline',
+            AnalyticsTab:    'bar-chart-outline',
             TransactionsTab: 'list-outline',
-            ReceiptsTab: 'receipt-outline',
-            ProfileTab: 'person-outline',
+            ReceiptsTab:     'receipt-outline',
+            ExportTab:       'download-outline',
+            ProfileTab:      'person-outline',
           };
           return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Dashboard' }} />
-      <Tab.Screen name="TransactionsTab" component={TransactionsStack} options={{ title: 'Transactions' }} />
-      <Tab.Screen name="ReceiptsTab" component={ReceiptsStack} options={{ title: 'Receipts' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="HomeTab"         component={HomeScreen}        options={{ title: 'Dashboard' }} />
+      <Tab.Screen name="AnalyticsTab"    component={AnalyticsScreen}   options={{ title: 'Analytics' }} />
+      <Tab.Screen name="TransactionsTab" component={TransactionsStack} options={{ title: 'Transactions', headerShown: false }} />
+      <Tab.Screen name="ReceiptsTab"     component={ReceiptsStack}     options={{ title: 'Receipts', headerShown: false }} />
+      <Tab.Screen name="ExportTab"       component={ExportScreen}      options={{ title: 'Export' }} />
+      <Tab.Screen name="ProfileTab"      component={ProfileScreen}     options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 }
+

@@ -14,7 +14,7 @@ SmartSpend Backend
 │   ├── api/
 │   │   ├── __init__.py            APIRouter aggregator
 │   │   ├── auth.py                Register, logout, identity, user profile
-│   │   ├── transactions.py        SMS sync, transaction list/get, category edit, corrections
+│   │   ├── transactions.py        SMS sync, transaction list/get, CSV export, category corrections
 │   │   ├── models.py              Categorise, predict, retrain, job list/status
 │   │   ├── receipts.py            Receipt upload, list, get
 │   │   └── analytics.py          Summary, monthly trends, category breakdown, spending status
@@ -134,6 +134,7 @@ All variables are documented in `.env.example`. Key variables:
 | POST | `/transactions/sms/sync` | Parse and store MoMo SMS messages |
 | GET | `/transactions/` | List transactions (paginated, filterable by type/date) |
 | GET | `/transactions/unmatched` | List expense transactions awaiting purchase clarification |
+| GET | `/transactions/export/csv` | Export transactions as a UTF-8 CSV file |
 | POST | `/transactions/{sms_id}/prompt-response` | Submit purchase details for an unmatched expense |
 | PATCH | `/transactions/{sms_id}/match/{pd_id}` | Confirm or reject an auto-suggested purchase match |
 | POST | `/transactions/corrections` | Submit a category correction (triggers retraining) |

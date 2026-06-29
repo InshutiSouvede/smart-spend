@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type {
+  CategoryCorrectionRequest,
   PaginatedResponse,
   SMSIngestRequest,
   SMSSyncResponse,
@@ -27,4 +28,24 @@ export const transactionsApi = {
 
   sync: (payload: SMSIngestRequest) =>
     apiClient.post<SMSSyncResponse>('/transactions/sms/sync', payload).then((r) => r.data),
+
+  correctCategory: (payload: CategoryCorrectionRequest) =>
+    apiClient
+      .post<{ job_id: string; status: string; message: string }>(
+        '/transactions/corrections',
+        payload,
+      )
+      .then((r) => r.data),
+
+  exportCsv: (params: {
+    from_date?: string;
+    to_date?: string;
+    transaction_type?: 'income' | 'expense';
+  } = {}) =>
+    apiClient
+      .get<string>('/transactions/export/csv', {
+        params,
+        responseType: 'text',
+      })
+      .then((r) => r.data),
 };

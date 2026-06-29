@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useTransactions } from '../hooks/useTransactions';
+import { useTransactions, useCategoryCorrection } from '../hooks/useTransactions';
 import { TransactionCard } from '../components/TransactionCard';
+import { CategoryPicker } from '../components/CategoryPicker';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
@@ -27,15 +29,33 @@ type Nav = NativeStackNavigationProp<TransactionsStackParamList, 'TransactionsLi
 export function TransactionsScreen() {
   const navigation = useNavigation<Nav>();
   const [filter, setFilter] = useState<Filter>('all');
+  const [correcting, setCorrecting] = useState<{ pdId: number; current: string } | null>(null);
 
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useTransactions(filter === 'all' ? {} : { transaction_type: filter });
+
+  const { mutateAsync: correctCategory, isPending: correctionPending } = useCategoryCorrection();
 
   const allTx: SMSTransactionOut[] = data?.pages.flatMap((p) => p.items) ?? [];
 
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handleCategorySelect = async (category: string) => {
+    if (!correcting) return;
+    try {
+      const result = await correctCategory({
+        purchase_detail_id: correcting.pdId,
+        corrected_category: category,
+        trigger_retraining: true,
+      });
+      setCorrecting(null);
+      Alert.alert('Category updated', result.message);
+    } catch (e) {
+      Alert.alert('Error', getErrorMessage(e));
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -68,7 +88,12 @@ export function TransactionsScreen() {
         <FlatList
           data={allTx}
           keyExtractor={(tx) => String(tx.id)}
-          renderItem={({ item }) => <TransactionCard tx={item} />}
+          renderItem={({ item }) => (
+            <TransactionCard
+              tx={item}
+              onCategoryFix={(pdId, current) => setCorrecting({ pdId, current })}
+            />
+          )}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -94,6 +119,15 @@ export function TransactionsScreen() {
         <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
         <Text style={styles.fabText}>Import SMS</Text>
       </TouchableOpacity>
+
+      {/* Category correction picker */}
+      <CategoryPicker
+        visible={correcting !== null}
+        current={correcting?.current}
+        isSubmitting={correctionPending}
+        onClose={() => !correctionPending && setCorrecting(null)}
+        onSelect={handleCategorySelect}
+      />
     </SafeAreaView>
   );
 }

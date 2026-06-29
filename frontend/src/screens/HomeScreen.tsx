@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,25 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BarChart } from 'react-native-chart-kit';
+import { LineChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
-import { useAnalyticsSummary } from '../hooks/useAnalytics';
+import { useSpendingStatus, useMonthlyTrends } from '../hooks/useAnalytics';
+import { useTransactions } from '../hooks/useTransactions';
 import { useAuthStore } from '../store/authStore';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { TransactionCard } from '../components/TransactionCard';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
 import type { AppTabParamList } from '../navigation/AppTabs';
-import type { CategorySummary } from '../types/api';
 
 const { width } = Dimensions.get('window');
+const CHART_WIDTH = width - spacing.xl * 2;
 
 function formatRWF(amount: number): string {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M RWF`;
@@ -29,21 +33,35 @@ function formatRWF(amount: number): string {
   return `${Math.round(amount).toLocaleString()} RWF`;
 }
 
-function monthRange(): { start: string; end: string } {
-  const now = new Date();
-  const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const end = now.toISOString().slice(0, 10);
-  return { start, end };
-}
+const RISK_CONFIG = {
+  low:     { color: colors.income,   label: 'Low risk',    icon: 'shield-checkmark-outline' as const },
+  medium:  { color: colors.warning,  label: 'Watch out',   icon: 'warning-outline' as const },
+  high:    { color: colors.expense,  label: 'High risk',   icon: 'alert-circle-outline' as const },
+  no_data: { color: colors.textMuted, label: 'No data yet', icon: 'help-circle-outline' as const },
+};
 
 type Nav = BottomTabNavigationProp<AppTabParamList>;
 
 export function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const navigation = useNavigation<Nav>();
-  const { start, end } = useMemo(monthRange, []);
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useAnalyticsSummary(start, end);
+  const {
+    data: status,
+    isLoading: statusLoading,
+    isError: statusError,
+    error: statusErr,
+    refetch: refetchStatus,
+    isRefetching,
+  } = useSpendingStatus();
+
+  const { data: monthly, isLoading: monthlyLoading } = useMonthlyTrends(4);
+
+  const { data: txPages } = useTransactions({});
+  const recentTx = useMemo(
+    () => txPages?.pages.flatMap((p) => p.items).slice(0, 5) ?? [],
+    [txPages],
+  );
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -52,35 +70,47 @@ export function HomeScreen() {
     return 'Good evening';
   })();
 
-  const topCategories: CategorySummary[] = data?.categories.slice(0, 6) ?? [];
-  const chartData = {
-    labels: topCategories.map((c) => c.category.slice(0, 8)),
-    datasets: [{ data: topCategories.map((c) => c.total_rwf) }],
-  };
+  const risk = status ? RISK_CONFIG[status.risk_level] ?? RISK_CONFIG.no_data : null;
+
+  // Build trend chart data from monthly (chronological order)
+  const trendData = useMemo(() => {
+    if (!monthly || monthly.length === 0) return null;
+    const sorted = [...monthly].reverse(); // backend returns DESC, reverse to ASC
+    return {
+      labels: sorted.map((m) => m.period.slice(5)), // MM
+      datasets: [
+        { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
+        { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
+      ],
+      legend: ['Income', 'Expense'],
+    };
+  }, [monthly]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetchStatus} />
+        }
       >
         {/* Header */}
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>{greeting},</Text>
-            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'} 👋</Text>
+            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'} ðŸ‘‹</Text>
           </View>
-          <Text style={styles.monthLabel}>
-            {new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' })}
-          </Text>
+          {risk && (
+            <View style={[styles.riskBadge, { backgroundColor: risk.color + '22' }]}>
+              <Ionicons name={risk.icon} size={14} color={risk.color} />
+              <Text style={[styles.riskText, { color: risk.color }]}>{risk.label}</Text>
+            </View>
+          )}
         </View>
 
-        {isError && (
-          <ErrorBanner
-            message={getErrorMessage(error)}
-            onRetry={refetch}
-          />
+        {statusError && (
+          <ErrorBanner message={getErrorMessage(statusErr)} onRetry={refetchStatus} />
         )}
 
         {/* Summary cards */}
@@ -88,57 +118,169 @@ export function HomeScreen() {
           <View style={[styles.card, styles.cardIncome]}>
             <Text style={styles.cardLabel}>Income</Text>
             <Text style={[styles.cardAmount, { color: colors.income }]}>
-              {isLoading ? '…' : formatRWF(data?.total_income_rwf ?? 0)}
+              {statusLoading ? 'â€¦' : formatRWF(status?.total_income ?? 0)}
             </Text>
           </View>
           <View style={[styles.card, styles.cardExpense]}>
             <Text style={styles.cardLabel}>Expenses</Text>
             <Text style={[styles.cardAmount, { color: colors.expense }]}>
-              {isLoading ? '…' : formatRWF(data?.total_expense_rwf ?? 0)}
+              {statusLoading ? 'â€¦' : formatRWF(status?.total_expense ?? 0)}
             </Text>
           </View>
         </View>
 
         {/* Net balance */}
         <View style={styles.netCard}>
-          <Text style={styles.netLabel}>Net this month</Text>
+          <Text style={styles.netLabel}>Net Â· {status?.period ?? 'â€”'}</Text>
           <Text
             style={[
               styles.netAmount,
-              { color: (data?.net_rwf ?? 0) >= 0 ? colors.income : colors.expense },
+              { color: (status?.net_balance ?? 0) >= 0 ? colors.income : colors.expense },
             ]}
           >
-            {isLoading
-              ? '…'
-              : `${(data?.net_rwf ?? 0) >= 0 ? '+' : ''}${formatRWF(data?.net_rwf ?? 0)}`}
+            {statusLoading
+              ? 'â€¦'
+              : `${(status?.net_balance ?? 0) >= 0 ? '+' : ''}${formatRWF(status?.net_balance ?? 0)}`}
           </Text>
-          <Text style={styles.netSub}>{data?.transaction_count ?? 0} transactions</Text>
+          {status && status.risk_level !== 'no_data' && (
+            <Text style={styles.netSub}>{status.status_message}</Text>
+          )}
         </View>
 
-        {/* Category chart */}
-        {topCategories.length > 0 && (
+        {/* Spending rate */}
+        {status && status.risk_level !== 'no_data' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Spending by category</Text>
-            <BarChart
-              data={chartData}
-              width={width - spacing.xl * 2}
-              height={180}
-              yAxisLabel=""
-              yAxisSuffix=""
-              fromZero
-              showValuesOnTopOfBars
+            <Text style={styles.sectionTitle}>Spending rate</Text>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${Math.min(status.expense_rate_pct, 100)}%`,
+                    backgroundColor: risk?.color ?? colors.primary,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressLabel}>
+              {status.expense_rate_pct.toFixed(0)}% of income spent Â·{' '}
+              {status.days_remaining} days remaining
+            </Text>
+          </View>
+        )}
+
+        {/* ML Predictions */}
+        {(status?.predicted_month_end_expense != null || status?.predicted_month_end_income != null) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ML Forecast (month-end)</Text>
+            <View style={styles.cards}>
+              {status?.predicted_month_end_income != null && (
+                <View style={[styles.card, { backgroundColor: colors.successLight }]}>
+                  <Text style={styles.cardLabel}>Predicted income</Text>
+                  <Text style={[styles.cardAmount, { color: colors.income }]}>
+                    {formatRWF(status.predicted_month_end_income)}
+                  </Text>
+                </View>
+              )}
+              {status?.predicted_month_end_expense != null && (
+                <View style={[styles.card, { backgroundColor: colors.errorLight }]}>
+                  <Text style={styles.cardLabel}>Predicted expense</Text>
+                  <Text style={[styles.cardAmount, { color: colors.expense }]}>
+                    {formatRWF(status.predicted_month_end_expense)}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.predHint}>
+              Projected end-of-month balance:{' '}
+              <Text
+                style={{
+                  color:
+                    (status?.projected_net ?? 0) >= 0 ? colors.income : colors.expense,
+                  fontWeight: '600',
+                }}
+              >
+                {formatRWF(status?.projected_net ?? 0)}
+              </Text>
+            </Text>
+          </View>
+        )}
+
+        {/* Top category */}
+        {status?.top_category && (
+          <View style={styles.topCatRow}>
+            <Ionicons name="flame-outline" size={16} color={colors.warning} />
+            <Text style={styles.topCatText}>
+              Top spend: <Text style={{ fontWeight: '700' }}>{status.top_category}</Text>{' '}
+              ({formatRWF(status.top_category_amount)}, {status.top_category_pct.toFixed(0)}%)
+            </Text>
+          </View>
+        )}
+
+        {/* Spending trend chart */}
+        {!monthlyLoading && trendData && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Spending trend</Text>
+            <LineChart
+              data={trendData}
+              width={CHART_WIDTH}
+              height={160}
+              withDots={false}
               withInnerLines={false}
+              withOuterLines={false}
               chartConfig={{
                 backgroundGradientFrom: colors.surface,
                 backgroundGradientTo: colors.surface,
-                color: () => colors.primary,
+                color: (opacity = 1, index) =>
+                  index === 0
+                    ? `rgba(34,197,94,${opacity})`
+                    : `rgba(239,68,68,${opacity})`,
                 labelColor: () => colors.textSecondary,
-                barPercentage: 0.55,
                 decimalPlaces: 0,
                 propsForLabels: { fontSize: 10 },
               }}
               style={{ borderRadius: radius.md }}
+              bezier
             />
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
+                <Text style={styles.legendText}>Income</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
+                <Text style={styles.legendText}>Expense</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Unmatched alert */}
+        {(status?.unmatched_expense_count ?? 0) > 0 && (
+          <TouchableOpacity
+            style={styles.alertCard}
+            onPress={() => navigation.navigate('TransactionsTab')}
+          >
+            <Ionicons name="receipt-outline" size={18} color={colors.warning} />
+            <Text style={styles.alertText}>
+              {status!.unmatched_expense_count} expense{status!.unmatched_expense_count > 1 ? 's' : ''} need categorization
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.warning} />
+          </TouchableOpacity>
+        )}
+
+        {/* Recent transactions */}
+        {recentTx.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent activity</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('TransactionsTab')}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            </View>
+            {recentTx.map((tx) => (
+              <TransactionCard key={tx.id} tx={tx} />
+            ))}
           </View>
         )}
 
@@ -150,15 +292,24 @@ export function HomeScreen() {
               style={styles.action}
               onPress={() => navigation.navigate('TransactionsTab')}
             >
+              <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
               <Text style={styles.actionText}>Import SMS</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.action}
+              style={[styles.action, { backgroundColor: colors.textSecondary }]}
               onPress={() => navigation.navigate('ReceiptsTab')}
             >
+              <Ionicons name="camera-outline" size={18} color="#fff" />
               <Text style={styles.actionText}>Upload Receipt</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={[styles.action, { backgroundColor: colors.surface, marginTop: spacing.sm }]}
+            onPress={() => navigation.navigate('AnalyticsTab')}
+          >
+            <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
+            <Text style={[styles.actionText, { color: colors.primary }]}>View Full Analytics</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -169,20 +320,27 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: 40 },
+
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     marginBottom: spacing.lg,
   },
   greeting: { fontSize: 14, color: colors.textSecondary },
   name: { ...typography.h2, color: colors.textPrimary },
-  monthLabel: { fontSize: 13, color: colors.textSecondary },
-  cards: {
+
+  riskBadge: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
+  riskText: { fontSize: 12, fontWeight: '600' },
+
+  cards: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   card: {
     flex: 1,
     borderRadius: radius.lg,
@@ -197,6 +355,7 @@ const styles = StyleSheet.create({
   cardExpense: { backgroundColor: colors.errorLight },
   cardLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
   cardAmount: { fontSize: 18, fontWeight: '700' },
+
   netCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -211,9 +370,59 @@ const styles = StyleSheet.create({
   },
   netLabel: { fontSize: 13, color: colors.textSecondary },
   netAmount: { fontSize: 28, fontWeight: '700', marginTop: 4 },
-  netSub: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+  netSub: { fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' },
+
   section: { marginBottom: spacing.lg },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   sectionTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.md },
+  seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+
+  progressBar: {
+    height: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  progressFill: { height: '100%', borderRadius: radius.full },
+  progressLabel: { fontSize: 12, color: colors.textSecondary },
+
+  predHint: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.sm },
+
+  topCatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#fef3c7',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  topCatText: { flex: 1, fontSize: 13, color: '#92400e' },
+
+  legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 12, color: colors.textSecondary },
+
+  alertCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#fffbeb',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  alertText: { flex: 1, fontSize: 13, color: '#92400e' },
+
   actions: { flexDirection: 'row', gap: spacing.md },
   action: {
     flex: 1,
@@ -221,6 +430,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   actionText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });

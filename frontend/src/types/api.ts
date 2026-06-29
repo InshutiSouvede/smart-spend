@@ -129,16 +129,56 @@ export interface ReceiptUploadOut {
 export interface CategorySummary {
   category: string;
   total_rwf: number;
-  count: number;
+  item_count: number;
   percentage: number;
 }
 
 export interface AnalyticsSummary {
   period_start: string;
   period_end: string;
-  total_income_rwf: number;
-  total_expense_rwf: number;
+  total_income: number;
+  total_expense: number;
+  net_balance: number;
+  overspend: boolean;
   transaction_count: number;
-  net_rwf: number;
-  categories: CategorySummary[];
+  category_breakdown: CategorySummary[];
+}
+
+export interface MonthlySummary {
+  period: string;
+  total_income: number;
+  total_expense: number;
+  net: number;
+  transaction_count: number;
+}
+
+export interface SpendingStatusResponse {
+  period: string;
+  days_elapsed: number;
+  days_remaining: number;
+  total_income: number;
+  total_expense: number;
+  net_balance: number;
+  expense_rate_pct: number;
+  projected_month_end_expense: number;
+  projected_net: number;
+  top_category: string | null;
+  top_category_amount: number;
+  top_category_pct: number;
+  risk_level: 'low' | 'medium' | 'high' | 'no_data';
+  status_message: string;
+  call_to_action: string;
+  predicted_month_end_expense: number | null;
+  predicted_month_end_income: number | null;
+  unmatched_expense_count: number;
+}
+
+export interface CategoryCorrectionRequest {
+  purchase_detail_id: number;
+  corrected_category: string;
+  trigger_retraining?: boolean;
+}
+
+export interface CategoryListResponse {
+  categories: string[];
 }

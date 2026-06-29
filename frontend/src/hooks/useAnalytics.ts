@@ -11,3 +11,27 @@ export function useAnalyticsSummary(periodStart?: string, periodEnd?: string) {
       }),
   });
 }
+
+export function useSpendingStatus() {
+  return useQuery({
+    queryKey: ['analytics', 'spending-status'],
+    queryFn: analyticsApi.spendingStatus,
+    staleTime: 60_000,
+  });
+}
+
+export function useMonthlyTrends(months = 6) {
+  return useQuery({
+    queryKey: ['analytics', 'monthly', months],
+    queryFn: () => analyticsApi.monthlyTrends(months),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCategoryBreakdown(fromDate?: string, toDate?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'categories', fromDate, toDate],
+    queryFn: () => analyticsApi.categoryBreakdown({ from_date: fromDate, to_date: toDate }),
+    staleTime: 5 * 60_000,
+  });
+}

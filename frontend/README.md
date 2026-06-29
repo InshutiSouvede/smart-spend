@@ -1,4 +1,4 @@
-# SmartSpend — Mobile Frontend
+﻿# SmartSpend — Mobile Frontend
 
 React Native / Expo frontend for the SmartSpend personal finance tracker.
 
@@ -16,8 +16,8 @@ React Native / Expo frontend for the SmartSpend personal finance tracker.
 | Secure storage | Expo Secure Store |
 | Image pick/capture | Expo Image Picker + Expo Camera |
 | Image resize | expo-image-manipulator |
-| Charts | react-native-chart-kit |
-| SMS reading | react-native-get-sms-android *(dev build only — see below)* |
+| Charts | react-native-chart-kit + react-native-svg |
+| SMS reading | react-native-get-sms-android *(dev build only)* |
 
 ---
 
@@ -25,136 +25,136 @@ React Native / Expo frontend for the SmartSpend personal finance tracker.
 
 ```bash
 cd frontend
-cp .env.example .env          # edit EXPO_PUBLIC_API_URL if needed
 npm install
+
+# Set API URL
+echo "EXPO_PUBLIC_API_URL=http://10.0.2.2:8000" > .env
+
+# Start Expo development server
 npx expo start
 ```
 
-For a **physical device on the same LAN**, set `EXPO_PUBLIC_API_URL` to your
-machine's LAN IP address (e.g. `http://192.168.1.42:8000`).
-
-For an **Android emulator**, use `http://10.0.2.2:8000`.
-
----
-
-## SMS Import — dev build required
-
-Reading the device SMS inbox uses `react-native-get-sms-android`, which is a
-native module **not available in the standard Expo Go app**.
-
-In Expo Go, the SMS Import screen will display a notice explaining the
-limitation. All other screens (auth, dashboard, receipts, profile) work
-normally in Expo Go.
-
-### Building a development client (Android)
-
-```bash
-# 1. Install EAS CLI
-npm install -g eas-cli
-
-# 2. Log in and configure the project
-eas login
-eas build:configure          # creates eas.json if it doesn't exist
-
-# 3. Build the development APK
-eas build --profile development --platform android
-
-# 4. Install the generated APK on your device and open it
-```
-
-Once running inside the dev client, the SMS Import screen will:
-1. Request `READ_SMS` permission with a user-facing rationale.
-2. Let the user choose a date range (defaulting to the last import timestamp).
-3. Display SMS conversations grouped by sender.
-4. Allow selecting individual messages or entire conversations.
-5. Show a full preview of the selected messages.
-6. Require an explicit consent toggle before the Upload button becomes active.
-7. **Never upload messages automatically.**
-
-### Google Play note
-
-`READ_SMS` is a restricted permission on the Google Play Store. For public
-distribution, document the use case in the Play Console Data Safety form. For
-internal / enterprise distribution, no special approval is needed.
+- **Android emulator:** use `EXPO_PUBLIC_API_URL=http://10.0.2.2:8000`
+- **Physical device (same LAN):** use your machine's LAN IP, e.g. `http://192.168.1.42:8000`
+- **iOS simulator:** use `http://127.0.0.1:8000`
 
 ---
 
 ## Screens
 
-| Screen | Path | Notes |
-|---|---|---|
-| Login | `src/screens/LoginScreen.tsx` | RHF + Zod validation |
-| Sign up | `src/screens/SignupScreen.tsx` | Registers then logs in automatically |
-| Dashboard | `src/screens/HomeScreen.tsx` | Month summary + category bar chart |
-| Transactions | `src/screens/TransactionsScreen.tsx` | Paginated list with income/expense filter |
-| SMS Import | `src/screens/SMSImportScreen.tsx` | Dev build only; full consent flow |
-| Receipts | `src/screens/ReceiptsScreen.tsx` | Paginated list |
-| Receipt Upload | `src/screens/ReceiptUploadScreen.tsx` | Camera or gallery; resize before upload |
-| Profile | `src/screens/ProfileScreen.tsx` | Edit name; sign out |
+| Tab | Screen | Description |
+|-----|--------|-------------|
+| Dashboard | `HomeScreen` | Risk badge, income/expense cards, net balance, ML forecast, spending rate progress bar, trend chart, unmatched alert, recent 5 transactions, quick actions |
+| Analytics | `AnalyticsScreen` | Category breakdown bar chart + list, monthly expense chart (1/3/6/12 month), monthly comparison table, export link |
+| Transactions | `TransactionsScreen` | Paginated list, income/expense filter, category correction (Fix button + picker modal) |
+| Receipts | `ReceiptsScreen` | Paginated receipt list with match status |
+| Export | `ExportScreen` | Date range + type filter, CSV export via system share sheet |
+| Profile | `ProfileScreen` | Edit display name, sign out |
+
+Auth screens: `LoginScreen`, `SignupScreen`
 
 ---
 
 ## Authentication
 
-Tokens are stored with **Expo Secure Store** (uses Android Keystore / iOS
-Keychain under the hood). On app launch, `restoreAuth()` reads the stored token
-and user before the navigation container renders, so the user goes directly to
-the app if already logged in.
+Tokens are stored with **Expo Secure Store** (Android Keystore / iOS Keychain). On app launch, `restoreAuth()` reads the stored token and user. On 401, the Axios interceptor clears stored credentials and returns the user to login.
 
-The Axios client attaches the token as a `Bearer` header on every request. On
-a `401` response the stored credentials are cleared and the navigation
-container switches back to the `AuthStack`.
+Auth mode is controlled by the backend's `MOCK_AUTH_ENABLED` setting:
+- `true` (default): any request is accepted, assigned to `MOCK_USER_ID`
+- `false`: validates Supabase Bearer JWT
 
 ---
 
-## Personalised ML retraining design
+## Category correction
 
-Each user's SMS transactions, receipt data, and category corrections are stored
-with their `user_id` in the backend SQLite database. The retraining service
-(`backend_api/app/services/retraining_service.py`) follows this design:
+Expense transactions that have linked purchase items show a **Fix** button. Tapping it opens the `CategoryPicker` bottom sheet. Selecting a category calls `POST /transactions/corrections`, which:
 
-| Concern | Implementation |
-|---|---|
-| **Isolated training data** | All training rows are filtered by `user_id` before model fitting |
-| **Per-user model artifacts** | Saved to `storage/models/users/{user_id}/{model_type}.joblib` |
-| **Base model fallback** | If no personal model exists, the shared base model under `storage/models/` is used |
-| **Correction influence** | Category corrections are weighted 3× higher than synthetic base data during training |
-| **No shared training** | Real user data is never mixed into the base/global model |
-| **Model versioning** | Every retrain writes a row to the `model_versions` table; old versions are set `is_active = 0` |
-| **Retraining trigger** | Auto-queued when a user's correction count reaches a multiple of `min_corrections_for_retraining` (default 5); can also be triggered manually |
-| **Testing** | Call `POST /models/retrain` (admin) or correct 5 categories; check `GET /models/versions` for the new version |
+1. Updates `final_category` in the database.
+2. Records a correction for ML retraining.
+3. Auto-triggers background retraining every 5 corrections (configurable).
 
-The mobile frontend contributes to retraining indirectly:
+---
 
-1. The user imports MoMo SMS → transactions are parsed and stored.
-2. The user uploads a receipt → OCR extracts merchant + items; linked to SMS.
-3. If the predicted category is wrong, the user can correct it in the app
-   (corrections endpoint `POST /transactions/{id}/correct`).
-4. After every 5 corrections, the backend automatically retrains the user's
-   personal category model in the background.
+## CSV export
 
-This ensures each user's predictions improve over time without affecting any
-other user's model.
+The Export tab calls `GET /transactions/export/csv` with auth headers via Axios and receives the CSV as a text response. The CSV is shared via the React Native `Share` API — the user can save it to Files, email it, or open it in a spreadsheet app.
+
+Columns: `date, type, amount_rwf, fee_rwf, to_who, from_who, reference, provider, balance_after_rwf, currency, parse_confidence`
+
+---
+
+## SMS import — dev build required
+
+`react-native-get-sms-android` is a native module not available in Expo Go. In Expo Go the SMS Import screen shows a notice and skips device SMS reading.
+
+To enable SMS reading, build a dev client:
+
+```bash
+npx expo run:android
+```
+
+Or use EAS:
+```bash
+npm install -g eas-cli
+eas login
+eas build --profile development --platform android
+```
 
 ---
 
 ## Project structure
 
 ```
-frontend/
-├── App.tsx                  Root component (QueryClient + NavigationContainer)
-├── index.ts                 Expo entry point
-├── app.json                 Expo config (permissions, plugins)
-├── package.json
-├── tsconfig.json
-└── src/
-    ├── api/                 Axios-based API layer
-    ├── components/          Shared UI components
-    ├── hooks/               TanStack Query hooks
-    ├── navigation/          React Navigation stacks & tabs
-    ├── screens/             One file per screen
-    ├── services/            Native service wrappers (SMS)
-    ├── store/               Zustand stores
-    ├── theme.ts             Colour palette, spacing, typography
-    └── types/               Shared TypeScript types mirroring backend schemas
+src/
+├── api/            Axios API wrappers
+│   ├── analytics.ts    summary, spendingStatus, monthlyTrends, categoryBreakdown
+│   ├── auth.ts
+│   ├── client.ts       Axios instance + interceptors
+│   ├── models.ts       categories list
+│   ├── receipts.ts
+│   └── transactions.ts list, sync, correctCategory, exportCsv
+├── components/
+│   ├── CategoryPicker.tsx   Bottom sheet for category selection
+│   ├── ErrorBanner.tsx
+│   ├── LoadingOverlay.tsx
+│   ├── ReceiptCard.tsx
+│   └── TransactionCard.tsx  Shows category + confidence; Fix button for corrections
+├── hooks/
+│   ├── useAnalytics.ts     useAnalyticsSummary, useSpendingStatus, useMonthlyTrends, useCategoryBreakdown
+│   ├── useModels.ts        useCategories
+│   ├── useProfile.ts
+│   ├── useReceipts.ts
+│   └── useTransactions.ts  useTransactions, useSyncSMS, useCategoryCorrection
+├── navigation/
+│   ├── AppTabs.tsx     6-tab bottom navigator
+│   ├── AuthStack.tsx
+│   └── RootNavigator.tsx
+├── screens/        (listed in Screens table above)
+├── store/
+│   └── authStore.ts    Zustand store with SecureStore persistence
+├── types/
+│   └── api.ts          All request/response TypeScript interfaces
+└── theme.ts            Colors, spacing, radius, typography constants
 ```
+
+---
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EXPO_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Backend base URL |
+
+---
+
+## Verification steps
+
+After starting both backend and frontend:
+
+1. **Login/Register** — should succeed (mock auth auto-logs you in as `demo_user_001`).
+2. **Dashboard** — should show 0 data cards and a "No data" risk badge initially.
+3. **Import SMS** — import one or more SMS messages; dashboard should update on pull-to-refresh.
+4. **Category correction** — tap Fix on an expense transaction with purchase details; select a category; confirm the alert shows "Category updated".
+5. **Analytics** — open Analytics tab; category chart and monthly chart should render real data.
+6. **Export** — open Export tab; tap Export to CSV; the share sheet should appear with CSV text.
+7. **Upload receipt** — take or select a photo; the receipt list should show OCR results.

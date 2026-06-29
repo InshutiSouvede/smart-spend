@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionsApi, TransactionListParams } from '../api/transactions';
-import type { SMSIngestRequest } from '../types/api';
+import type { CategoryCorrectionRequest, SMSIngestRequest } from '../types/api';
 
 const PAGE_SIZE = 20;
 
@@ -18,6 +18,18 @@ export function useSyncSMS() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: SMSIngestRequest) => transactionsApi.sync(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+}
+
+export function useCategoryCorrection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CategoryCorrectionRequest) =>
+      transactionsApi.correctCategory(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['analytics'] });

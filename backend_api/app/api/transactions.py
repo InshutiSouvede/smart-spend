@@ -764,3 +764,84 @@ def add_correction(
         ),
     }
 
+
+# ─── GET /transactions/export/csv ───────────────────────────────────────────
+
+@router.get(
+    "/export/csv",
+    summary="Export transactions as a CSV file",
+    tags=["Transactions"],
+)
+def export_transactions_csv(
+    from_date:        Optional[str] = Query(default=None, description="ISO date (inclusive)"),
+    to_date:          Optional[str] = Query(default=None, description="ISO date (inclusive)"),
+    transaction_type: Optional[str] = Query(default=None, description="income or expense"),
+    user_id:          str           = Depends(get_current_user_id),
+):
+    """
+    Return all matching SMS transactions for the authenticated user as a UTF-8 CSV.
+    Columns: date, type, amount_rwf, fee_rwf, to_who, from_who, reference, provider,
+             balance_after_rwf, currency, parse_confidence.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    if transaction_type and transaction_type not in ("income", "expense"):
+        raise HTTPException(status_code=400, detail="transaction_type must be 'income' or 'expense'.")
+
+    conditions = ["user_id = ?"]
+    params: list = [user_id]
+    if from_date:
+        conditions.append("transaction_time >= ?")
+        params.append(from_date)
+    if to_date:
+        conditions.append("transaction_time <= ?")
+        params.append(to_date)
+    if transaction_type:
+        conditions.append("transaction_type = ?")
+        params.append(transaction_type)
+
+    where = " AND ".join(conditions)
+
+    with get_db() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT transaction_time, transaction_type, amount_rwf, fee_rwf,
+                   to_who, from_who, transaction_reference, provider,
+                   balance_after_rwf, currency, parse_confidence
+            FROM sms_transactions
+            WHERE {where}
+            ORDER BY transaction_time DESC
+            """,
+            params,
+        ).fetchall()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "date", "type", "amount_rwf", "fee_rwf", "to_who", "from_who",
+        "reference", "provider", "balance_after_rwf", "currency", "parse_confidence",
+    ])
+    for row in rows:
+        writer.writerow([
+            row["transaction_time"] or "",
+            row["transaction_type"],
+            row["amount_rwf"],
+            row["fee_rwf"],
+            row["to_who"] or "",
+            row["from_who"] or "",
+            row["transaction_reference"] or "",
+            row["provider"] or "",
+            row["balance_after_rwf"] if row["balance_after_rwf"] is not None else "",
+            row["currency"],
+            row["parse_confidence"],
+        ])
+
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=smartspend_transactions.csv"},
+    )
+
