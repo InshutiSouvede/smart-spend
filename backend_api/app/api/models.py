@@ -13,6 +13,7 @@ from app.schemas.schemas import (
     ExpenseForecastResponse,
     IncomeForecastRequest,
     IncomeForecastResponse,
+    ModelVersionOut,
     RetrainResponse,
     RetrainingJobStatus,
 )
@@ -209,3 +210,51 @@ def get_retraining_job(
     d = dict(row)
     d["metrics"] = json.loads(d.pop("metrics_json", None) or "{}")
     return d
+
+
+# ─── GET /models/versions ─────────────────────────────────────────────────────
+
+from typing import Optional  # noqa: E402 — kept local to avoid circular issues
+
+@router.get(
+    "/versions",
+    response_model=list[ModelVersionOut],
+    summary="List trained model versions for the current user",
+)
+def list_model_versions(
+    model_type: Optional[str] = None,
+    user_id:    str           = Depends(get_current_user_id),
+) -> list[dict]:
+    """
+    Returns all model artifact records for the authenticated user, newest first.
+    Filter by model_type to see only category, expense-forecast, or income-forecast history.
+    ``is_active=true`` marks the version currently loaded for inference.
+    """
+    valid_types = {"expense_category", "monthly_expense_forecast", "monthly_income_forecast"}
+    if model_type and model_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"model_type must be one of: {sorted(valid_types)}",
+        )
+
+    conditions = ["user_id = ?"]
+    params: list = [user_id]
+    if model_type:
+        conditions.append("model_type = ?")
+        params.append(model_type)
+
+    where = " AND ".join(conditions)
+    with get_db() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM model_versions WHERE {where}"
+            f" ORDER BY created_at DESC LIMIT 100",
+            params,
+        ).fetchall()
+
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["metrics"]   = json.loads(d.pop("metrics_json", None) or "{}")
+        d["is_active"] = bool(d["is_active"])
+        result.append(d)
+    return result

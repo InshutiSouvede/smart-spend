@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app.core.auth import get_current_user_id
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import ConsentRequiredError
 from app.schemas.schemas import (
@@ -713,16 +714,53 @@ def add_correction(
             ),
         )
 
-    if payload.trigger_retraining:
+        # Count this user's total corrections to decide on auto-trigger
+        total_corrections = conn.execute(
+            "SELECT COUNT(*) FROM category_corrections WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    # ── Determine whether to queue retraining ─────────────────────────────────
+    # Auto-trigger when corrections reach a multiple of the configured threshold.
+    # Manual trigger (payload.trigger_retraining=True) always queues a job.
+    # Guard: skip if a job for this user is already queued or running.
+    threshold = settings.min_corrections_for_retraining
+    auto_trigger = (
+        threshold > 0
+        and total_corrections > 0
+        and total_corrections % threshold == 0
+    )
+    should_retrain = payload.trigger_retraining or auto_trigger
+
+    if should_retrain:
+        with get_db() as conn:
+            already_active = conn.execute(
+                "SELECT 1 FROM retraining_jobs"
+                " WHERE user_id = ? AND model_type = 'expense_category'"
+                "   AND status IN ('queued', 'running')",
+                (user_id,),
+            ).fetchone()
+        if already_active:
+            return {
+                "job_id": "not_started", "status": "saved",
+                "message": (
+                    "Correction saved. A retraining job is already active; "
+                    "skipped duplicate queuing."
+                ),
+            }
         job_id = create_job(user_id, "expense_category")
+        trigger_reason = "manual" if payload.trigger_retraining else f"auto ({total_corrections} corrections)"
         background_tasks.add_task(retrain_category_model, job_id, user_id)
         return {
             "job_id": job_id, "status": "queued",
-            "message": "Correction saved. Category model retraining queued.",
+            "message": f"Correction saved. Category model retraining queued ({trigger_reason}).",
         }
 
     return {
         "job_id": "not_started", "status": "saved",
-        "message": "Correction saved. Retraining not triggered.",
+        "message": (
+            f"Correction saved. "
+            f"Retraining will auto-trigger after {threshold - (total_corrections % threshold or threshold)} more correction(s)."
+        ),
     }
 

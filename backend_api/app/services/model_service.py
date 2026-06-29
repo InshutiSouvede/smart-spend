@@ -123,7 +123,8 @@ class ModelService:
             self._income_fc_loaded = True
 
     def _user_model_path(self, user_id: str, model_type: str) -> Path:
-        return Path(settings.user_model_dir) / f"{user_id}_{model_type}.joblib"
+        # Artifact layout: storage/models/users/{user_id}/{model_type}.joblib
+        return Path(settings.user_model_dir) / user_id / f"{model_type}.joblib"
 
     def _resolve_model(self, user_id: str, model_type: str, base_model):
         user_path = self._user_model_path(user_id, model_type)

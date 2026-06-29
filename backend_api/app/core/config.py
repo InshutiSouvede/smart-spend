@@ -15,7 +15,8 @@ class Settings(BaseSettings):
 
     # Storage paths
     model_dir: str = "./storage/models"
-    user_model_dir: str = "./storage/user_models"
+    # Per-user model artifacts live at: {user_model_dir}/{user_id}/{model_type}.joblib
+    user_model_dir: str = "./storage/models/users"
     upload_dir: str = "./storage/uploads"
     retraining_job_dir: str = "./storage/retraining_jobs"
 

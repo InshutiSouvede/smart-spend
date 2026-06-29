@@ -383,6 +383,21 @@ class RetrainingJobStatus(BaseModel):
     completed_at: Optional[str] = None
 
 
+class ModelVersionOut(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    id: int
+    user_id: str
+    model_type: str
+    version: int
+    model_path: str
+    metrics: Dict[str, Any] = {}
+    training_rows_count: Optional[int] = None
+    is_active: bool
+    retraining_job_id: Optional[int] = None
+    created_at: Optional[str] = None
+
+
 # ─── Analytics schemas ────────────────────────────────────────────────────────
 
 class CategorySummary(BaseModel):
