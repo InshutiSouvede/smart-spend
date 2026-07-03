@@ -811,3 +811,80 @@ def unlink_receipt(
 
     logger.info("Receipt %d unlinked by user '%s'.", receipt_id, user_id)
 
+
+@router.delete(
+    "/{receipt_id}",
+    status_code=204,
+    summary="Delete a receipt and all associated data",
+)
+def delete_receipt(
+    receipt_id: int,
+    user_id: str = Depends(get_current_user_id),
+) -> None:
+    """
+    Permanently delete a receipt, including:
+    * Receipt metadata from receipt_uploads table
+    * Associated purchase details
+    * Transaction-purchase match links
+    * The uploaded file (if it exists)
+    
+    This action cannot be undone.
+    """
+    with get_db() as conn:
+        # Check receipt exists
+        ru = conn.execute(
+            "SELECT id, file_path FROM receipt_uploads WHERE id = ? AND user_id = ?",
+            (receipt_id, user_id),
+        ).fetchone()
+        if not ru:
+            raise HTTPException(status_code=404, detail="Receipt not found.")
+        
+        file_path = ru["file_path"]
+        
+        # Delete purchase details and their matches
+        conn.execute(
+            """
+            DELETE FROM transaction_purchase_matches
+            WHERE user_id = ? AND purchase_detail_id IN (
+                SELECT id FROM purchase_details
+                WHERE source_type = 'receipt' AND source_id = ? AND user_id = ?
+            )
+            """,
+            (user_id, receipt_id, user_id),
+        )
+        
+        conn.execute(
+            """
+            DELETE FROM expense_categories
+            WHERE user_id = ? AND purchase_detail_id IN (
+                SELECT id FROM purchase_details
+                WHERE source_type = 'receipt' AND source_id = ? AND user_id = ?
+            )
+            """,
+            (user_id, receipt_id, user_id),
+        )
+        
+        conn.execute(
+            "DELETE FROM purchase_details WHERE source_type = 'receipt' AND source_id = ? AND user_id = ?",
+            (receipt_id, user_id),
+        )
+        
+        # Delete receipt record
+        conn.execute(
+            "DELETE FROM receipt_uploads WHERE id = ? AND user_id = ?",
+            (receipt_id, user_id),
+        )
+    
+    # Delete physical file (if it exists)
+    if file_path:
+        try:
+            file_obj = Path(file_path)
+            if file_obj.exists():
+                file_obj.unlink()
+                logger.info("Deleted receipt file: %s", file_path)
+        except Exception as exc:
+            logger.warning("Could not delete receipt file '%s': %s", file_path, exc)
+    
+    logger.info("Receipt %d deleted by user '%s'.", receipt_id, user_id)
+
+

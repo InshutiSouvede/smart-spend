@@ -119,17 +119,41 @@ export interface PaginatedResponse<T> {
 
 // ─── Receipts ─────────────────────────────────────────────────────────────────
 
+export interface ReceiptMatchOut {
+  matched_sms_id?: number | null;
+  match_confidence?: number | null;
+  match_status: string;
+}
+
 export interface ReceiptUploadOut {
-  id: number;
-  filename: string;
+  receipt_id: number;
+  ocr_status: string;
+  extraction_status: string;
+  ocr_mode?: string | null;
   merchant_name?: string | null;
   total_amount_rwf?: number | null;
   receipt_timestamp?: string | null;
-  matched_sms_id?: number | null;
+  match?: ReceiptMatchOut | null;
+  purchase_details: PurchaseDetailOut[];
+  uploaded_at?: string | null;
+}
+
+export interface ReceiptSummary {
+  receipt_id: number;
+  ocr_status: string;
+  extraction_status: string;
+  merchant_name?: string | null;
+  total_amount_rwf?: number | null;
+  receipt_timestamp?: string | null;
+  match_status: string;
   match_confidence?: number | null;
-  match_status?: string | null;
-  created_at?: string | null;
-  purchase_details?: PurchaseDetailOut[];
+  matched_sms_id?: number | null;
+  item_count: number;
+  uploaded_at?: string | null;
+}
+
+export interface ReceiptLinkRequest {
+  sms_transaction_id: number;
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────

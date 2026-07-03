@@ -19,7 +19,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, typography } from '../theme';
 import type { ReceiptsStackParamList } from '../navigation/AppTabs';
-import type { ReceiptUploadOut } from '../types/api';
+import type { ReceiptSummary } from '../types/api';
 
 type Nav = NativeStackNavigationProp<ReceiptsStackParamList, 'ReceiptsList'>;
 
@@ -29,7 +29,7 @@ export function ReceiptsScreen() {
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useReceipts();
 
-  const allReceipts: ReceiptUploadOut[] = data?.pages.flatMap((p) => p.items) ?? [];
+  const allReceipts: ReceiptSummary[] = data?.pages.flatMap((p) => p.items) ?? [];
 
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
@@ -38,7 +38,7 @@ export function ReceiptsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       {isError && (
-        <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
+        <View style={styles.errorBanner}>
           <ErrorBanner message={getErrorMessage(error)} onRetry={refetch} />
         </View>
       )}
@@ -50,8 +50,14 @@ export function ReceiptsScreen() {
       ) : (
         <FlatList
           data={allReceipts}
-          keyExtractor={(r) => String(r.id)}
-          renderItem={({ item }) => <ReceiptCard receipt={item} />}
+          keyExtractor={(r) => `receipt-${r.receipt_id}`}
+          extraData={allReceipts.length}
+          renderItem={({ item }) => (
+            <ReceiptCard 
+              receipt={item} 
+              onPress={() => navigation.navigate('ReceiptDetail', { receiptId: item.receipt_id })}
+            />
+          )}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -88,6 +94,11 @@ export function ReceiptsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  errorBanner: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
   list: { padding: spacing.lg, paddingBottom: 100 },
   center: {
     flex: 1,

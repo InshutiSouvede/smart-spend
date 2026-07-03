@@ -1,15 +1,20 @@
 import { apiClient } from './client';
-import type { PaginatedResponse, ReceiptUploadOut } from '../types/api';
+import type { PaginatedResponse, ReceiptUploadOut, ReceiptSummary, ReceiptLinkRequest } from '../types/api';
 
 export const receiptsApi = {
   list: (params: { page?: number; page_size?: number } = {}) =>
     apiClient
-      .get<PaginatedResponse<ReceiptUploadOut>>('/receipts/', { params })
+      .get<PaginatedResponse<ReceiptSummary>>('/receipts/', { params })
       .then((r) => r.data),
 
   listUnmatched: (params: { page?: number; page_size?: number } = {}) =>
     apiClient
-      .get<PaginatedResponse<ReceiptUploadOut>>('/receipts/unmatched', { params })
+      .get<PaginatedResponse<ReceiptSummary>>('/receipts/unmatched', { params })
+      .then((r) => r.data),
+
+  getById: (receiptId: number): Promise<ReceiptUploadOut> =>
+    apiClient
+      .get<ReceiptUploadOut>(`/receipts/${receiptId}`)
       .then((r) => r.data),
 
   upload: async (fileUri: string, mimeType: string): Promise<ReceiptUploadOut> => {
@@ -33,4 +38,7 @@ export const receiptsApi = {
 
   unlink: (receiptId: number) =>
     apiClient.delete(`/receipts/${receiptId}/link`).then((r) => r.data),
+
+  delete: (receiptId: number) =>
+    apiClient.delete(`/receipts/${receiptId}`).then((r) => r.data),
 };

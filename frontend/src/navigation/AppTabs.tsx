@@ -10,6 +10,7 @@ import { ItemDetailsScreen } from '../screens/ItemDetailsScreen';
 import { UnmatchedExpensesScreen } from '../screens/UnmatchedExpensesScreen';
 import { ReceiptsScreen } from '../screens/ReceiptsScreen';
 import { ReceiptUploadScreen } from '../screens/ReceiptUploadScreen';
+import { ReceiptDetailScreen } from '../screens/ReceiptDetailScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { ExportScreen } from '../screens/ExportScreen';
@@ -36,6 +37,7 @@ export type TransactionsStackParamList = {
 export type ReceiptsStackParamList = {
   ReceiptsList: undefined;
   ReceiptUpload: undefined;
+  ReceiptDetail: { receiptId: number };
 };
 
 // ─── Nested stacks ───────────────────────────────────────────────────────────
@@ -87,6 +89,11 @@ function ReceiptsStack() {
         name="ReceiptUpload"
         component={ReceiptUploadScreen}
         options={{ title: 'Upload Receipt' }}
+      />
+      <RxStack.Screen
+        name="ReceiptDetail"
+        component={ReceiptDetailScreen}
+        options={{ title: 'Receipt Details' }}
       />
     </RxStack.Navigator>
   );

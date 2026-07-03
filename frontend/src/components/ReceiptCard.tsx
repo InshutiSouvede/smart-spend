@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
-import type { ReceiptUploadOut } from '../types/api';
+import type { ReceiptSummary } from '../types/api';
 
 interface Props {
-  receipt: ReceiptUploadOut;
+  receipt: ReceiptSummary;
+  onPress?: () => void;
 }
 
 function formatRWF(amount?: number | null): string {
@@ -22,21 +23,47 @@ function formatDate(iso?: string | null): string {
   });
 }
 
-export function ReceiptCard({ receipt }: Props) {
-  const matched = receipt.match_status === 'matched';
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-  return (
-    <View style={styles.card}>
+export function ReceiptCard({ receipt, onPress }: Props) {
+  const matched = receipt.match_status === 'matched' || receipt.match_status === 'auto_matched' || receipt.match_status === 'user_confirmed';
+  
+  // Use receipt timestamp if available, otherwise uploaded_at
+  const displayDate = receipt.receipt_timestamp 
+    ? formatDateTime(receipt.receipt_timestamp) 
+    : formatDate(receipt.uploaded_at);
+  
+  // Create a unique merchant display name
+  const merchantDisplay = receipt.merchant_name || 'Unknown Merchant';
+  const dateLabel = receipt.receipt_timestamp ? 'Purchase' : 'Uploaded';
+
+  const content = (
+    <>
       <View style={styles.iconBox}>
         <Ionicons name="receipt-outline" size={22} color={colors.primary} />
       </View>
       <View style={styles.body}>
         <Text style={styles.merchant} numberOfLines={1}>
-          {receipt.merchant_name ?? 'Unknown merchant'}
+          {merchantDisplay}
         </Text>
-        <Text style={styles.meta}>
-          {formatDate(receipt.receipt_timestamp ?? receipt.created_at)}
+        <Text style={styles.meta} numberOfLines={1}>
+          {dateLabel}: {displayDate}
         </Text>
+        {receipt.item_count > 0 && (
+          <Text style={styles.itemCount}>
+            {receipt.item_count} item{receipt.item_count !== 1 ? 's' : ''}
+          </Text>
+        )}
       </View>
       <View style={styles.right}>
         <Text style={styles.amount}>{formatRWF(receipt.total_amount_rwf)}</Text>
@@ -46,8 +73,18 @@ export function ReceiptCard({ receipt }: Props) {
           </Text>
         </View>
       </View>
-    </View>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.card}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -85,6 +122,11 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
+  },
+  itemCount: {
+    fontSize: 11,
+    color: colors.textMuted,
     marginTop: 2,
   },
   right: {

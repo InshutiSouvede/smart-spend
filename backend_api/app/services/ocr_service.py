@@ -89,6 +89,8 @@ _MAX_OCR_DIMENSION = 4096
 # PaddleOCR lazy singleton
 # ---------------------------------------------------------------------------
 _paddle_ocr_instance = None
+_easy_ocr_instance = None
+_tesseract_available = None
 
 
 def _get_paddle_ocr():
@@ -100,6 +102,30 @@ def _get_paddle_ocr():
         # show_log=False suppresses PaddlePaddle's verbose startup messages.
         _paddle_ocr_instance = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
     return _paddle_ocr_instance
+
+
+def _get_easy_ocr():
+    """Return (and lazily initialise) the shared EasyOCR instance."""
+    global _easy_ocr_instance  # noqa: PLW0603
+    if _easy_ocr_instance is None:
+        import easyocr
+        # Use English language, GPU if available
+        _easy_ocr_instance = easyocr.Reader(['en'], gpu=False, verbose=False)
+    return _easy_ocr_instance
+
+
+def _check_tesseract_available():
+    """Check if Tesseract OCR is available on the system."""
+    global _tesseract_available  # noqa: PLW0603
+    if _tesseract_available is None:
+        try:
+            import pytesseract
+            # Try to get version to verify tesseract executable exists
+            pytesseract.get_tesseract_version()
+            _tesseract_available = True
+        except Exception:
+            _tesseract_available = False
+    return _tesseract_available
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +247,97 @@ def _run_paddleocr(file_path: str) -> Tuple[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# EasyOCR text extraction
+# ---------------------------------------------------------------------------
+
+
+def _run_easyocr(file_path: str) -> Tuple[str, str]:
+    """
+    Run EasyOCR on *file_path* and return ``(concatenated_text, 'easyocr')``.
+    
+    On the first call the OCR model is downloaded (~80 MB for the English
+    pack). Subsequent calls reuse the cached singleton.
+    
+    Falls back to mock text if easyocr is not installed.
+    """
+    try:
+        ocr = _get_easy_ocr()
+        result = ocr.readtext(file_path)
+        # result: list of tuples: (bbox, text, confidence)
+        lines: List[str] = []
+        for entry in result:
+            if len(entry) >= 2:
+                text = entry[1]  # text is the second element
+                if text and isinstance(text, str):
+                    lines.append(text.strip())
+        return "\n".join(lines), "easyocr"
+    except ImportError:
+        logger.warning(
+            "easyocr not installed; falling back to mock OCR. "
+            "Install with: pip install easyocr"
+        )
+        return _MOCK_OCR_TEXT, "mock_fallback_import_error"
+    except Exception as exc:
+        logger.error("EasyOCR failed for '%s': %s", file_path, exc)
+        return _MOCK_OCR_TEXT, "mock_fallback_exception"
+
+
+# ---------------------------------------------------------------------------
+# Tesseract OCR text extraction
+# ---------------------------------------------------------------------------
+
+
+def _run_tesseract(file_path: str) -> Tuple[str, str]:
+    """
+    Run Tesseract OCR on *file_path* and return ``(text, 'tesseract')``.
+    
+    Requires Tesseract to be installed on the system.
+    Download from: https://github.com/UB-Mannheim/tesseract/wiki
+    
+    Falls back to mock text if pytesseract is not installed or tesseract executable not found.
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+        
+        # On Windows, explicitly set tesseract path if not already set
+        if pytesseract.pytesseract.tesseract_cmd == 'tesseract':
+            # Try common Windows installation paths
+            import platform
+            if platform.system() == 'Windows':
+                common_paths = [
+                    r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                    r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                ]
+                for path in common_paths:
+                    if Path(path).exists():
+                        pytesseract.pytesseract.tesseract_cmd = path
+                        logger.info("Set Tesseract path to: %s", path)
+                        break
+        
+        # Open image and run OCR
+        img = Image.open(file_path)
+        text = pytesseract.image_to_string(img, lang='eng')
+        
+        if text and len(text.strip()) > 0:
+            logger.info("Tesseract extracted %d characters from '%s'", len(text), file_path)
+            return text, "tesseract"
+        else:
+            logger.warning("Tesseract returned empty text for '%s'", file_path)
+            return _MOCK_OCR_TEXT, "mock_fallback_empty"
+            
+    except ImportError:
+        logger.warning(
+            "pytesseract not installed; falling back to mock OCR. "
+            "Install with: pip install pytesseract"
+        )
+        return _MOCK_OCR_TEXT, "mock_fallback_import_error"
+    except Exception as exc:
+        logger.error("Tesseract failed for '%s': %s", file_path, exc)
+        return _MOCK_OCR_TEXT, "mock_fallback_exception"
+
+
+# ---------------------------------------------------------------------------
 # Public OCR entry-point
 # ---------------------------------------------------------------------------
 
@@ -229,11 +346,45 @@ def extract_text_from_receipt(file_path: str) -> Tuple[str, str]:
     """
     Extract text from a receipt image and return ``(text, ocr_mode_label)``.
 
-    * ``PADDLE_OCR_ENABLED=true`` (default) \u2192 PaddleOCR runs locally.
-    * ``PADDLE_OCR_ENABLED=false`` \u2192 static mock text for offline testing.
+    * ``PADDLE_OCR_ENABLED=true`` (default) \u2192 Tries OCR engines in order of preference.
+    * ``PADDLE_OCR_ENABLED=false`` \u2192 Skips PaddleOCR, tries other engines.
+    
+    Priority: PaddleOCR > Tesseract > EasyOCR > Mock Data
     """
+    tried_engines = []
+    
     if settings.paddle_ocr_enabled:
-        return _run_paddleocr(file_path)
+        # Try PaddleOCR first
+        tried_engines.append("PaddleOCR")
+        text, mode = _run_paddleocr(file_path)
+        if "mock" not in mode:
+            return text, mode
+    
+    # Try Tesseract OCR (lightweight, Windows-friendly)
+    if _check_tesseract_available():
+        tried_engines.append("Tesseract")
+        logger.info("Trying Tesseract OCR for '%s' (previous attempts: %s)", 
+                   file_path, ", ".join(tried_engines[:-1]) if len(tried_engines) > 1 else "none")
+        text, mode = _run_tesseract(file_path)
+        if "mock" not in mode:
+            return text, mode
+    
+    # Try EasyOCR as fallback
+    tried_engines.append("EasyOCR")
+    logger.info("Trying EasyOCR for '%s' (previous attempts: %s)", 
+               file_path, ", ".join(tried_engines[:-1]) if len(tried_engines) > 1 else "none")
+    text, mode = _run_easyocr(file_path)
+    if "mock" not in mode:
+        return text, mode
+    
+    # All OCR engines failed, return mock data
+    logger.warning(
+        "All OCR engines failed for '%s'. Tried: %s. "
+        "Install at least one OCR engine: "
+        "Tesseract (https://github.com/UB-Mannheim/tesseract/wiki), "
+        "pip install paddlepaddle paddleocr, or pip install easyocr",
+        file_path, ", ".join(tried_engines)
+    )
     return _MOCK_OCR_TEXT, "mock"
 
 
