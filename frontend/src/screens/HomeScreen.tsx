@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useSpendingStatus, useMonthlyTrends } from '../hooks/useAnalytics';
+import { useSpendingStatus, useMonthlyTrends, useDailyTrends } from '../hooks/useAnalytics';
 import { useTransactions } from '../hooks/useTransactions';
 import { useAuthStore } from '../store/authStore';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -42,9 +42,12 @@ const RISK_CONFIG = {
 
 type Nav = BottomTabNavigationProp<AppTabParamList>;
 
+type TrendView = 'daily' | 'monthly';
+
 export function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const navigation = useNavigation<Nav>();
+  const [trendView, setTrendView] = React.useState<TrendView>('daily');
 
   const {
     data: status,
@@ -55,7 +58,8 @@ export function HomeScreen() {
     isRefetching,
   } = useSpendingStatus();
 
-  const { data: monthly, isLoading: monthlyLoading } = useMonthlyTrends(4);
+  const { data: monthly, isLoading: monthlyLoading } = useMonthlyTrends(6);
+  const { data: daily, isLoading: dailyLoading } = useDailyTrends(30);
 
   const { data: txPages } = useTransactions({});
   const recentTx = useMemo(
@@ -72,19 +76,33 @@ export function HomeScreen() {
 
   const risk = status ? RISK_CONFIG[status.risk_level] ?? RISK_CONFIG.no_data : null;
 
-  // Build trend chart data from monthly (chronological order)
+  // Build trend chart data based on selected view
   const trendData = useMemo(() => {
-    if (!monthly || monthly.length === 0) return null;
-    const sorted = [...monthly].reverse(); // backend returns DESC, reverse to ASC
-    return {
-      labels: sorted.map((m) => m.period.slice(5)), // MM
-      datasets: [
-        { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
-        { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
-      ],
-      legend: ['Income', 'Expense'],
-    };
-  }, [monthly]);
+    if (trendView === 'daily') {
+      if (!daily || daily.length === 0) return null;
+      const sorted = [...daily].reverse(); // backend returns DESC, reverse to ASC
+      return {
+        labels: sorted.map((d) => new Date(d.date).getDate().toString()), // Day of month
+        datasets: [
+          { data: sorted.map((d) => d.total_income), color: () => colors.income, strokeWidth: 2 },
+          { data: sorted.map((d) => d.total_expense), color: () => colors.expense, strokeWidth: 2 },
+        ],
+        legend: ['Income', 'Expense'],
+      };
+    } else {
+      // Monthly view
+      if (!monthly || monthly.length === 0) return null;
+      const sorted = [...monthly].reverse(); // backend returns DESC, reverse to ASC
+      return {
+        labels: sorted.map((m) => m.period.slice(5)), // MM
+        datasets: [
+          { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
+          { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
+        ],
+        legend: ['Income', 'Expense'],
+      };
+    }
+  }, [trendView, daily, monthly]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -218,9 +236,24 @@ export function HomeScreen() {
         )}
 
         {/* Spending trend chart */}
-        {!monthlyLoading && trendData && (
+        {!monthlyLoading && !dailyLoading && trendData && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Spending trend</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Spending trend</Text>
+              <View style={styles.pillRow}>
+                {(['daily', 'monthly'] as TrendView[]).map((view) => (
+                  <TouchableOpacity
+                    key={view}
+                    onPress={() => setTrendView(view)}
+                    style={[styles.pill, trendView === view && styles.pillActive]}
+                  >
+                    <Text style={[styles.pillText, trendView === view && styles.pillTextActive]}>
+                      {view.charAt(0).toUpperCase() + view.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
             <LineChart
               data={trendData}
               width={CHART_WIDTH}
@@ -435,4 +468,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   actionText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+
+  pillRow: { flexDirection: 'row', gap: spacing.xs },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+  },
+  pillActive: { backgroundColor: colors.primary },
+  pillText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  pillTextActive: { color: '#fff' },
 });

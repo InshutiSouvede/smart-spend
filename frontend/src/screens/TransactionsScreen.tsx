@@ -16,12 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTransactions, useCategoryCorrection } from '../hooks/useTransactions';
 import { TransactionCard } from '../components/TransactionCard';
+import { UnmatchedExpenseCard } from '../components/UnmatchedExpenseCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
 import type { TransactionsStackParamList } from '../navigation/AppTabs';
 import type { SMSTransactionOut } from '../types/api';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { transactionsApi } from '../api/transactions';
 
 type Filter = 'all' | 'income' | 'expense';
 type Nav = NativeStackNavigationProp<TransactionsStackParamList, 'TransactionsList'>;
@@ -30,13 +33,24 @@ export function TransactionsScreen() {
   const navigation = useNavigation<Nav>();
   const [filter, setFilter] = useState<Filter>('all');
   const [correcting, setCorrecting] = useState<{ pdId: number; current: string } | null>(null);
+  const [showUnmatched, setShowUnmatched] = useState(true);
 
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useTransactions(filter === 'all' ? {} : { transaction_type: filter });
 
+  const { data: unmatchedData, isLoading: unmatchedLoading } = useInfiniteQuery({
+    queryKey: ['transactions', 'unmatched'],
+    queryFn: ({ pageParam = 1 }) => transactionsApi.listUnmatched({ page: pageParam, page_size: 10 }),
+    getNextPageParam: (lastPage) => (lastPage.has_next ? lastPage.page + 1 : undefined),
+    initialPageParam: 1,
+    enabled: showUnmatched && filter === 'all',
+  });
+
   const { mutateAsync: correctCategory, isPending: correctionPending } = useCategoryCorrection();
 
   const allTx: SMSTransactionOut[] = data?.pages.flatMap((p) => p.items) ?? [];
+  const unmatchedTx: SMSTransactionOut[] = unmatchedData?.pages.flatMap((p) => p.items) ?? [];
+  const unmatchedCount = unmatchedTx.length;
 
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
@@ -95,6 +109,61 @@ export function TransactionsScreen() {
             />
           )}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <>
+              {/* Unmatched Expenses Section */}
+              {filter === 'all' && !unmatchedLoading && unmatchedCount > 0 && (
+                <View style={styles.unmatchedSection}>
+                  <TouchableOpacity
+                    style={styles.unmatchedHeader}
+                    onPress={() => setShowUnmatched(!showUnmatched)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.unmatchedHeaderLeft}>
+                      <Ionicons name="alert-circle" size={20} color={colors.warning} />
+                      <Text style={styles.unmatchedTitle}>
+                        Unmatched Expenses
+                      </Text>
+                      <View style={styles.unmatchedBadge}>
+                        <Text style={styles.unmatchedBadgeText}>{unmatchedCount}</Text>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name={showUnmatched ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                  {showUnmatched && (
+                    <View style={styles.unmatchedList}>
+                      {unmatchedTx.slice(0, 5).map((tx) => (
+                        <UnmatchedExpenseCard key={tx.id} tx={tx} />
+                      ))}
+                      {unmatchedCount > 5 && (
+                        <TouchableOpacity
+                          style={styles.viewAllButton}
+                          onPress={() => navigation.navigate('UnmatchedExpenses')}
+                        >
+                          <Text style={styles.viewAllButtonText}>
+                            View All {unmatchedCount} Unmatched Expenses
+                          </Text>
+                          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+              {/* Section Divider */}
+              {filter === 'all' && unmatchedCount > 0 && (
+                <View style={styles.sectionDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>All Transactions</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              )}
+            </>
+          }
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={styles.emptyText}>No transactions yet.</Text>
@@ -156,6 +225,82 @@ const styles = StyleSheet.create({
   list: {
     padding: spacing.lg,
     paddingBottom: 100,
+  },
+  unmatchedSection: {
+    marginBottom: spacing.lg,
+  },
+  unmatchedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  unmatchedHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  unmatchedTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  unmatchedBadge: {
+    backgroundColor: colors.warning,
+    borderRadius: radius.full,
+    minWidth: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  unmatchedBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  unmatchedList: {
+    gap: spacing.sm,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginTop: spacing.xs,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginHorizontal: spacing.md,
+    textTransform: 'uppercase',
   },
   center: {
     flex: 1,

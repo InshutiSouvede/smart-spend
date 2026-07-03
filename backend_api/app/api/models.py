@@ -9,6 +9,8 @@ from app.schemas.schemas import (
     CategorizeRequest,
     CategorizeResponse,
     CategoryListResponse,
+    CustomCategoryCreate,
+    CustomCategoryOut,
     ExpenseForecastRequest,
     ExpenseForecastResponse,
     IncomeForecastRequest,
@@ -52,7 +54,14 @@ _EXPENSE_CATEGORIES: list[str] = [
     summary="Return the list of valid expense categories",
 )
 def list_categories(user_id: str = Depends(get_current_user_id)) -> CategoryListResponse:
-    return CategoryListResponse(categories=_EXPENSE_CATEGORIES)
+    """Return predefined categories plus user's custom categories."""
+    with get_db() as conn:
+        custom_rows = conn.execute(
+            "SELECT name FROM custom_categories WHERE user_id = ? ORDER BY name",
+            (user_id,),
+        ).fetchall()
+    custom = [r["name"] for r in custom_rows]
+    return CategoryListResponse(categories=_EXPENSE_CATEGORIES, custom_categories=custom)
 
 
 # â”€â”€â”€ POST /models/categorize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -258,3 +267,110 @@ def list_model_versions(
         d["is_active"] = bool(d["is_active"])
         result.append(d)
     return result
+
+
+# ─── POST /models/categories/custom ───────────────────────────────────────────
+
+@router.post(
+    "/categories/custom",
+    response_model=CustomCategoryOut,
+    status_code=201,
+    summary="Create a new user-specific custom category",
+)
+def create_custom_category(
+    payload: CustomCategoryCreate,
+    user_id: str = Depends(get_current_user_id),
+) -> dict:
+    """
+    Create a custom expense category visible only to the current user.
+    Category names must be unique per user and cannot match predefined categories.
+    """
+    name = payload.name.strip()
+    
+    # Prevent creating custom categories with predefined names
+    if name in _EXPENSE_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{name}' is a predefined category and cannot be added as custom.",
+        )
+    
+    with get_db() as conn:
+        try:
+            conn.execute(
+                "INSERT INTO custom_categories (user_id, name) VALUES (?, ?)",
+                (user_id, name),
+            )
+            row = conn.execute(
+                "SELECT * FROM custom_categories WHERE user_id = ? AND name = ?",
+                (user_id, name),
+            ).fetchone()
+        except Exception as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Category '{name}' already exists for this user.",
+                )
+            raise
+    
+    return dict(row)
+
+
+# ─── GET /models/categories/custom ────────────────────────────────────────────
+
+@router.get(
+    "/categories/custom",
+    response_model=list[CustomCategoryOut],
+    summary="List all custom categories for the current user",
+)
+def list_custom_categories(
+    user_id: str = Depends(get_current_user_id),
+) -> list[dict]:
+    """Return all user-specific custom expense categories, ordered alphabetically."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM custom_categories WHERE user_id = ? ORDER BY name",
+            (user_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ─── DELETE /models/categories/custom/{category_id} ───────────────────────────
+
+@router.delete(
+    "/categories/custom/{category_id}",
+    status_code=204,
+    summary="Delete a custom category",
+)
+def delete_custom_category(
+    category_id: int,
+    user_id: str = Depends(get_current_user_id),
+) -> None:
+    """
+    Delete a user-specific custom category. Expenses using this category
+    will revert to their predicted category or 'Uncategorised'.
+    """
+    with get_db() as conn:
+        # Verify ownership
+        row = conn.execute(
+            "SELECT id FROM custom_categories WHERE id = ? AND user_id = ?",
+            (category_id, user_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Custom category not found.")
+        
+        # Delete the category
+        conn.execute("DELETE FROM custom_categories WHERE id = ?", (category_id,))
+        
+        # Update expense_categories using this custom category to revert to predicted
+        conn.execute(
+            """
+            UPDATE expense_categories
+            SET final_category = predicted_category,
+                category_source = 'model'
+            WHERE user_id = ? AND final_category = (
+                SELECT name FROM custom_categories WHERE id = ? LIMIT 1
+            )
+            """,
+            (user_id, category_id),
+        )
+

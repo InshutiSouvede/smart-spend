@@ -28,13 +28,49 @@ function firstOfMonthStr() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+function validateDate(dateStr: string): boolean {
+  if (!dateStr) return true; // Empty is valid (optional)
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!regex.test(dateStr)) return false;
+  const date = new Date(dateStr);
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
 export function ExportScreen() {
   const [fromDate, setFromDate] = useState(firstOfMonthStr());
   const [toDate, setToDate] = useState(todayStr());
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ fromDate?: string; toDate?: string; range?: string }>({});
+
+  const validateDates = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    if (fromDate && !validateDate(fromDate)) {
+      newErrors.fromDate = 'Invalid date format. Use YYYY-MM-DD';
+    }
+
+    if (toDate && !validateDate(toDate)) {
+      newErrors.toDate = 'Invalid date format. Use YYYY-MM-DD';
+    }
+
+    if (fromDate && toDate && validateDate(fromDate) && validateDate(toDate)) {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+      if (from > to) {
+        newErrors.range = 'From date cannot be after To date';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleExport = async () => {
+    if (!validateDates()) {
+      return;
+    }
+
     setLoading(true);
     try {
       const csv = await transactionsApi.exportCsv({
@@ -76,25 +112,34 @@ export function ExportScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>From date</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.fromDate && styles.inputError]}
             value={fromDate}
-            onChangeText={setFromDate}
+            onChangeText={(text) => {
+              setFromDate(text);
+              setErrors((prev) => ({ ...prev, fromDate: undefined, range: undefined }));
+            }}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.textMuted}
             keyboardType="default"
             autoCapitalize="none"
           />
+          {errors.fromDate && <Text style={styles.errorText}>{errors.fromDate}</Text>}
 
           <Text style={[styles.label, { marginTop: spacing.md }]}>To date</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.toDate && styles.inputError]}
             value={toDate}
-            onChangeText={setToDate}
+            onChangeText={(text) => {
+              setToDate(text);
+              setErrors((prev) => ({ ...prev, toDate: undefined, range: undefined }));
+            }}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.textMuted}
             keyboardType="default"
             autoCapitalize="none"
           />
+          {errors.toDate && <Text style={styles.errorText}>{errors.toDate}</Text>}
+          {errors.range && <Text style={styles.errorText}>{errors.range}</Text>}
         </View>
 
         {/* Type filter */}
@@ -170,6 +215,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: colors.textPrimary,
+  },
+  inputError: {
+    borderColor: colors.expense,
+  },
+  errorText: {
+    color: colors.expense,
+    fontSize: 12,
+    marginTop: 4,
   },
 
   pillRow: { flexDirection: 'row', gap: spacing.sm },

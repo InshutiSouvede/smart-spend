@@ -260,6 +260,17 @@ class ReceiptManualLinkOut(BaseModel):
 
 class CategoryListResponse(BaseModel):
     categories: List[str]
+    custom_categories: List[str] = []
+
+
+class CustomCategoryCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+
+
+class CustomCategoryOut(BaseModel):
+    id: int
+    name: str
+    created_at: Optional[str] = None
 
 
 class CategorizeRequest(BaseModel):
@@ -399,6 +410,15 @@ class ModelVersionOut(BaseModel):
 
 
 # ─── Analytics schemas ────────────────────────────────────────────────────────
+
+class UnmatchedExpenseOut(BaseModel):
+    """An expense transaction that hasn't been linked to purchase details yet."""
+    sms_transaction_id: int
+    amount_rwf: float
+    to_who: Optional[str] = None
+    transaction_time: Optional[str] = None
+    clarification_prompt: Optional[str] = None
+
 
 class CategorySummary(BaseModel):
     category: str

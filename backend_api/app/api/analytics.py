@@ -13,6 +13,7 @@ from app.schemas.schemas import (
     CategorySummary,
     MonthlySummary,
     SpendingStatusResponse,
+    UnmatchedExpenseOut,
 )
 from app.services.model_service import model_service
 
@@ -401,4 +402,104 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
         predicted_month_end_income=predicted_income,
         unmatched_expense_count=int(unmatched_count),
     )
+
+
+# ─── /analytics/unmatched-expenses ─────────────────────────────────────────────
+
+@router.get(
+    "/unmatched-expenses",
+    response_model=list[UnmatchedExpenseOut],
+    summary="List expense transactions without purchase details",
+)
+def get_unmatched_expenses(
+    user_id: str = Depends(get_current_user_id),
+) -> list[dict]:
+    """
+    Return all expense SMS transactions that have not been linked to purchase details.
+    These are expenses where the user needs to identify what was purchased.
+    """
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT st.id, st.amount_rwf, st.to_who, st.transaction_time
+            FROM sms_transactions st
+            WHERE st.user_id = ? AND st.transaction_type = 'expense'
+              AND NOT EXISTS (
+                  SELECT 1 FROM transaction_purchase_matches tpm
+                  WHERE tpm.sms_transaction_id = st.id
+                    AND tpm.match_status NOT IN ('unmatched', 'rejected')
+              )
+            ORDER BY st.transaction_time DESC
+            LIMIT 100
+            """,
+            (user_id,),
+        ).fetchall()
+    
+    result = []
+    for row in rows:
+        amount = row["amount_rwf"]
+        to_who = row["to_who"] or "someone"
+        tx_time = (row["transaction_time"] or "")[:16].replace("T", " ")
+        
+        clarification_prompt = (
+            f"You sent {int(amount):,} RWF to {to_who}"
+            + (f" at {tx_time}" if tx_time else "")
+            + ". What were you paying for?"
+        )
+        
+        result.append({
+            "sms_transaction_id": row["id"],
+            "amount_rwf": float(amount),
+            "to_who": row["to_who"],
+            "transaction_time": row["transaction_time"],
+            "clarification_prompt": clarification_prompt,
+        })
+    
+    return result
+
+
+# ─── /analytics/daily-trends ───────────────────────────────────────────────────
+
+@router.get(
+    "/daily-trends",
+    response_model=list[dict],
+    summary="Daily income and expense totals for the last N days",
+)
+def get_daily_trends(
+    days: int = Query(default=30, ge=1, le=90, description="Number of past days to return."),
+    user_id: str = Depends(get_current_user_id),
+) -> list[dict]:
+    """
+    Return per-day income and expense totals for the last N days.
+    Useful for daily spending trend visualization.
+    """
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                DATE(transaction_time) AS date,
+                SUM(CASE WHEN transaction_type = 'income' THEN amount_rwf ELSE 0 END) AS total_income,
+                SUM(CASE WHEN transaction_type = 'expense' THEN amount_rwf ELSE 0 END) AS total_expense,
+                COUNT(*) AS transaction_count
+            FROM sms_transactions
+            WHERE user_id = ? 
+              AND transaction_time IS NOT NULL
+              AND DATE(transaction_time) >= DATE('now', '-' || ? || ' days')
+            GROUP BY DATE(transaction_time)
+            ORDER BY date DESC
+            LIMIT ?
+            """,
+            (user_id, days, days),
+        ).fetchall()
+    
+    return [
+        {
+            "date": row["date"],
+            "total_income": round(float(row["total_income"]), 2),
+            "total_expense": round(float(row["total_expense"]), 2),
+            "net": round(float(row["total_income"]) - float(row["total_expense"]), 2),
+            "transaction_count": int(row["transaction_count"]),
+        }
+        for row in rows
+    ]
 

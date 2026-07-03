@@ -51,11 +51,19 @@ export interface SMSIngestRequest {
 
 export interface PurchaseDetailOut {
   id: number;
-  merchant_name?: string | null;
+  source_type?: string;
+  item_name?: string;
+  normalized_item_name?: string | null;
+  quantity?: number;
+  unit?: string | null;
+  unit_cost_rwf?: number | null;
   total_cost_rwf?: number | null;
+  merchant_name?: string | null;
   purchase_time?: string | null;
-  category?: string | null;
+  predicted_category?: string | null;
   final_category?: string | null;
+  category_confidence?: number | null;
+  created_at?: string | null;
 }
 
 export interface SMSTransactionOut {
@@ -152,6 +160,14 @@ export interface MonthlySummary {
   transaction_count: number;
 }
 
+export interface DailySummary {
+  date: string;
+  total_income: number;
+  total_expense: number;
+  net: number;
+  transaction_count: number;
+}
+
 export interface SpendingStatusResponse {
   period: string;
   days_elapsed: number;
@@ -181,4 +197,23 @@ export interface CategoryCorrectionRequest {
 
 export interface CategoryListResponse {
   categories: string[];
+  custom_categories: string[];
+}
+
+export interface UnmatchedExpenseOut {
+  sms_transaction_id: number;
+  amount_rwf: number;
+  to_who?: string | null;
+  transaction_time?: string | null;
+  clarification_prompt?: string | null;
+}
+
+export interface CustomCategoryCreate {
+  name: string;
+}
+
+export interface CustomCategoryOut {
+  id: number;
+  name: string;
+  created_at?: string | null;
 }

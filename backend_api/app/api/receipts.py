@@ -233,25 +233,28 @@ def _pd_ids_for_receipt(conn, user_id: str, receipt_id: int) -> list[int]:
 
 
 def _build_pd_out(rows) -> list[PurchaseDetailOut]:
-    return [
-        PurchaseDetailOut(
-            id=r["id"],
-            source_type=r["source_type"],
-            item_name=r["item_name"],
-            normalized_item_name=r.get("normalized_item_name"),
-            quantity=r.get("quantity", 1.0),
-            unit=r.get("unit"),
-            unit_cost_rwf=r.get("unit_cost_rwf"),
-            total_cost_rwf=r["total_cost_rwf"],
-            merchant_name=r.get("merchant_name"),
-            purchase_time=r.get("purchase_time"),
-            predicted_category=r.get("predicted_category"),
-            final_category=r.get("final_category"),
-            category_confidence=r.get("category_confidence"),
-            created_at=r.get("created_at"),
+    result = []
+    for r in rows:
+        row_dict = dict(r)
+        result.append(
+            PurchaseDetailOut(
+                id=row_dict["id"],
+                source_type=row_dict["source_type"],
+                item_name=row_dict["item_name"],
+                normalized_item_name=row_dict.get("normalized_item_name"),
+                quantity=row_dict.get("quantity", 1.0),
+                unit=row_dict.get("unit"),
+                unit_cost_rwf=row_dict.get("unit_cost_rwf"),
+                total_cost_rwf=row_dict["total_cost_rwf"],
+                merchant_name=row_dict.get("merchant_name"),
+                purchase_time=row_dict.get("purchase_time"),
+                predicted_category=row_dict.get("predicted_category"),
+                final_category=row_dict.get("final_category"),
+                category_confidence=row_dict.get("category_confidence"),
+                created_at=row_dict.get("created_at"),
+            )
         )
-        for r in rows
-    ]
+    return result
 
 
 _RECEIPT_SUMMARY_SQL = """

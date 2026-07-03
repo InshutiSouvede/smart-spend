@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { AnalyticsSummary, CategorySummary, MonthlySummary, SpendingStatusResponse } from '../types/api';
+import type { AnalyticsSummary, CategorySummary, MonthlySummary, SpendingStatusResponse, UnmatchedExpenseOut } from '../types/api';
 
 export const analyticsApi = {
   summary: (params: { period_start?: string; period_end?: string } = {}) =>
@@ -20,5 +20,15 @@ export const analyticsApi = {
   categoryBreakdown: (params: { from_date?: string; to_date?: string } = {}) =>
     apiClient
       .get<CategorySummary[]>('/analytics/categories', { params })
+      .then((r) => r.data),
+  
+  unmatchedExpenses: () =>
+    apiClient
+      .get<UnmatchedExpenseOut[]>('/analytics/unmatched-expenses')
+      .then((r) => r.data),
+  
+  dailyTrends: (days = 30) =>
+    apiClient
+      .get<any[]>('/analytics/daily-trends', { params: { days } })
       .then((r) => r.data),
 };

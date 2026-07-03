@@ -21,6 +21,7 @@ export function useUploadReceipt() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['receipts'] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
     },
   });
 }

@@ -13,13 +13,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAnalyticsSummary, useMonthlyTrends, useCategoryBreakdown } from '../hooks/useAnalytics';
+import { useAnalyticsSummary, useMonthlyTrends, useCategoryBreakdown, useUnmatchedExpenses } from '../hooks/useAnalytics';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
-import type { AppTabParamList } from '../navigation/AppTabs';
+import type { AppTabParamList, TransactionsStackParamList } from '../navigation/AppTabs';
 
 const { width } = Dimensions.get('window');
 const CHART_WIDTH = width - spacing.xl * 2;
@@ -31,7 +33,10 @@ function formatRWF(amount: number): string {
 }
 
 type MonthRange = '1' | '3' | '6' | '12';
-type Nav = BottomTabNavigationProp<AppTabParamList>;
+type Nav = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabParamList, 'AnalyticsTab'>,
+  NativeStackNavigationProp<TransactionsStackParamList>
+>;
 
 export function AnalyticsScreen() {
   const navigation = useNavigation<Nav>();
@@ -54,6 +59,8 @@ export function AnalyticsScreen() {
   const { data: monthly, isLoading: monthlyLoading } = useMonthlyTrends(monthsNum);
 
   const { data: categories, isLoading: catLoading } = useCategoryBreakdown(fromDate, toDate);
+
+  const { data: unmatchedExpenses } = useUnmatchedExpenses();
 
   // Monthly chart (chronological)
   const monthlyChartData = useMemo(() => {
@@ -151,6 +158,60 @@ export function AnalyticsScreen() {
                 </View>
               ))}
             </>
+          ) : (unmatchedExpenses && unmatchedExpenses.length > 0) ? (
+            <View style={styles.unmatchedSection}>
+              <View style={styles.unmatchedHeader}>
+                <Ionicons name="help-circle-outline" size={20} color={colors.warning} />
+                <Text style={styles.unmatchedTitle}>
+                  Unmatched expenses ({unmatchedExpenses.length})
+                </Text>
+              </View>
+              <Text style={styles.unmatchedSubtitle}>
+                These expenses need to be identified. Tap an expense to specify what it was for.
+              </Text>
+              {unmatchedExpenses.slice(0, 5).map((expense) => (
+                <TouchableOpacity
+                  key={expense.sms_transaction_id}
+                  style={styles.unmatchedItem}
+                  onPress={() => {
+                    navigation.navigate('TransactionsTab', {
+                      screen: 'ItemDetails',
+                      params: {
+                        smsTransactionId: expense.sms_transaction_id,
+                        amount: expense.amount_rwf,
+                        merchant: expense.to_who || undefined,
+                      },
+                    });
+                  }}
+                >
+                  <View style={styles.unmatchedLeft}>
+                    <Text style={styles.unmatchedAmount}>
+                      {formatRWF(expense.amount_rwf)} RWF
+                    </Text>
+                    <Text style={styles.unmatchedMerchant}>
+                      {expense.to_who || 'Unknown merchant'}
+                    </Text>
+                    {expense.transaction_time && (
+                      <Text style={styles.unmatchedTime}>
+                        {new Date(expense.transaction_time).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ))}
+              {unmatchedExpenses.length > 5 && (
+                <TouchableOpacity
+                  style={styles.viewAllBtn}
+                  onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
+                >
+                  <Text style={styles.viewAllText}>
+                    View all {unmatchedExpenses.length} unmatched expenses
+                  </Text>
+                  <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
           ) : (
             <Text style={styles.empty}>No purchase data yet. Upload receipts or answer item prompts.</Text>
           )}
@@ -320,4 +381,70 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   exportText: { flex: 1, color: colors.primary, fontWeight: '600', fontSize: 14 },
+
+  unmatchedSection: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+  },
+  unmatchedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  unmatchedTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  unmatchedSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  unmatchedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  unmatchedLeft: {
+    flex: 1,
+  },
+  unmatchedAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  unmatchedMerchant: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  unmatchedTime: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  viewAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
 });

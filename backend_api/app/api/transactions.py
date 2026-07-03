@@ -68,6 +68,52 @@ def _try_auto_match(conn, user_id: str, sms_id: int, amount_rwf: float,
     return [r["id"] for r in rows]
 
 
+def _get_purchase_details_for_transaction(conn, sms_id: int) -> list:
+    """
+    Fetch all purchase details linked to an SMS transaction via transaction_purchase_matches.
+    Returns a list of PurchaseDetailOut objects.
+    """
+    rows = conn.execute(
+        """
+        SELECT pd.id, pd.source_type, pd.item_name, pd.normalized_item_name,
+               pd.quantity, pd.unit, pd.unit_cost_rwf, pd.total_cost_rwf,
+               pd.merchant_name, pd.purchase_time, pd.created_at,
+               ec.predicted_category, ec.final_category, ec.confidence
+        FROM purchase_details pd
+        JOIN transaction_purchase_matches tpm ON tpm.purchase_detail_id = pd.id
+        LEFT JOIN expense_categories ec ON ec.purchase_detail_id = pd.id
+        WHERE tpm.sms_transaction_id = ?
+          AND tpm.match_status NOT IN ('unmatched', 'rejected')
+        ORDER BY pd.id
+        """,
+        (sms_id,),
+    ).fetchall()
+    
+    from app.schemas.schemas import PurchaseDetailOut
+    result = []
+    for r in rows:
+        row_dict = dict(r)
+        result.append(
+            PurchaseDetailOut(
+                id=row_dict["id"],
+                source_type=row_dict["source_type"],
+                item_name=row_dict["item_name"],
+                normalized_item_name=row_dict.get("normalized_item_name"),
+                quantity=row_dict.get("quantity", 1.0),
+                unit=row_dict.get("unit"),
+                unit_cost_rwf=row_dict.get("unit_cost_rwf"),
+                total_cost_rwf=row_dict["total_cost_rwf"],
+                merchant_name=row_dict.get("merchant_name"),
+                purchase_time=row_dict.get("purchase_time"),
+                predicted_category=row_dict.get("predicted_category"),
+                final_category=row_dict.get("final_category"),
+                category_confidence=row_dict.get("confidence"),
+                created_at=row_dict.get("created_at"),
+            )
+        )
+    return result
+
+
 def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> None:
     """Incrementally refresh monthly_financial_aggregates for one (user, year, month)."""
     period_start = f"{year}-{month:02d}-01"
@@ -412,25 +458,30 @@ def list_transactions(
             params + [page_size, offset],
         ).fetchall()
 
-    items = []
-    for r in rows:
-        d = dict(r)
-        tx_out = SMSTransactionOut(
-            id=d["id"],
-            transaction_type=d["transaction_type"],
-            amount_rwf=d["amount_rwf"],
-            fee_rwf=d["fee_rwf"],
-            balance_after_rwf=d.get("balance_after_rwf"),
-            to_who=d.get("to_who"),
-            from_who=d.get("from_who"),
-            transaction_time=d.get("transaction_time"),
-            transaction_reference=d.get("transaction_reference"),
-            parse_confidence=d.get("parse_confidence", 1.0),
-            provider=d.get("provider"),
-            currency=d.get("currency", "RWF"),
-            created_at=d.get("created_at"),
-        )
-        items.append(tx_out)
+        items = []
+        for r in rows:
+            d = dict(r)
+            
+            # Fetch purchase details for this transaction
+            purchase_details = _get_purchase_details_for_transaction(conn, d["id"])
+            
+            tx_out = SMSTransactionOut(
+                id=d["id"],
+                transaction_type=d["transaction_type"],
+                amount_rwf=d["amount_rwf"],
+                fee_rwf=d["fee_rwf"],
+                balance_after_rwf=d.get("balance_after_rwf"),
+                to_who=d.get("to_who"),
+                from_who=d.get("from_who"),
+                transaction_time=d.get("transaction_time"),
+                transaction_reference=d.get("transaction_reference"),
+                parse_confidence=d.get("parse_confidence", 1.0),
+                provider=d.get("provider"),
+                currency=d.get("currency", "RWF"),
+                created_at=d.get("created_at"),
+                purchase_details=purchase_details if purchase_details else None,
+            )
+            items.append(tx_out)
 
     return SMSTransactionListResponse(
         items=items, total=total, page=page,
@@ -487,26 +538,28 @@ def list_unmatched(
             (user_id, page_size, offset),
         ).fetchall()
 
-    items = [
-        SMSTransactionOut(
-            id=r["id"],
-            transaction_type=r["transaction_type"],
-            amount_rwf=r["amount_rwf"],
-            fee_rwf=r["fee_rwf"],
-            balance_after_rwf=r.get("balance_after_rwf"),
-            to_who=r.get("to_who"),
-            from_who=r.get("from_who"),
-            transaction_time=r.get("transaction_time"),
-            transaction_reference=r.get("transaction_reference"),
-            parse_confidence=r.get("parse_confidence", 1.0),
-            provider=r.get("provider"),
-            currency=r.get("currency", "RWF"),
-            created_at=r.get("created_at"),
-            match_status="unmatched",
-            clarification_prompt=_build_clarification_prompt(dict(r)),
+    items = []
+    for r in rows:
+        row_dict = dict(r)
+        items.append(
+            SMSTransactionOut(
+                id=row_dict["id"],
+                transaction_type=row_dict["transaction_type"],
+                amount_rwf=row_dict["amount_rwf"],
+                fee_rwf=row_dict["fee_rwf"],
+                balance_after_rwf=row_dict.get("balance_after_rwf"),
+                to_who=row_dict.get("to_who"),
+                from_who=row_dict.get("from_who"),
+                transaction_time=row_dict.get("transaction_time"),
+                transaction_reference=row_dict.get("transaction_reference"),
+                parse_confidence=row_dict.get("parse_confidence", 1.0),
+                provider=row_dict.get("provider"),
+                currency=row_dict.get("currency", "RWF"),
+                created_at=row_dict.get("created_at"),
+                match_status="unmatched",
+                clarification_prompt=_build_clarification_prompt(row_dict),
+            )
         )
-        for r in rows
-    ]
     return SMSTransactionListResponse(
         items=items, total=total, page=page,
         page_size=page_size, has_next=(offset + page_size) < total,
@@ -793,10 +846,35 @@ def export_transactions_csv(
     """
     import csv
     import io
+    from datetime import datetime as dt
     from fastapi.responses import StreamingResponse
 
     if transaction_type and transaction_type not in ("income", "expense"):
         raise HTTPException(status_code=400, detail="transaction_type must be 'income' or 'expense'.")
+    
+    # Validate date format and range
+    if from_date:
+        try:
+            from_dt = dt.fromisoformat(from_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="from_date must be a valid ISO date (YYYY-MM-DD).")
+    else:
+        from_dt = None
+    
+    if to_date:
+        try:
+            to_dt = dt.fromisoformat(to_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="to_date must be a valid ISO date (YYYY-MM-DD).")
+    else:
+        to_dt = None
+    
+    # Validate that from_date is not after to_date
+    if from_dt and to_dt and from_dt > to_dt:
+        raise HTTPException(
+            status_code=400,
+            detail="from_date cannot be after to_date.",
+        )
 
     conditions = ["user_id = ?"]
     params: list = [user_id]

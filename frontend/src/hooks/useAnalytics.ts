@@ -35,3 +35,19 @@ export function useCategoryBreakdown(fromDate?: string, toDate?: string) {
     staleTime: 5 * 60_000,
   });
 }
+
+export function useUnmatchedExpenses() {
+  return useQuery({
+    queryKey: ['analytics', 'unmatched-expenses'],
+    queryFn: analyticsApi.unmatchedExpenses,
+    staleTime: 30_000,
+  });
+}
+
+export function useDailyTrends(days = 30) {
+  return useQuery({
+    queryKey: ['analytics', 'daily', days],
+    queryFn: () => analyticsApi.dailyTrends(days),
+    staleTime: 5 * 60_000,
+  });
+}

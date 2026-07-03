@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TransactionsScreen } from '../screens/TransactionsScreen';
 import { SMSImportScreen } from '../screens/SMSImportScreen';
+import { ItemDetailsScreen } from '../screens/ItemDetailsScreen';
+import { UnmatchedExpensesScreen } from '../screens/UnmatchedExpensesScreen';
 import { ReceiptsScreen } from '../screens/ReceiptsScreen';
 import { ReceiptUploadScreen } from '../screens/ReceiptUploadScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -27,6 +29,8 @@ export type AppTabParamList = {
 export type TransactionsStackParamList = {
   TransactionsList: undefined;
   SMSImport: undefined;
+  ItemDetails: { smsTransactionId: number; amount: number; merchant?: string };
+  UnmatchedExpenses: undefined;
 };
 
 export type ReceiptsStackParamList = {
@@ -52,6 +56,16 @@ function TransactionsStack() {
         name="SMSImport"
         component={SMSImportScreen}
         options={{ title: 'Import SMS' }}
+      />
+      <TxStack.Screen
+        name="ItemDetails"
+        component={ItemDetailsScreen}
+        options={{ title: 'Purchase Details' }}
+      />
+      <TxStack.Screen
+        name="UnmatchedExpenses"
+        component={UnmatchedExpensesScreen}
+        options={{ title: 'Unmatched Expenses' }}
       />
     </TxStack.Navigator>
   );

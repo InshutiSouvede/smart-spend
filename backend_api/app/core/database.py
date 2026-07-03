@@ -117,6 +117,15 @@ CREATE TABLE IF NOT EXISTS category_corrections (
     created_at           TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
+-- User-specific custom expense categories
+CREATE TABLE IF NOT EXISTS custom_categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     TEXT    NOT NULL,
+    name        TEXT    NOT NULL,
+    created_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, name)
+);
+
 -- Monthly aggregates for forecast model training and analytics
 CREATE TABLE IF NOT EXISTS monthly_financial_aggregates (
     id                         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,6 +215,8 @@ CREATE INDEX IF NOT EXISTS idx_expense_categories_user
     ON expense_categories(user_id);
 CREATE INDEX IF NOT EXISTS idx_corrections_user_id
     ON category_corrections(user_id);
+CREATE INDEX IF NOT EXISTS idx_custom_categories_user
+    ON custom_categories(user_id);
 CREATE INDEX IF NOT EXISTS idx_monthly_aggregates_user_month
     ON monthly_financial_aggregates(user_id, year, month);
 CREATE INDEX IF NOT EXISTS idx_retraining_jobs_user_id

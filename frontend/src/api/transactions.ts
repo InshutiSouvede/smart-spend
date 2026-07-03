@@ -48,4 +48,19 @@ export const transactionsApi = {
         responseType: 'text',
       })
       .then((r) => r.data),
+
+  submitItemDetails: (smsTransactionId: number, payload: {
+    merchant_name?: string;
+    items: Array<{
+      item_name: string;
+      quantity?: number;
+      unit?: string;
+      unit_cost_rwf?: number;
+      total_cost_rwf: number;
+      purchase_time?: string;
+    }>;
+  }) =>
+    apiClient
+      .post<{ message: string }>(`/transactions/${smsTransactionId}/prompt-response`, payload)
+      .then((r) => r.data),
 };

@@ -21,12 +21,14 @@ function formatDate(iso?: string | null): string {
 
 export function TransactionCard({ tx, onCategoryFix }: Props) {
   const isIncome = tx.transaction_type === 'income';
-  const label = isIncome ? tx.from_who ?? 'Income' : tx.to_who ?? 'Payment';
-  const pd = tx.purchase_details?.[0] ?? null;
-  const category =
-    pd?.final_category ??
-    pd?.predicted_category ??
-    (isIncome ? 'Income' : 'Expense');
+  const merchantLabel = isIncome ? tx.from_who ?? 'Income' : tx.to_who ?? 'Payment';
+  const purchaseDetails = tx.purchase_details ?? [];
+  const hasDetails = purchaseDetails.length > 0;
+  
+  // Get first item for display
+  const pd = purchaseDetails[0] ?? null;
+  const itemName = pd?.item_name || null;
+  const category = pd?.final_category ?? pd?.predicted_category ?? null;
   const confidence = pd?.category_confidence;
 
   const canFix = !isIncome && pd != null && onCategoryFix != null;
@@ -36,13 +38,27 @@ export function TransactionCard({ tx, onCategoryFix }: Props) {
       <View style={[styles.dot, { backgroundColor: isIncome ? colors.income : colors.expense }]} />
       <View style={styles.body}>
         <Text style={styles.label} numberOfLines={1}>
-          {label}
+          {merchantLabel}
         </Text>
         <View style={styles.metaRow}>
-          <Text style={styles.meta}>
-            {category}
-            {confidence != null ? ` · ${Math.round(confidence * 100)}%` : ''}
-          </Text>
+          {/* Item Name Tag */}
+          <View style={styles.itemBadge}>
+            <Text style={styles.itemText} numberOfLines={1}>
+              {itemName || 'Unknown'}
+            </Text>
+          </View>
+          {/* Category Tag */}
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText} numberOfLines={1}>
+              {category || 'Unknown'}
+            </Text>
+          </View>
+          {confidence != null && (
+            <>
+              <Text style={styles.metaDot}>·</Text>
+              <Text style={styles.meta}>{Math.round(confidence * 100)}%</Text>
+            </>
+          )}
           <Text style={styles.metaDot}>·</Text>
           <Text style={styles.meta}>{formatDate(tx.transaction_time)}</Text>
         </View>
@@ -54,7 +70,7 @@ export function TransactionCard({ tx, onCategoryFix }: Props) {
         </Text>
         {canFix && (
           <TouchableOpacity
-            onPress={() => onCategoryFix!(pd!.id, category)}
+            onPress={() => onCategoryFix!(pd!.id, category || 'Expense')}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={styles.fixBtn}
           >
@@ -96,12 +112,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
+    marginBottom: 4,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  itemBadge: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: 120,
+  },
+  itemText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1565c0',
+  },
+  categoryBadge: {
+    backgroundColor: '#f3e5f5',
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: 120,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6a1b9a',
   },
   meta: {
     fontSize: 12,
