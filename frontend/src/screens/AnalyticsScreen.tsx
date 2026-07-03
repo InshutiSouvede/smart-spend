@@ -41,11 +41,14 @@ type Nav = CompositeNavigationProp<
 export function AnalyticsScreen() {
   const navigation = useNavigation<Nav>();
   const [months, setMonths] = useState<MonthRange>('6');
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const monthsNum = parseInt(months, 10);
 
-  const now = new Date();
-  const fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const toDate = now.toISOString().slice(0, 10);
+  // Calculate date range for selected month
+  const fromDate = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+  const toDate = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   const {
     data: summary,
@@ -61,6 +64,40 @@ export function AnalyticsScreen() {
   const { data: categories, isLoading: catLoading } = useCategoryBreakdown(fromDate, toDate);
 
   const { data: unmatchedExpenses } = useUnmatchedExpenses();
+
+  // Month navigation helpers
+  const goToPreviousMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() - 1);
+    // Don't go beyond 12 months ago
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    if (newDate >= twelveMonthsAgo) {
+      setSelectedMonth(newDate);
+    }
+  };
+
+  const goToNextMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() + 1);
+    // Don't go beyond current month
+    const now = new Date();
+    if (newDate <= now) {
+      setSelectedMonth(newDate);
+    }
+  };
+
+  const isCurrentMonth = 
+    selectedMonth.getMonth() === new Date().getMonth() &&
+    selectedMonth.getFullYear() === new Date().getFullYear();
+
+  const isTwelveMonthsAgo = () => {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    return selectedMonth <= twelveMonthsAgo;
+  };
+
+  const monthLabel = selectedMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   // Monthly chart (chronological)
   const monthlyChartData = useMemo(() => {
@@ -95,6 +132,36 @@ export function AnalyticsScreen() {
         <Text style={styles.screenTitle}>Analytics</Text>
 
         {isError && <ErrorBanner message={getErrorMessage(error)} onRetry={refetch} />}
+
+        {/* Month navigation */}
+        <View style={styles.monthNav}>
+          <TouchableOpacity
+            onPress={goToPreviousMonth}
+            disabled={isTwelveMonthsAgo()}
+            style={[styles.monthNavBtn, isTwelveMonthsAgo() && styles.monthNavBtnDisabled]}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={isTwelveMonthsAgo() ? colors.textMuted : colors.primary}
+            />
+          </TouchableOpacity>
+          <View style={styles.monthLabelContainer}>
+            <Text style={styles.monthLabelText}>{monthLabel}</Text>
+            {isCurrentMonth && <Text style={styles.monthBadge}>Current</Text>}
+          </View>
+          <TouchableOpacity
+            onPress={goToNextMonth}
+            disabled={isCurrentMonth}
+            style={[styles.monthNavBtn, isCurrentMonth && styles.monthNavBtnDisabled]}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isCurrentMonth ? colors.textMuted : colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* This month summary */}
         <View style={styles.summaryCards}>
@@ -143,6 +210,7 @@ export function AnalyticsScreen() {
                 }}
                 style={{ borderRadius: radius.md }}
               />
+              {/* Category details - top 6 always visible */}
               {topCategories.map((cat) => (
                 <View key={cat.category} style={styles.catRow}>
                   <View style={styles.catInfo}>
@@ -157,6 +225,42 @@ export function AnalyticsScreen() {
                   </View>
                 </View>
               ))}
+              
+              {/* Expandable section for remaining categories */}
+              {categories && categories.length > 6 && (
+                <>
+                  {showAllCategories && categories.slice(6).map((cat) => (
+                    <View key={cat.category} style={styles.catRow}>
+                      <View style={styles.catInfo}>
+                        <Text style={styles.catName}>{cat.category}</Text>
+                        <Text style={styles.catMeta}>
+                          {cat.item_count} item{cat.item_count !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                      <View style={styles.catRight}>
+                        <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
+                        <Text style={styles.catPct}>{cat.percentage.toFixed(0)}%</Text>
+                      </View>
+                    </View>
+                  ))}
+                  
+                  <TouchableOpacity
+                    style={styles.toggleBtn}
+                    onPress={() => setShowAllCategories(!showAllCategories)}
+                  >
+                    <Text style={styles.toggleText}>
+                      {showAllCategories
+                        ? 'Show less'
+                        : `Show ${categories.length - 6} more categor${categories.length - 6 === 1 ? 'y' : 'ies'}`}
+                    </Text>
+                    <Ionicons
+                      name={showAllCategories ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
             </>
           ) : (unmatchedExpenses && unmatchedExpenses.length > 0) ? (
             <View style={styles.unmatchedSection}>
@@ -443,6 +547,71 @@ const styles = StyleSheet.create({
     borderTopColor: colors.divider,
   },
   viewAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+
+  // Month navigation
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  monthNavBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryLight,
+  },
+  monthNavBtnDisabled: {
+    backgroundColor: colors.border,
+  },
+  monthLabelContainer: {
+    flex: 1,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  monthLabelText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  monthBadge: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+
+  // Toggle button for category details
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  toggleText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,

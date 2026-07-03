@@ -710,7 +710,8 @@ def add_correction(
     """
     with get_db() as conn:
         pd_row = conn.execute(
-            "SELECT pd.*, ec.final_category AS previous_category"
+            "SELECT pd.*, ec.final_category AS previous_category,"
+            "       ec.predicted_category, ec.confidence"
             " FROM purchase_details pd"
             " LEFT JOIN expense_categories ec ON ec.purchase_detail_id = pd.id"
             " WHERE pd.id = ? AND pd.user_id = ?",
@@ -720,14 +721,22 @@ def add_correction(
             raise HTTPException(status_code=404, detail="Purchase detail not found.")
 
         now = datetime.now(timezone.utc).isoformat()
+        # Use INSERT OR REPLACE to ensure category is updated even if row doesn't exist
         conn.execute(
             """
-            UPDATE expense_categories
-            SET final_category = ?, category_source = 'user_correction', corrected_at = ?
-            WHERE purchase_detail_id = ? AND user_id = ?
+            INSERT INTO expense_categories
+                (user_id, purchase_detail_id, predicted_category, confidence,
+                 final_category, category_source, corrected_at)
+            VALUES (?, ?, ?, ?, ?, 'user_correction', ?)
+            ON CONFLICT(purchase_detail_id) DO UPDATE SET
+                final_category = excluded.final_category,
+                category_source = excluded.category_source,
+                corrected_at = excluded.corrected_at
             """,
-            (payload.corrected_category, now,
-             payload.purchase_detail_id, user_id),
+            (user_id, payload.purchase_detail_id,
+             pd_row["predicted_category"],  # Preserve existing predicted category
+             pd_row["confidence"],  # Preserve existing confidence
+             payload.corrected_category, now),
         )
 
         purchase_time = pd_row["purchase_time"] or ""

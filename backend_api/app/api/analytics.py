@@ -48,6 +48,9 @@ def get_summary(
         period_start = f"{today.year}-{today.month:02d}-01"
     if not period_end:
         period_end = today.isoformat()
+    
+    # Append time to ensure we include all transactions on the end date
+    period_end_inclusive = f"{period_end}T23:59:59" if 'T' not in period_end else period_end
 
     with get_db() as conn:
         income_row = conn.execute(
@@ -55,7 +58,7 @@ def get_summary(
             " FROM sms_transactions"
             " WHERE user_id = ? AND transaction_type = 'income'"
             " AND transaction_time >= ? AND transaction_time <= ?",
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_income = float(income_row["total"])
 
@@ -64,25 +67,36 @@ def get_summary(
             " FROM sms_transactions"
             " WHERE user_id = ? AND transaction_type = 'expense'"
             " AND transaction_time >= ? AND transaction_time <= ?",
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_expense = float(expense_row["total"])
         tx_count = int(income_row["cnt"]) + int(expense_row["cnt"])
 
-        # Category breakdown from item-level view
+        # Category breakdown: use item costs when available, otherwise transaction amounts
+        # This ensures totals match the expense summary at the top
         cat_rows = conn.execute(
             """
-            SELECT COALESCE(final_category, 'Uncategorised') AS category,
-                   COALESCE(SUM(total_cost_rwf), 0) AS total,
-                   COUNT(*) AS cnt
-            FROM expense_records_view
-            WHERE user_id = ?
-              AND transaction_time >= ? AND transaction_time <= ?
-              AND total_cost_rwf IS NOT NULL
+            SELECT COALESCE(ec.final_category, 'Uncategorised') AS category,
+                   COALESCE(SUM(
+                       CASE 
+                           WHEN pd.total_cost_rwf IS NOT NULL THEN pd.total_cost_rwf
+                           ELSE st.amount_rwf
+                       END
+                   ), 0) AS total,
+                   COUNT(DISTINCT st.id) AS cnt
+            FROM sms_transactions st
+            LEFT JOIN transaction_purchase_matches tpm
+                ON tpm.sms_transaction_id = st.id AND tpm.match_status NOT IN ('unmatched', 'rejected')
+            LEFT JOIN purchase_details pd
+                ON pd.id = tpm.purchase_detail_id
+            LEFT JOIN expense_categories ec
+                ON ec.purchase_detail_id = pd.id
+            WHERE st.user_id = ? AND st.transaction_type = 'expense'
+              AND st.transaction_time >= ? AND st.transaction_time <= ?
             GROUP BY category
             ORDER BY total DESC
             """,
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchall()
 
     item_total = sum(float(r["total"]) for r in cat_rows)
@@ -156,7 +170,7 @@ def get_monthly_trends(
 @router.get(
     "/categories",
     response_model=list[CategorySummary],
-    summary="Item-level expense breakdown by category",
+    summary="Expense breakdown by category (all expenses included)",
 )
 def get_category_breakdown(
     from_date: Optional[str] = Query(default=None),
@@ -164,33 +178,55 @@ def get_category_breakdown(
     user_id:   str           = Depends(get_current_user_id),
 ) -> list[CategorySummary]:
     """
-    Expense totals grouped by final_category, sourced from expense_records_view.
-    Amounts reflect actual item costs (total_cost_rwf), not SMS amounts.
+    Expense totals grouped by final_category.
+    For matched expenses, uses item-level costs.
+    For unmatched expenses, uses transaction amounts.
+    This ensures category totals match transaction-level expense totals.
     """
-    conditions = ["user_id = ?", "total_cost_rwf IS NOT NULL"]
+    conditions = ["st.user_id = ?", "st.transaction_type = 'expense'"]
     params: list = [user_id]
 
     if from_date:
-        conditions.append("transaction_time >= ?")
+        conditions.append("st.transaction_time >= ?")
         params.append(from_date)
     if to_date:
-        conditions.append("transaction_time <= ?")
-        params.append(to_date)
+        # Append time to ensure we include all transactions on the end date
+        to_date_inclusive = f"{to_date}T23:59:59" if 'T' not in to_date else to_date
+        conditions.append("st.transaction_time <= ?")
+        params.append(to_date_inclusive)
 
     where = " AND ".join(conditions)
 
     with get_db() as conn:
+        # Calculate grand total from all expense transactions
         grand_total = float(
             conn.execute(
-                f"SELECT COALESCE(SUM(total_cost_rwf), 0) FROM expense_records_view WHERE {where}",
+                f"SELECT COALESCE(SUM(amount_rwf), 0) FROM sms_transactions st WHERE {where}",
                 params,
             ).fetchone()[0]
         )
+        
+        # Category breakdown: use item costs when available, transaction amounts otherwise
         rows = conn.execute(
-            f"SELECT COALESCE(final_category, 'Uncategorised') AS category,"
-            f"       COALESCE(SUM(total_cost_rwf), 0) AS total, COUNT(*) AS cnt"
-            f" FROM expense_records_view WHERE {where}"
-            f" GROUP BY category ORDER BY total DESC",
+            f"""
+            SELECT COALESCE(ec.final_category, 'Uncategorised') AS category,
+                   COALESCE(SUM(
+                       CASE 
+                           WHEN pd.total_cost_rwf IS NOT NULL THEN pd.total_cost_rwf
+                           ELSE st.amount_rwf
+                       END
+                   ), 0) AS total,
+                   COUNT(DISTINCT st.id) AS cnt
+            FROM sms_transactions st
+            LEFT JOIN transaction_purchase_matches tpm
+                ON tpm.sms_transaction_id = st.id AND tpm.match_status NOT IN ('unmatched', 'rejected')
+            LEFT JOIN purchase_details pd
+                ON pd.id = tpm.purchase_detail_id
+            LEFT JOIN expense_categories ec
+                ON ec.purchase_detail_id = pd.id
+            WHERE {where}
+            GROUP BY category ORDER BY total DESC
+            """,
             params,
         ).fetchall()
 
@@ -253,14 +289,25 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
         ).fetchone()
         total_expense = float(expense_row["total"])
 
+        # Category totals: use item costs when available, otherwise transaction amounts
         cat_rows = conn.execute(
             """
-            SELECT COALESCE(final_category, 'Uncategorised') AS category,
-                   COALESCE(SUM(total_cost_rwf), 0) AS total
-            FROM expense_records_view
-            WHERE user_id = ?
-              AND transaction_time >= ? AND transaction_time <= ?
-              AND total_cost_rwf IS NOT NULL
+            SELECT COALESCE(ec.final_category, 'Uncategorised') AS category,
+                   COALESCE(SUM(
+                       CASE 
+                           WHEN pd.total_cost_rwf IS NOT NULL THEN pd.total_cost_rwf
+                           ELSE st.amount_rwf
+                       END
+                   ), 0) AS total
+            FROM sms_transactions st
+            LEFT JOIN transaction_purchase_matches tpm
+                ON tpm.sms_transaction_id = st.id AND tpm.match_status NOT IN ('unmatched', 'rejected')
+            LEFT JOIN purchase_details pd
+                ON pd.id = tpm.purchase_detail_id
+            LEFT JOIN expense_categories ec
+                ON ec.purchase_detail_id = pd.id
+            WHERE st.user_id = ? AND st.transaction_type = 'expense'
+              AND st.transaction_time >= ? AND st.transaction_time <= ?
             GROUP BY category ORDER BY total DESC
             """,
             (user_id, period_start, period_end),
@@ -328,6 +375,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     projected_month_end_expense = round(total_expense + (daily_rate * days_remaining), 2)
     projected_net               = round(total_income - projected_month_end_expense, 2)
 
+    # Initial risk assessment based on current spending rate
     if expense_rate_pct < 60:
         risk_level = "low"
     elif expense_rate_pct <= 85:
@@ -336,12 +384,12 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
         risk_level = "high"
 
     status_messages = {
-        "low":    f"You've spent {expense_rate_pct:.0f}% of your income â€” you're on track.",
-        "medium": f"You've spent {expense_rate_pct:.0f}% of your income â€” watch your spending.",
-        "high":   f"You've spent {expense_rate_pct:.0f}% of your income â€” overspending risk.",
+        "low":    f"You've spent {expense_rate_pct:.0f}% of your income so far this month.",
+        "medium": f"You've spent {expense_rate_pct:.0f}% of your income — watch your spending.",
+        "high":   f"You've spent {expense_rate_pct:.0f}% of your income — overspending risk.",
     }
     cta_messages = {
-        "low":    "Keep it up! You're well within budget.",
+        "low":    "Keep tracking your expenses to stay on budget.",
         "medium": f"Largest spend: {top_category}. Consider reducing it." if top_category else "Review your spending.",
         "high":   "You may overspend by month-end. Cut non-essential expenses now.",
     }
@@ -370,6 +418,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     # ML predictions (silent fallback)
     predicted_expense: Optional[float] = None
     predicted_income:  Optional[float] = None
+    
     try:
         exp_result = model_service.forecast_expense(user_id, forecast_features)
         predicted_expense = exp_result["predicted_month_end_expense"]
@@ -382,6 +431,19 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     except (ModelNotAvailableError, Exception):
         pass
 
+    # If ML predictions are available, use them for projected balance
+    # Otherwise use linear projection based on current spending rate
+    final_projected_net = projected_net
+    if predicted_expense is not None and predicted_income is not None:
+        # ML forecast: predicted values are month-end totals
+        ml_projected_net = round(predicted_income - predicted_expense, 2)
+        final_projected_net = ml_projected_net
+        
+        # Adjust risk level if ML forecast contradicts current assessment
+        if ml_projected_net < 0 and risk_level == "low":
+            risk_level = "medium"
+            status_messages["medium"] = f"You've spent {expense_rate_pct:.0f}% so far, but ML forecast predicts overspending by month-end."
+
     return SpendingStatusResponse(
         period=period_label,
         days_elapsed=days_elapsed,
@@ -391,7 +453,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
         net_balance=net_balance,
         expense_rate_pct=expense_rate_pct,
         projected_month_end_expense=projected_month_end_expense,
-        projected_net=projected_net,
+        projected_net=final_projected_net,
         top_category=top_category,
         top_category_amount=round(top_category_amount, 2),
         top_category_pct=top_category_pct,

@@ -190,27 +190,27 @@ export function HomeScreen() {
         {/* ML Predictions */}
         {(status?.predicted_month_end_expense != null || status?.predicted_month_end_income != null) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ML Forecast (month-end)</Text>
+            <Text style={styles.sectionTitle}>ML Forecast (month-end totals)</Text>
             <View style={styles.cards}>
               {status?.predicted_month_end_income != null && (
                 <View style={[styles.card, { backgroundColor: colors.successLight }]}>
-                  <Text style={styles.cardLabel}>Predicted income</Text>
+                  <Text style={styles.cardLabel}>Forecasted total income</Text>
                   <Text style={[styles.cardAmount, { color: colors.income }]}>
-                    {formatRWF(status.predicted_month_end_income)}
+                    {formatRWF(Math.abs(status.predicted_month_end_income))}
                   </Text>
                 </View>
               )}
               {status?.predicted_month_end_expense != null && (
                 <View style={[styles.card, { backgroundColor: colors.errorLight }]}>
-                  <Text style={styles.cardLabel}>Predicted expense</Text>
+                  <Text style={styles.cardLabel}>Forecasted total expense</Text>
                   <Text style={[styles.cardAmount, { color: colors.expense }]}>
-                    {formatRWF(status.predicted_month_end_expense)}
+                    {formatRWF(Math.abs(status.predicted_month_end_expense))}
                   </Text>
                 </View>
               )}
             </View>
             <Text style={styles.predHint}>
-              Projected end-of-month balance:{' '}
+              ML-forecasted month-end balance:{' '}
               <Text
                 style={{
                   color:
@@ -220,6 +220,9 @@ export function HomeScreen() {
               >
                 {formatRWF(status?.projected_net ?? 0)}
               </Text>
+            </Text>
+            <Text style={[styles.predHint, { fontSize: 11, marginTop: 4, fontStyle: 'italic' }]}>
+              Note: ML predictions are month-end totals based on your spending patterns.
             </Text>
           </View>
         )}
