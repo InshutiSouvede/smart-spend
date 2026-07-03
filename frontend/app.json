@@ -24,7 +24,8 @@
         "android.permission.RECEIVE_SMS",
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -41,11 +42,6 @@
           "photosPermission": "Allow SmartSpend to access your photos to upload receipts."
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
-    }
+    ]
   }
 }

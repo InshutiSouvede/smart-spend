@@ -143,6 +143,11 @@ export function SMSImportScreen() {
           sms_time: new Date(parseInt(m.date, 10)).toISOString(),
         })),
       };
+      console.log('=== SMS Upload Debug ===');
+      console.log('Total messages:', payload.messages.length);
+      console.log('First message:', JSON.stringify(payload.messages[0], null, 2));
+      console.log('Sample raw_sms_text type:', typeof payload.messages[0]?.raw_sms_text);
+      console.log('Full payload:', JSON.stringify(payload, null, 2));
       const res = await syncSMS(payload);
       if (res.last_import_at) {
         await setLastSmsImportAt(res.last_import_at);

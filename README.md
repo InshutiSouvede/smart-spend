@@ -40,7 +40,7 @@ Built as a BSc. Software Engineering capstone project — African Leadership Uni
 └────────────────────────┬────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────┐
-│  FastAPI backend (Python 3.11)                          │
+│  FastAPI backend (Python 3.12)                          │
 │  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐  │
 │  │ /auth   │  │ /txns    │  │/analytics│  │/models │  │
 │  │ /rcpts  │  │ SMS sync │  │ spending │  │ categ. │  │
@@ -98,7 +98,7 @@ smart-spend/
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Python | ≥ 3.11 | Backend + ML notebooks |
+| Python | 3.12 (recommended) | Backend + ML notebooks |
 | Node.js | ≥ 20 LTS | Frontend |
 | npm | ≥ 10 | Package manager |
 | Java JDK | 17 | Android build |
@@ -176,11 +176,11 @@ When `MOCK_AUTH_ENABLED=true` (default for local dev), no Supabase project is ne
 cd backend_api
 
 # 1. Create and activate virtual environment
-python -m venv .venv
+py -3.12 -m venv .venv
 # Windows:
 .venv\Scripts\Activate.ps1
 # macOS/Linux:
-source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -213,8 +213,8 @@ The pre-trained models in `backend_api/storage/models/` are used automatically o
 cd ml
 
 # Create virtual environment
-python -m venv .venv
-.venv\Scripts\Activate.ps1   # or source .venv/bin/activate
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1   # or: python3.12 -m venv .venv && source .venv/bin/activate
 
 # Install ML dependencies
 pip install -r requirements.txt

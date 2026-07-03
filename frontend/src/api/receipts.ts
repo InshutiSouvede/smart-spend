@@ -17,6 +17,7 @@ export const receiptsApi = {
     const formData = new FormData();
     // React Native FormData accepts this shape for file uploads
     formData.append('file', { uri: fileUri, name: filename, type: mimeType } as unknown as Blob);
+    formData.append('consent_confirmed', 'true');
     return apiClient
       .post<ReceiptUploadOut>('/receipts/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

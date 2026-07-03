@@ -168,6 +168,14 @@ def sync_sms(
     - ``failed`` — no matching pattern; not stored; returned for manual review
     - ``sensitive_warnings`` — contained security-sensitive keywords; not stored
     """
+    logger.info("=== SMS Sync Debug ===")
+    logger.info("Payload type: %s", type(payload))
+    logger.info("Consent confirmed: %s", payload.consent_confirmed)
+    logger.info("Messages count: %d", len(payload.messages))
+    if payload.messages:
+        logger.info("First message type: %s", type(payload.messages[0]))
+        logger.info("First message data: %s", payload.messages[0])
+    
     if not payload.consent_confirmed:
         raise ConsentRequiredError()
 

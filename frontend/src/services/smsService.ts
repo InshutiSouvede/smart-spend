@@ -1,28 +1,22 @@
 /**
  * SMS reading service for Android.
  *
- * IMPORTANT — REQUIRES A CUSTOM DEVELOPMENT BUILD:
- * ─────────────────────────────────────────────────
- * Reading the device SMS inbox requires `react-native-get-sms-android`, which:
- *   • Is NOT included in the standard package.json (it ships AGP 3.x which
- *     is incompatible with the project's AGP 8.x build).
- *   • Must be added manually when creating a custom SMS-enabled dev build.
+ * IMPORTANT — REQUIRES NATIVE BUILD:
+ * ───────────────────────────────────
+ * Reading the device SMS inbox requires `react-native-get-sms-android`.
+ * This package is included in package.json and will be automatically linked
+ * when you run `npx expo prebuild` to generate the native Android project.
  *
- * Steps to enable SMS in a custom build:
- *   1. npm install react-native-get-sms-android
- *   2. npx expo prebuild (regenerates android/ with the library linked)
- *   3. npx expo run:android  — OR —  eas build --profile development --platform android
- *   4. Remove the package again for the standard build: npm uninstall react-native-get-sms-android
+ * Steps to enable SMS:
+ *   1. Run: npx expo prebuild --platform android --clean
+ *   2. Build and run: npx expo run:android
  *
- * In standard Expo Go or a build without the package, `isSMSNativeAvailable`
- * will be false and the SMS Import screen shows a setup notice.
- *
- * We access the native module via NativeModules.SmsAndroid (registered at
- * runtime by the library when linked) rather than a direct import so that
- * Metro does not fail to resolve the module when the package is absent.
+ * The SMS module will be automatically linked via Expo autolinking.
+ * SMS Import is Android-only (iOS does not allow SMS access).
  */
 
-import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
+import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import SmsAndroid from 'react-native-get-sms-android';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -45,21 +39,18 @@ export interface SMSConversation {
 // ─── Module availability ──────────────────────────────────────────────────────
 
 /**
- * The native module is registered as NativeModules.SmsAndroid by
- * react-native-get-sms-android when it is linked into the build.
- * This is null in Expo Go and in any build that does not include the library.
+ * SMS reading is available on Android after running `expo prebuild`.
+ * The module is automatically linked via Expo autolinking.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SmsAndroid: any =
-  Platform.OS === 'android' ? (NativeModules.SmsAndroid ?? null) : null;
-
-/** True only on Android with the native SMS module linked into this build. */
-export const isSMSNativeAvailable: boolean = SmsAndroid !== null;
+export const isSMSNativeAvailable: boolean = Platform.OS === 'android';
 
 // ─── Permission ───────────────────────────────────────────────────────────────
 
 export async function requestSMSPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
+  if (Platform.OS !== 'android') {
+    Alert.alert('Not supported', 'Reading SMS is only available on Android.');
+    return false;
+  }
   const result = await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.READ_SMS,
     {
@@ -92,15 +83,11 @@ export interface ReadSMSFilter {
   maxCount?: number;
 }
 
-/** Read SMS messages from the device inbox. Throws if native module not linked. */
+/** Read SMS messages from the device inbox. Android only. */
 export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
-  if (!isSMSNativeAvailable) {
+  if (Platform.OS !== 'android') {
     return Promise.reject(
-      new Error(
-        'SMS reading requires a custom development build with ' +
-          'react-native-get-sms-android linked. ' +
-          'See frontend/README.md for setup instructions.',
-      ),
+      new Error('SMS reading is only available on Android.'),
     );
   }
 
