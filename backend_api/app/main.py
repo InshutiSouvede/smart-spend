@@ -14,26 +14,6 @@ from app.core.logging_config import configure_logging
 configure_logging()
 logger = logging.getLogger(__name__)
 
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Log and return detailed validation errors for debugging."""
-    logger.error("=== Validation Error ===")
-    logger.error("URL: %s", request.url)
-    logger.error("Method: %s", request.method)
-    logger.error("Errors: %s", exc.errors())
-    try:
-        body = await request.body()
-        logger.error("Request body (first 1000 chars): %s", body.decode()[:1000])
-    except Exception as e:
-        logger.error("Could not log request body: %s", e)
-    
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors()},
-    )
-
-
 app = FastAPI(
     title=settings.app_title,
     version=settings.app_version,
@@ -47,6 +27,34 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log and return detailed validation errors for debugging."""
+    errors = exc.errors()
+    logger.error("=== Validation Error ===")
+    logger.error("URL: %s", request.url)
+    logger.error("Method: %s", request.method)
+    logger.error("Number of errors: %d", len(errors))
+    
+    # Log first few errors in detail
+    for i, err in enumerate(errors[:5]):
+        logger.error("Error %d: %s", i+1, err)
+    
+    if len(errors) > 5:
+        logger.error("... and %d more errors", len(errors) - 5)
+    
+    try:
+        body = await request.body()
+        logger.error("Request body (first 2000 chars): %s", body.decode()[:2000])
+    except Exception as e:
+        logger.error("Could not log request body: %s", e)
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": errors},
+    )
 
 app.add_middleware(
     CORSMiddleware,

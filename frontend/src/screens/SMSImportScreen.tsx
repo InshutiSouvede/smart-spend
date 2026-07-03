@@ -138,7 +138,7 @@ export function SMSImportScreen() {
         consent_confirmed: true,
         messages: selectedMessages.map((m) => ({
           raw_sms_text: m.body,
-          source_message_id: m._id,
+          source_message_id: String(m._id),
           sender: m.address,
           sms_time: new Date(parseInt(m.date, 10)).toISOString(),
         })),
