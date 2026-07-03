@@ -45,7 +45,13 @@ export function ReceiptCard({ receipt, onPress }: Props) {
   
   // Create a unique merchant display name
   const merchantDisplay = receipt.merchant_name || 'Unknown Merchant';
-  const dateLabel = receipt.receipt_timestamp ? 'Purchase' : 'Uploaded';
+  const dateLabel = receipt.receipt_timestamp ? '📅 Receipt Date' : '📤 Uploaded';
+  
+  // Determine OCR quality indicator
+  const showLowQualityWarning = 
+    receipt.ocr_confidence != null && receipt.ocr_confidence < 0.5 ||
+    receipt.extraction_status === 'no_items' ||
+    receipt.extraction_status === 'failed';
 
   const content = (
     <>
@@ -53,17 +59,33 @@ export function ReceiptCard({ receipt, onPress }: Props) {
         <Ionicons name="receipt-outline" size={22} color={colors.primary} />
       </View>
       <View style={styles.body}>
-        <Text style={styles.merchant} numberOfLines={1}>
-          {merchantDisplay}
-        </Text>
+        <View style={styles.merchantRow}>
+          <Text style={styles.merchant} numberOfLines={1}>
+            {merchantDisplay}
+          </Text>
+          {showLowQualityWarning && (
+            <Ionicons name="warning-outline" size={14} color={colors.warning} style={{ marginLeft: 4 }} />
+          )}
+        </View>
         <Text style={styles.meta} numberOfLines={1}>
           {dateLabel}: {displayDate}
         </Text>
-        {receipt.item_count > 0 && (
-          <Text style={styles.itemCount}>
-            {receipt.item_count} item{receipt.item_count !== 1 ? 's' : ''}
-          </Text>
-        )}
+        <View style={styles.metaRow}>
+          {receipt.item_count > 0 && (
+            <Text style={styles.itemCount}>
+              {receipt.item_count} item{receipt.item_count !== 1 ? 's' : ''}
+            </Text>
+          )}
+          {receipt.ocr_confidence != null && (
+            <Text style={[styles.qualityBadge, 
+              receipt.ocr_confidence >= 0.75 ? styles.qualityGood :
+              receipt.ocr_confidence >= 0.5 ? styles.qualityMedium :
+              styles.qualityLow
+            ]}>
+              {Math.round(receipt.ocr_confidence * 100)}% OCR
+            </Text>
+          )}
+        </View>
       </View>
       <View style={styles.right}>
         <Text style={styles.amount}>{formatRWF(receipt.total_amount_rwf)}</Text>
@@ -114,20 +136,49 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+  merchantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   merchant: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
+    flex: 1,
   },
   meta: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 2,
+  },
   itemCount: {
     fontSize: 11,
     color: colors.textMuted,
-    marginTop: 2,
+  },
+  qualityBadge: {
+    fontSize: 10,
+    fontWeight: '600',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  qualityGood: {
+    backgroundColor: colors.successLight,
+    color: colors.success,
+  },
+  qualityMedium: {
+    backgroundColor: colors.warningLight,
+    color: colors.warning,
+  },
+  qualityLow: {
+    backgroundColor: colors.errorLight,
+    color: colors.error,
   },
   right: {
     alignItems: 'flex-end',

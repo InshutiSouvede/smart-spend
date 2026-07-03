@@ -219,6 +219,11 @@ class ReceiptUploadOut(BaseModel):
     match: Optional[ReceiptMatchOut] = None
     purchase_details: List[PurchaseDetailOut] = []
     uploaded_at: Optional[str] = None
+    # Enhanced OCR quality indicators
+    ocr_confidence: Optional[float] = None
+    validation_warnings: Optional[List[str]] = None
+    parser_source: Optional[str] = None
+    completeness_score: Optional[float] = None
 
 
 class ReceiptSummary(BaseModel):
@@ -233,6 +238,10 @@ class ReceiptSummary(BaseModel):
     matched_sms_id: Optional[int] = None
     item_count: int = 0
     uploaded_at: Optional[str] = None
+    # Enhanced OCR quality indicators
+    ocr_confidence: Optional[float] = None
+    parser_source: Optional[str] = None
+    completeness_score: Optional[float] = None
 
 
 class ReceiptListResponse(BaseModel):

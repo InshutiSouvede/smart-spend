@@ -136,6 +136,11 @@ export interface ReceiptUploadOut {
   match?: ReceiptMatchOut | null;
   purchase_details: PurchaseDetailOut[];
   uploaded_at?: string | null;
+  // Enhanced OCR quality indicators
+  ocr_confidence?: number | null;
+  validation_warnings?: string[] | null;
+  parser_source?: string | null;
+  completeness_score?: number | null;
 }
 
 export interface ReceiptSummary {
@@ -150,6 +155,10 @@ export interface ReceiptSummary {
   matched_sms_id?: number | null;
   item_count: number;
   uploaded_at?: string | null;
+  // Enhanced OCR quality indicators
+  ocr_confidence?: number | null;
+  parser_source?: string | null;
+  completeness_score?: number | null;
 }
 
 export interface ReceiptLinkRequest {

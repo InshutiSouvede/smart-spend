@@ -12,6 +12,9 @@ export const colors = {
   success: '#22c55e',
   successLight: '#dcfce7',
   warning: '#f59e0b',
+  warningLight: '#fef3c7',
+  info: '#3b82f6',
+  infoLight: '#dbeafe',
   border: '#e2e8f0',
   income: '#22c55e',
   expense: '#ef4444',
@@ -24,6 +27,7 @@ export const spacing = {
   md: 16,
   lg: 24,
   xl: 32,
+  xxl: 48,
 };
 
 export const radius = {

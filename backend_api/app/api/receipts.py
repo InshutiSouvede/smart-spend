@@ -23,6 +23,7 @@ A receipt is never auto-matched if the candidate SMS is already claimed by
 another confirmed receipt.  Each receipt may be linked to at most one SMS
 transaction.
 """
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,7 @@ from app.schemas.schemas import (
 )
 from app.services.model_service import run_category_prediction
 from app.services.ocr_service import (
+    OCRService,
     compress_image_for_ocr,
     extract_text_from_receipt,
     generate_upload_filename,
@@ -51,6 +53,7 @@ from app.services.ocr_service import (
     parse_receipt_items,
     validate_image_magic,
 )
+from app.services.receipt_validator import ReceiptValidator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -269,6 +272,9 @@ _RECEIPT_SUMMARY_SQL = """
         ru.match_confidence,
         ru.matched_sms_id,
         ru.uploaded_at,
+        ru.ocr_confidence,
+        ru.parser_source,
+        ru.completeness_score,
         COUNT(pd.id) AS item_count
     FROM receipt_uploads ru
     LEFT JOIN purchase_details pd
@@ -327,6 +333,13 @@ async def upload_receipt(
     compress_image_for_ocr(str(target_path))
 
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Initialize variables that will be used outside the with block
+    ocr_confidence = 0.0
+    validation_result = None
+    parser_source = "paddleocr-enhanced"
+    completeness_score = 0.0
+    ocr_mode = "paddleocr"
 
     with get_db() as conn:
         cur = conn.execute(
@@ -336,35 +349,143 @@ async def upload_receipt(
         )
         receipt_id = cur.lastrowid
 
-        # \u2014\u2014 OCR \u2014\u2014
+        # —— OCR ——
+        extracted_text = ""
+        ocr_error_message = None
         try:
-            extracted_text, ocr_mode = extract_text_from_receipt(str(target_path))
+            ocr_service = OCRService()
+            ocr_result = ocr_service.extract_from_file(str(target_path))
+            extracted_text = ocr_result.text
+            ocr_confidence = round(ocr_result.confidence, 3)
+            
             conn.execute(
-                "UPDATE receipt_uploads SET ocr_raw_text = ?, ocr_status = 'done' WHERE id = ?",
-                (extracted_text, receipt_id),
+                """
+                UPDATE receipt_uploads 
+                   SET ocr_raw_text = ?, ocr_status = 'done', ocr_confidence = ?
+                 WHERE id = ?
+                """,
+                (extracted_text, ocr_confidence, receipt_id),
             )
+            logger.info("OCR succeeded for receipt %d with confidence %.3f", receipt_id, ocr_confidence)
+        except ImportError as exc:
+            ocr_error_message = f"PaddleOCR not installed: {exc}"
+            logger.error("OCR import failed for receipt %d: %s", receipt_id, exc)
+            ocr_confidence = 0.0
         except Exception as exc:
-            conn.execute(
-                "UPDATE receipt_uploads"
-                "   SET ocr_status = 'failed', extraction_status = 'failed'"
-                " WHERE id = ?",
-                (receipt_id,),
-            )
+            ocr_error_message = f"OCR processing error: {exc}"
             logger.error("OCR failed for receipt %d: %s", receipt_id, exc)
+            ocr_confidence = 0.0
+        
+        # If OCR failed, provide fallback minimal data
+        if ocr_error_message:
+            fallback_merchant = f"Receipt from {now[:10]}"
+            validation_warnings = [
+                "OCR processing failed - please verify or re-upload with better image quality",
+                f"Technical details: {ocr_error_message}",
+                "Tip: Ensure good lighting, clear image, and receipt is flat"
+            ]
+            validation_warnings_json = json.dumps(validation_warnings)
+            
+            conn.execute(
+                """
+                UPDATE receipt_uploads
+                   SET ocr_status = 'failed', 
+                       ocr_raw_text = ?,
+                       merchant_name = ?,
+                       receipt_timestamp = ?,
+                       validation_warnings = ?,
+                       extraction_status = 'failed',
+                       processed_at = ?
+                 WHERE id = ?
+                """,
+                (
+                    ocr_error_message,
+                    fallback_merchant,
+                    now,
+                    validation_warnings_json,
+                    now,
+                    receipt_id
+                ),
+            )
+            
+            logger.warning(
+                "Receipt %d: OCR failed but providing fallback data. Error: %s", 
+                receipt_id, ocr_error_message
+            )
+            
             return ReceiptUploadOut(
                 receipt_id=receipt_id,
                 ocr_status="failed",
                 extraction_status="failed",
+                merchant_name=fallback_merchant,
+                receipt_timestamp=now,
+                total_amount_rwf=None,
+                match=None,
+                purchase_details=[],
                 uploaded_at=now,
+                ocr_confidence=0.0,
+                validation_warnings=validation_warnings,
+                parser_source="fallback",
+                completeness_score=0.1,
             )
 
         # \u2014\u2014 Parse receipt header (merchant, total, timestamp) \u2014\u2014
+        # Check if OCR returned empty text
+        if not extracted_text or not extracted_text.strip():
+            fallback_merchant = f"Receipt from {now[:10]}"
+            validation_warnings = [
+                "OCR succeeded but found no text in the image",
+                "The receipt might be too blurry, at an angle, or have poor contrast",
+                "Tip: Try re-uploading with better lighting and ensure receipt is flat"
+            ]
+            validation_warnings_json = json.dumps(validation_warnings)
+            
+            conn.execute(
+                """
+                UPDATE receipt_uploads
+                   SET merchant_name = ?,
+                       receipt_timestamp = ?,
+                       validation_warnings = ?,
+                       extraction_status = 'no_items',
+                       processed_at = ?
+                 WHERE id = ?
+                """,
+                (fallback_merchant, now, validation_warnings_json, now, receipt_id),
+            )
+            
+            logger.warning("Receipt %d: OCR found no text, providing fallback", receipt_id)
+            
+            return ReceiptUploadOut(
+                receipt_id=receipt_id,
+                ocr_status="done",
+                extraction_status="no_items",
+                merchant_name=fallback_merchant,
+                receipt_timestamp=now,
+                total_amount_rwf=None,
+                match=None,
+                purchase_details=[],
+                uploaded_at=now,
+                ocr_confidence=ocr_confidence,
+                validation_warnings=validation_warnings,
+                parser_source="paddleocr-enhanced",
+                completeness_score=0.1,
+            )
+        
         lines = extracted_text.splitlines()
         header = parse_receipt_header(lines)
         merchant_name    = header["merchant_name"]
         total_amount_rwf = header["total_amount_rwf"]
         receipt_ts       = header["receipt_timestamp"]
-
+        merchant_tin     = header.get("merchant_tin")
+        receipt_number   = header.get("receipt_number")
+        payment_method   = header.get("payment_method", "unknown")
+        
+        # Provide fallback values if critical fields are missing
+        if not merchant_name:
+            merchant_name = f"Receipt from {now[:10]}"
+        if not receipt_ts:
+            receipt_ts = now
+        
         conn.execute(
             """
             UPDATE receipt_uploads
@@ -382,12 +503,34 @@ async def upload_receipt(
         )
 
         if not raw_items:
+            # Provide helpful warnings even when no items found
+            no_items_warnings = [
+                "No line items could be extracted from this receipt",
+                "OCR found text but couldn't identify product lines",
+                "This might happen if receipt format is unusual or text is unclear"
+            ]
+            
+            # Add specific hints based on what was found
+            if not merchant_name or merchant_name == f"Receipt from {now[:10]}":
+                no_items_warnings.append("Tip: Merchant name not found - try better image quality")
+            if not total_amount_rwf:
+                no_items_warnings.append("Tip: Total amount not found - ensure receipt shows final total")
+            
+            validation_warnings_json = json.dumps(no_items_warnings)
+            
             conn.execute(
-                "UPDATE receipt_uploads"
-                "   SET extraction_status = 'no_items', processed_at = ?"
-                " WHERE id = ?",
-                (now, receipt_id),
+                """
+                UPDATE receipt_uploads
+                   SET extraction_status = 'no_items', 
+                       validation_warnings = ?,
+                       processed_at = ?
+                 WHERE id = ?
+                """,
+                (validation_warnings_json, now, receipt_id),
             )
+            
+            logger.info("Receipt %d: OCR done but no items extracted", receipt_id)
+            
             return ReceiptUploadOut(
                 receipt_id=receipt_id,
                 ocr_status="done",
@@ -398,6 +541,10 @@ async def upload_receipt(
                 extraction_status="no_items",
                 purchase_details=[],
                 uploaded_at=now,
+                ocr_confidence=ocr_confidence,
+                validation_warnings=no_items_warnings,
+                parser_source="paddleocr-enhanced",
+                completeness_score=0.3 if merchant_name and total_amount_rwf else 0.1,
             )
 
         # \u2014\u2014 Insert purchase_details \u2014\u2014
@@ -496,14 +643,38 @@ async def upload_receipt(
                     receipt_id, confidence, settings.receipt_match_min_confidence,
                 )
 
+        # Validate receipt and calculate completeness
+        validator = ReceiptValidator()
+        receipt_data = {
+            "merchant_name": merchant_name,
+            "total_amount_rwf": total_amount_rwf,
+            "receipt_timestamp": receipt_ts,
+            "items": raw_items,
+            "ocr_raw_text": extracted_text,
+            "file_path": str(target_path),
+        }
+        validation_result = validator.validate(receipt_data)
+        validation_warnings_json = json.dumps(validation_result.warnings) if validation_result.warnings else None
+        completeness_score = validation_result.confidence
+        parser_source = "paddleocr-enhanced"
+        
+        # Update database with validation results
         conn.execute(
-            "UPDATE receipt_uploads"
-            "   SET extraction_status = 'done', processed_at = ?"
-            " WHERE id = ?",
-            (now, receipt_id),
+            """
+            UPDATE receipt_uploads
+               SET validation_warnings = ?, completeness_score = ?, parser_source = ?,
+                   extraction_status = 'done', processed_at = ?
+             WHERE id = ?
+            """,
+            (validation_warnings_json, completeness_score, parser_source, now, receipt_id),
+        )
+        
+        logger.info(
+            "Receipt %d validation: completeness=%.3f, warnings=%d",
+            receipt_id, completeness_score, len(validation_result.warnings)
         )
 
-    # \u2014\u2014 Build response \u2014\u2014
+    # Build response
     with get_db() as conn:
         pd_rows = conn.execute(
             """
@@ -531,6 +702,10 @@ async def upload_receipt(
         extraction_status="done",
         purchase_details=_build_pd_out(pd_rows),
         uploaded_at=now,
+        ocr_confidence=ocr_confidence,
+        validation_warnings=validation_result.warnings,
+        parser_source=parser_source,
+        completeness_score=completeness_score,
     )
 
 
@@ -656,6 +831,14 @@ def get_receipt(
             match_confidence=ru["match_confidence"],
             match_status=ru["match_status"] or "unmatched",
         )
+    
+    # Parse validation warnings from JSON if present
+    validation_warnings = None
+    if ru["validation_warnings"]:
+        try:
+            validation_warnings = json.loads(ru["validation_warnings"])
+        except json.JSONDecodeError:
+            validation_warnings = None
 
     return ReceiptUploadOut(
         receipt_id=receipt_id,
@@ -667,6 +850,10 @@ def get_receipt(
         match=match_obj,
         purchase_details=_build_pd_out(pd_rows),
         uploaded_at=ru["uploaded_at"],
+        ocr_confidence=ru["ocr_confidence"],
+        validation_warnings=validation_warnings,
+        parser_source=ru["parser_source"],
+        completeness_score=ru["completeness_score"],
     )
 
 

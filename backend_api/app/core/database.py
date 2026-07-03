@@ -56,16 +56,26 @@ CREATE TABLE IF NOT EXISTS purchase_details (
     created_at            TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- Receipt upload metadata and OCR state
+-- Receipt upload metadata and OCR state (Enhanced with quality indicators)
 CREATE TABLE IF NOT EXISTS receipt_uploads (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id           TEXT    NOT NULL,
-    file_path         TEXT    NOT NULL,
-    ocr_raw_text      TEXT,
-    ocr_status        TEXT    DEFAULT 'pending',
-    extraction_status TEXT    DEFAULT 'pending',
-    uploaded_at       TEXT    DEFAULT CURRENT_TIMESTAMP,
-    processed_at      TEXT
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id               TEXT    NOT NULL,
+    file_path             TEXT    NOT NULL,
+    ocr_raw_text          TEXT,
+    ocr_status            TEXT    DEFAULT 'pending',
+    extraction_status     TEXT    DEFAULT 'pending',
+    merchant_name         TEXT,
+    total_amount_rwf      REAL,
+    receipt_timestamp     TEXT,
+    matched_sms_id        INTEGER,
+    match_confidence      REAL,
+    match_status          TEXT    DEFAULT 'unmatched',
+    ocr_confidence        REAL,
+    validation_warnings   TEXT,
+    parser_source         TEXT,
+    completeness_score    REAL,
+    uploaded_at           TEXT    DEFAULT CURRENT_TIMESTAMP,
+    processed_at          TEXT
 );
 
 -- Links expense SMS transactions to purchase detail rows
@@ -299,6 +309,18 @@ def _run_migrations(conn) -> None:
         ("match_status",     "TEXT DEFAULT 'unmatched'"),
     ]
     for col, defn in _receipt_cols:
+        if not _has_column("receipt_uploads", col):
+            conn.execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {defn}")  # noqa: S608
+            logger.info("Migration: added receipt_uploads.%s", col)
+    
+    # receipt_uploads: Enhanced OCR quality indicators
+    _receipt_quality_cols = [
+        ("ocr_confidence",      "REAL"),
+        ("validation_warnings", "TEXT"),
+        ("parser_source",       "TEXT"),
+        ("completeness_score",  "REAL"),
+    ]
+    for col, defn in _receipt_quality_cols:
         if not _has_column("receipt_uploads", col):
             conn.execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {defn}")  # noqa: S608
             logger.info("Migration: added receipt_uploads.%s", col)
