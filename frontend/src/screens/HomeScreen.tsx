@@ -117,7 +117,7 @@ export function HomeScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>{greeting},</Text>
-            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'} ðŸ‘‹</Text>
+            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'} 👋</Text>
           </View>
           {risk && (
             <View style={[styles.riskBadge, { backgroundColor: risk.color + '22' }]}>
@@ -136,20 +136,20 @@ export function HomeScreen() {
           <View style={[styles.card, styles.cardIncome]}>
             <Text style={styles.cardLabel}>Income</Text>
             <Text style={[styles.cardAmount, { color: colors.income }]}>
-              {statusLoading ? 'â€¦' : formatRWF(status?.total_income ?? 0)}
+              {statusLoading ? '…' : formatRWF(status?.total_income ?? 0)}
             </Text>
           </View>
           <View style={[styles.card, styles.cardExpense]}>
             <Text style={styles.cardLabel}>Expenses</Text>
             <Text style={[styles.cardAmount, { color: colors.expense }]}>
-              {statusLoading ? 'â€¦' : formatRWF(status?.total_expense ?? 0)}
+              {statusLoading ? '…' : formatRWF(status?.total_expense ?? 0)}
             </Text>
           </View>
         </View>
 
         {/* Net balance */}
         <View style={styles.netCard}>
-          <Text style={styles.netLabel}>Net Â· {status?.period ?? 'â€”'}</Text>
+          <Text style={styles.netLabel}>Net · {status?.period ?? '—'}</Text>
           <Text
             style={[
               styles.netAmount,
@@ -157,7 +157,7 @@ export function HomeScreen() {
             ]}
           >
             {statusLoading
-              ? 'â€¦'
+              ? '…'
               : `${(status?.net_balance ?? 0) >= 0 ? '+' : ''}${formatRWF(status?.net_balance ?? 0)}`}
           </Text>
           {status && status.risk_level !== 'no_data' && (
@@ -181,7 +181,7 @@ export function HomeScreen() {
               />
             </View>
             <Text style={styles.progressLabel}>
-              {status.expense_rate_pct.toFixed(0)}% of income spent Â·{' '}
+              {status.expense_rate_pct.toFixed(0)}% of income spent · {' '}
               {status.days_remaining} days remaining
             </Text>
           </View>

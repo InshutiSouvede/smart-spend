@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# â”€â”€â”€ /analytics/summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- /analytics/summary -----------------------------------------------
 
 @router.get(
     "/summary",
@@ -124,7 +124,7 @@ def get_summary(
     )
 
 
-# â”€â”€â”€ /analytics/monthly â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- /analytics/monthly -----------------------------------------------
 
 @router.get(
     "/monthly",
@@ -165,7 +165,7 @@ def get_monthly_trends(
     ]
 
 
-# â”€â”€â”€ /analytics/categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- /analytics/categories --------------------------------------------
 
 @router.get(
     "/categories",
@@ -243,7 +243,7 @@ def get_category_breakdown(
     ]
 
 
-# â”€â”€â”€ /analytics/spending-status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- /analytics/spending-status ---------------------------------------
 
 @router.get(
     "/spending-status",
@@ -260,9 +260,9 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     - Count of unmatched expense transactions pending clarification
 
     Risk thresholds (expense as % of income):
-      < 60%   â†’ low
-      60â€“85%  â†’ medium
-      > 85%   â†’ high
+      < 60%   -> low
+      60-85%  -> medium
+      > 85%   -> high
     """
     today          = date.today()
     days_in_month  = calendar.monthrange(today.year, today.month)[1]
@@ -385,8 +385,8 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
 
     status_messages = {
         "low":    f"You've spent {expense_rate_pct:.0f}% of your income so far this month.",
-        "medium": f"You've spent {expense_rate_pct:.0f}% of your income — watch your spending.",
-        "high":   f"You've spent {expense_rate_pct:.0f}% of your income — overspending risk.",
+        "medium": f"You've spent {expense_rate_pct:.0f}% of your income - watch your spending.",
+        "high":   f"You've spent {expense_rate_pct:.0f}% of your income - overspending risk.",
     }
     cta_messages = {
         "low":    "Keep tracking your expenses to stay on budget.",

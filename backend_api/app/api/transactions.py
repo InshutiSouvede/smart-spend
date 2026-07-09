@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- Helpers ---
 
 def _build_clarification_prompt(tx: dict) -> str:
     amount = int(tx["amount_rwf"])
@@ -188,8 +188,7 @@ def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> No
         )
 
 
-# â”€â”€â”€ POST /transactions/sms/sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+# POST /transactions/sms/sync
 @router.post(
     "/sms/sync",
     response_model=SMSSyncResponse,
@@ -234,7 +233,7 @@ def sync_sms(
     with get_db() as conn:
         for idx, msg in enumerate(payload.messages):
 
-            # ── 1. Sensitive keyword check ─────────────────────────────────────
+            # -- 1. Sensitive keyword check --
             flags = detect_sensitive_flags(msg.raw_sms_text)
             if flags:
                 sensitive_warnings.append(
@@ -251,10 +250,10 @@ def sync_sms(
                 )
                 continue
 
-            # ── 2. Parse ───────────────────────────────────────────────────────
+            # -- 2. Parse --
             parsed = parse_momo_sms(msg.raw_sms_text, sender=msg.sender)
 
-            # ── 3. Failed parse ────────────────────────────────────────────────
+            # -- 3. Failed parse --
             if parsed.parse_confidence == 0.0:
                 failed.append(
                     SMSSyncFailedItem(
@@ -268,7 +267,7 @@ def sync_sms(
                 logger.debug("SMS #%d from '%s' could not be parsed.", idx, msg.sender)
                 continue
 
-            # ── 4a. Dedup by source_message_id ─────────────────────────────────
+            # -- 4a. Dedup by source_message_id --
             if msg.source_message_id:
                 existing = conn.execute(
                     "SELECT id FROM sms_transactions"
@@ -280,7 +279,7 @@ def sync_sms(
                     logger.debug("Skipping dup source_message_id=%s", msg.source_message_id)
                     continue
 
-            # ── 4b. Dedup by transaction_reference ──────────────────────────────
+            # -- 4b. Dedup by transaction_reference --
             if parsed.transaction_reference:
                 existing = conn.execute(
                     "SELECT id FROM sms_transactions"
@@ -292,7 +291,7 @@ def sync_sms(
                     logger.debug("Skipping duplicate ref=%s", parsed.transaction_reference)
                     continue
             else:
-                # -- 4c. Fallback dedup: hash + time + amount -----------------
+                # -- 4c. Fallback dedup: hash + time + amount --
                 existing = conn.execute(
                     "SELECT id FROM sms_transactions"
                     " WHERE user_id = ? AND raw_sms_hash = ?"
@@ -307,7 +306,7 @@ def sync_sms(
                     logger.debug("Skipping duplicate by hash/time/amount")
                     continue
 
-            # -- 5. Persist ---------------------------------------------------
+            # -- 5. Persist --
             cursor = conn.execute(
                 """
                 INSERT INTO sms_transactions (
@@ -366,7 +365,7 @@ def sync_sms(
                 "clarification_prompt":  None,
             }
 
-            # -- 6. Expense: attempt auto-match to purchase_details -----------
+            # -- 6. Expense: attempt auto-match to purchase_details --
             if parsed.transaction_type == "expense":
                 matched_pd_ids = _try_auto_match(
                     conn, user_id, sms_id,
@@ -388,11 +387,11 @@ def sync_sms(
 
             imported.append(row_out)
 
-        # -- 7. Refresh monthly aggregates ------------------------------------
+        # -- 7. Refresh monthly aggregates --
         for (yr, mo) in months_touched:
             _rebuild_monthly_aggregates(conn, user_id, yr, mo)
 
-        # -- 8. Record last successful import timestamp -----------------------
+        # -- 8. Record last successful import timestamp --
         now_iso = datetime.now(timezone.utc).isoformat()
         if imported:
             conn.execute(
@@ -413,7 +412,7 @@ def sync_sms(
     )
 
 
-# â”€â”€â”€ GET /transactions/ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- GET /transactions/ ---
 
 @router.get(
     "/",
@@ -489,7 +488,7 @@ def list_transactions(
     )
 
 
-# â”€â”€â”€ GET /transactions/unmatched â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- GET /transactions/unmatched ---
 
 @router.get(
     "/unmatched",
@@ -566,8 +565,7 @@ def list_unmatched(
     )
 
 
-# â”€â”€â”€ POST /transactions/{sms_id}/prompt-response â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+# POST /transactions/{sms_id}/prompt-response 
 @router.post(
     "/{sms_id}/prompt-response",
     summary="Submit purchase details for an unmatched expense SMS",
@@ -663,7 +661,7 @@ def submit_prompt_response(
     return {"sms_transaction_id": sms_id, "purchase_detail_ids": pd_ids, "status": "linked"}
 
 
-# â”€â”€â”€ PATCH /transactions/{sms_id}/match/{pd_id} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- PATCH /transactions/{sms_id}/match/{pd_id} ---
 
 @router.patch(
     "/{sms_id}/match/{pd_id}",
@@ -692,7 +690,7 @@ def update_match(
     return {"sms_transaction_id": sms_id, "purchase_detail_id": pd_id, "match_status": new_status}
 
 
-# â”€â”€â”€ POST /transactions/corrections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /transactions/corrections ---
 
 @router.post(
     "/corrections",
@@ -790,7 +788,7 @@ def add_correction(
             (user_id,),
         ).fetchone()[0]
 
-    # ── Determine whether to queue retraining ─────────────────────────────────
+    # -- Determine whether to queue retraining --
     # Auto-trigger when corrections reach a multiple of the configured threshold.
     # Manual trigger (payload.trigger_retraining=True) always queues a job.
     # Guard: skip if a job for this user is already queued or running.
@@ -835,7 +833,7 @@ def add_correction(
     }
 
 
-# ─── GET /transactions/export/csv ───────────────────────────────────────────
+# --- GET /transactions/export/csv ---
 
 @router.get(
     "/export/csv",

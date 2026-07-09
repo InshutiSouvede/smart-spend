@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# ─── /auth/me ─────────────────────────────────────────────────────────────────
+# --- /auth/me ---
 
 @router.get("/me", summary="Current authenticated user identity")
 def auth_me(user_id: str = Depends(get_current_user_id)) -> dict:
@@ -30,7 +30,7 @@ def auth_me(user_id: str = Depends(get_current_user_id)) -> dict:
     }
 
 
-# ─── /auth/register ───────────────────────────────────────────────────────────
+# --- /auth/register ---
 
 @router.post(
     "/register",
@@ -122,7 +122,7 @@ async def _supabase_register(payload: RegisterRequest) -> RegisterResponse:
     )
 
 
-# ─── /auth/login ──────────────────────────────────────────────────────────────
+# --- /auth/login ---
 
 @router.post(
     "/login",
@@ -214,7 +214,7 @@ async def _supabase_login(payload: LoginRequest) -> LoginResponse:
     )
 
 
-# ─── /auth/logout ─────────────────────────────────────────────────────────────
+# --- /auth/logout ---
 
 @router.post("/logout", summary="Invalidate the current session")
 async def logout(
@@ -265,7 +265,7 @@ async def logout(
     return {"message": "Logged out successfully.", "auth_mode": "supabase"}
 
 
-# ─── /auth/profile ────────────────────────────────────────────────────────────
+# --- /auth/profile ---
 
 @router.get(
     "/profile",

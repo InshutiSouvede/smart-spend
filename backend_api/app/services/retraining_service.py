@@ -39,7 +39,7 @@ _BASE_CATEGORY_DATASET = _APP_ROOT / "data" / "smartspend_initial_expense_catego
 _BASE_FORECAST_DATASET = _APP_ROOT / "data" / "smartspend_initial_synthetic_prediction_demo_dataset.csv"
 
 
-# ─── Job management ───────────────────────────────────────────────────────────
+# --- Job management ---
 
 def create_job(user_id: str, model_type: str) -> str:
     """Insert a new retraining job record and return its auto-increment ID as string."""
@@ -156,7 +156,7 @@ def _make_category_pipeline() -> Pipeline:
     ])
 
 
-# ─── Category model retraining ────────────────────────────────────────────────
+# --- Category model retraining ---
 
 def retrain_category_model(job_id: str, user_id: str) -> None:
     """
@@ -409,7 +409,7 @@ def retrain_category_model(job_id: str, user_id: str) -> None:
         _update_job(job_id, "failed", str(exc), error=str(exc))
 
 
-# ─── Expense forecast retraining ──────────────────────────────────────────────
+# --- Expense forecast retraining ---
 
 def retrain_expense_forecast(job_id: str, user_id: str) -> None:
     """
@@ -597,7 +597,7 @@ def _seed_expense_features(df: pd.DataFrame) -> list[dict]:
     return rows
 
 
-# ─── Income forecast retraining ───────────────────────────────────────────────
+# --- Income forecast retraining ---
 
 def retrain_income_forecast(job_id: str, user_id: str) -> None:
     """

@@ -11,7 +11,7 @@ from app.core.exceptions import ModelNotAvailableError
 
 logger = logging.getLogger(__name__)
 
-# â”€â”€â”€ Feature definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- Feature definitions -----------------------------------------------
 
 # Column name used by the TF-IDF step in the trained category pipeline
 CATEGORY_TEXT_COL = "model_text"
@@ -73,9 +73,9 @@ class ModelService:
     """
     Manages lazy loading and inference for three model types:
 
-    1. expense_category    â€” TF-IDF + numeric â†’ LogisticRegression (per-user personalised)
-    2. monthly_expense_forecast â€” XGBoost regression on monthly aggregates
-    3. monthly_income_forecast  â€” XGBoost regression on monthly aggregates
+    1. expense_category    - TF-IDF + numeric -> LogisticRegression (per-user personalised)
+    2. monthly_expense_forecast - XGBoost regression on monthly aggregates
+    3. monthly_income_forecast  - XGBoost regression on monthly aggregates
 
     Models are loaded on first use. A clear ModelNotAvailableError is raised
     at inference time if the required model file is absent.
@@ -89,7 +89,7 @@ class ModelService:
         self._expense_fc_loaded      = False
         self._income_fc_loaded       = False
 
-    # â”€â”€â”€ Loaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # --- Loaders -----------------------------------------------------------
 
     def _load(self, path: Path):
         if not path.exists():
@@ -136,7 +136,7 @@ class ModelService:
             return base_model, "base_synthetic"
         raise ModelNotAvailableError(model_type)
 
-    # â”€â”€â”€ Categorisation (item-level) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # --- Categorisation (item-level) ---------------------------------------
 
     def categorize(self, user_id: str, purchase_features: dict) -> dict:
         """
@@ -158,7 +158,7 @@ class ModelService:
             "model_scope":   scope,
         }
 
-    # â”€â”€â”€ Expense forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # --- Expense forecast --------------------------------------------------
 
     def forecast_expense(self, user_id: str, features: dict) -> dict:
         """
@@ -177,7 +177,7 @@ class ModelService:
             "model_scope": scope,
         }
 
-    # â”€â”€â”€ Income forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # --- Income forecast ---------------------------------------------------
 
     def forecast_income(self, user_id: str, features: dict) -> dict:
         """

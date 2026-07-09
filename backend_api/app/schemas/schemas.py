@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
-# ─── Auth schemas ─────────────────────────────────────────────────────────────
+# --- Auth schemas ---
 
 class RegisterRequest(BaseModel):
     email: str = Field(
@@ -52,7 +52,7 @@ class UserProfileUpdate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=80)
 
 
-# ─── SMS / Transaction schemas ────────────────────────────────────────────────
+# --- SMS / Transaction schemas ---
 
 class SMSMessage(BaseModel):
     raw_sms_text: str = Field(..., description="Raw SMS string.")
@@ -149,7 +149,7 @@ class SMSSyncResponse(BaseModel):
     last_import_at: Optional[str] = None   # ISO-8601 UTC of this import batch
 
 
-# ─── Purchase detail schemas ──────────────────────────────────────────────────
+# --- Purchase detail schemas ---
 
 class PurchaseDetailIn(BaseModel):
     item_name: str = Field(..., min_length=1)
@@ -178,7 +178,7 @@ class PurchaseDetailOut(BaseModel):
     created_at: Optional[str] = None
 
 
-# ─── User prompt (missing receipt) ───────────────────────────────────────────
+# --- User prompt (missing receipt) ---
 
 class UserPromptResponse(BaseModel):
     """User's answer to the 'what did you buy?' prompt for an unmatched SMS."""
@@ -199,7 +199,7 @@ class UserPromptResponse(BaseModel):
     }
 
 
-# ─── Receipt schemas ──────────────────────────────────────────────────────────
+# --- Receipt schemas ---
 
 class ReceiptMatchOut(BaseModel):
     """Current match state for a receipt."""
@@ -265,7 +265,7 @@ class ReceiptManualLinkOut(BaseModel):
     match_status: str
 
 
-# ─── Categorisation schemas ───────────────────────────────────────────────────
+# --- Categorisation schemas ---
 
 class CategoryListResponse(BaseModel):
     categories: List[str]
@@ -319,7 +319,7 @@ class CategorizeResponse(BaseModel):
     model_scope: str
 
 
-# ─── Category correction schemas ──────────────────────────────────────────────
+# --- Category correction schemas ---
 
 class CategoryCorrectionRequest(BaseModel):
     purchase_detail_id: int
@@ -327,7 +327,7 @@ class CategoryCorrectionRequest(BaseModel):
     trigger_retraining: bool = Field(default=True)
 
 
-# ─── Forecast schemas ─────────────────────────────────────────────────────────
+# --- Forecast schemas ---
 
 class ExpenseForecastRequest(BaseModel):
     """15 features required by the trained XGBoost expense-forecast model."""
@@ -381,7 +381,7 @@ class IncomeForecastResponse(BaseModel):
     model_scope: str
 
 
-# ─── Retraining schemas ───────────────────────────────────────────────────────
+# --- Retraining schemas ---
 
 class RetrainResponse(BaseModel):
     job_id: str
@@ -418,7 +418,7 @@ class ModelVersionOut(BaseModel):
     created_at: Optional[str] = None
 
 
-# ─── Analytics schemas ────────────────────────────────────────────────────────
+# --- Analytics schemas ---
 
 class UnmatchedExpenseOut(BaseModel):
     """An expense transaction that hasn't been linked to purchase details yet."""

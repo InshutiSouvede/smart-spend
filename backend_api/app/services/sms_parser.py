@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Callable, List, Optional
 
 
-# ─── Result dataclass ──────────────────────────────────────────────────────────
+# --- Result dataclass ---
 
 @dataclass
 class ParsedTransaction:
@@ -35,7 +35,7 @@ class ParsedTransaction:
     sensitive_flags:       List[str] = field(default_factory=list)
 
 
-# ─── Sensitive keyword detection ─────────────────────────────────────────────
+# --- Sensitive keyword detection ---
 
 # Keywords that hint at authentication or security-sensitive content.
 # Messages containing any of these should be flagged for user review and
@@ -90,7 +90,7 @@ def _detect_provider(sender: Optional[str], text: str) -> Optional[str]:
     return None
 
 
-# ─── Shared helper functions ───────────────────────────────────────────────────
+# --- Shared helper functions ---
 
 def _to_float(s: str) -> float:
     return float(s.replace(",", "").strip())
@@ -145,7 +145,7 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-# ─── Parser implementations ────────────────────────────────────────────────────
+# --- Parser implementations ---
 # Each function receives the raw SMS text and returns a ParsedTransaction
 # or None if the pattern does not match.
 
