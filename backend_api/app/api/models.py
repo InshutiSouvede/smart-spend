@@ -30,7 +30,7 @@ from app.services.retraining_service import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# The 10 fixed expense categories â€” source of truth for the mobile category picker.
+# The 10 fixed expense categories - source of truth for the mobile category picker.
 # Must stay in sync with the training dataset categories and model output classes.
 _EXPENSE_CATEGORIES: list[str] = [
     "Food & Dining",
@@ -46,7 +46,7 @@ _EXPENSE_CATEGORIES: list[str] = [
 ]
 
 
-# â”€â”€â”€ GET /models/categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- GET /models/categories --------------------------------------------
 
 @router.get(
     "/categories",
@@ -64,7 +64,7 @@ def list_categories(user_id: str = Depends(get_current_user_id)) -> CategoryList
     return CategoryListResponse(categories=_EXPENSE_CATEGORIES, custom_categories=custom)
 
 
-# â”€â”€â”€ POST /models/categorize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/categorize -------------------------------------------
 
 @router.post(
     "/categorize",
@@ -89,7 +89,7 @@ def categorize(
     )
 
 
-# â”€â”€â”€ POST /models/expense-forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/expense-forecast -------------------------------------
 
 @router.post(
     "/expense-forecast",
@@ -105,7 +105,7 @@ def forecast_expense(
     return ExpenseForecastResponse(**result)
 
 
-# â”€â”€â”€ POST /models/income-forecast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/income-forecast --------------------------------------
 
 @router.post(
     "/income-forecast",
@@ -121,7 +121,7 @@ def forecast_income(
     return IncomeForecastResponse(**result)
 
 
-# â”€â”€â”€ POST /models/category/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/category/retrain -------------------------------------
 
 @router.post(
     "/category/retrain",
@@ -139,7 +139,7 @@ def trigger_category_retrain(
             "message": "expense_category model retraining queued."}
 
 
-# â”€â”€â”€ POST /models/expense-forecast/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/expense-forecast/retrain -----------------------------
 
 @router.post(
     "/expense-forecast/retrain",
@@ -157,7 +157,7 @@ def trigger_expense_forecast_retrain(
             "message": "monthly_expense_forecast model retraining queued."}
 
 
-# â”€â”€â”€ POST /models/income-forecast/retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- POST /models/income-forecast/retrain ------------------------------
 
 @router.post(
     "/income-forecast/retrain",
@@ -175,7 +175,7 @@ def trigger_income_forecast_retrain(
             "message": "monthly_income_forecast model retraining queued."}
 
 
-# â”€â”€â”€ GET /models/jobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- GET /models/jobs --------------------------------------------------
 
 @router.get(
     "/jobs",
@@ -198,7 +198,7 @@ def list_retraining_jobs(
     return result
 
 
-# â”€â”€â”€ GET /models/jobs/{job_id} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- GET /models/jobs/{job_id} -----------------------------------------
 
 @router.get(
     "/jobs/{job_id}",
