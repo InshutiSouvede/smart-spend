@@ -1,12 +1,60 @@
 import logging
+import os
 import sqlite3
 from contextlib import contextmanager
+from typing import Any, Generator
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_SCHEMA_TABLES = """
+# Try to import PostgreSQL driver (only needed in production)
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
+    logger.warning("psycopg2 not installed - PostgreSQL support disabled")
+
+
+def get_database_type() -> str:
+    """Detect database type from environment."""
+    database_url = os.getenv('DATABASE_URL', '')
+    if database_url.startswith('postgresql://') or database_url.startswith('postgres://'):
+        if not HAS_POSTGRES:
+            raise RuntimeError(
+                "DATABASE_URL points to PostgreSQL but psycopg2 is not installed. "
+                "Run: pip install psycopg2-binary"
+            )
+        return 'postgresql'
+    return 'sqlite'
+
+
+DB_TYPE = get_database_type()
+logger.info(f"Database type detected: {DB_TYPE}")
+
+
+def convert_query_placeholders(query: str, params: tuple) -> tuple:
+    """
+    Convert query placeholders from ? to %s for PostgreSQL.
+    Returns (converted_query, params).
+    
+    Usage:
+        query, params = convert_query_placeholders(
+            "SELECT * FROM users WHERE id = ?", 
+            (user_id,)
+        )
+        cursor.execute(query, params)
+    """
+    if DB_TYPE == 'postgresql':
+        # Convert ? to %s for PostgreSQL
+        converted_query = query.replace('?', '%s')
+        return converted_query, params
+    return query, params
+
+# SQLite Schema
+_SCHEMA_TABLES_SQLITE = """
 CREATE TABLE IF NOT EXISTS users (
     id                 TEXT PRIMARY KEY,
     email              TEXT UNIQUE NOT NULL,
@@ -15,7 +63,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at         TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- SMS financial movements: the money source-of-truth
 CREATE TABLE IF NOT EXISTS sms_transactions (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id               TEXT    NOT NULL,
@@ -38,7 +85,6 @@ CREATE TABLE IF NOT EXISTS sms_transactions (
     created_at            TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- Item-level purchase details: what was actually bought
 CREATE TABLE IF NOT EXISTS purchase_details (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id               TEXT    NOT NULL,
@@ -56,7 +102,6 @@ CREATE TABLE IF NOT EXISTS purchase_details (
     created_at            TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- Receipt upload metadata and OCR state (Enhanced with quality indicators)
 CREATE TABLE IF NOT EXISTS receipt_uploads (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id               TEXT    NOT NULL,
@@ -78,7 +123,6 @@ CREATE TABLE IF NOT EXISTS receipt_uploads (
     processed_at          TEXT
 );
 
--- Links expense SMS transactions to purchase detail rows
 CREATE TABLE IF NOT EXISTS transaction_purchase_matches (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id              TEXT    NOT NULL,
@@ -92,7 +136,6 @@ CREATE TABLE IF NOT EXISTS transaction_purchase_matches (
     created_at           TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- Category predictions and final decisions, one row per purchase_detail
 CREATE TABLE IF NOT EXISTS expense_categories (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id            TEXT    NOT NULL,
@@ -106,7 +149,6 @@ CREATE TABLE IF NOT EXISTS expense_categories (
     created_at         TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- User-supplied category corrections: personalisation dataset
 CREATE TABLE IF NOT EXISTS category_corrections (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id              TEXT    NOT NULL,
@@ -127,7 +169,6 @@ CREATE TABLE IF NOT EXISTS category_corrections (
     created_at           TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- User-specific custom expense categories
 CREATE TABLE IF NOT EXISTS custom_categories (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     TEXT    NOT NULL,
@@ -136,7 +177,6 @@ CREATE TABLE IF NOT EXISTS custom_categories (
     UNIQUE(user_id, name)
 );
 
--- Monthly aggregates for forecast model training and analytics
 CREATE TABLE IF NOT EXISTS monthly_financial_aggregates (
     id                         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id                    TEXT    NOT NULL,
@@ -154,7 +194,6 @@ CREATE TABLE IF NOT EXISTS monthly_financial_aggregates (
     UNIQUE(user_id, year, month, category)
 );
 
--- Background ML training job records
 CREATE TABLE IF NOT EXISTS retraining_jobs (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id             TEXT    NOT NULL,
@@ -173,7 +212,6 @@ CREATE TABLE IF NOT EXISTS retraining_jobs (
     error_message       TEXT
 );
 
--- Versioned record of every trained model artifact per user
 CREATE TABLE IF NOT EXISTS model_versions (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id             TEXT    NOT NULL,
@@ -191,6 +229,185 @@ CREATE TABLE IF NOT EXISTS model_versions (
                         CHECK(is_active IN (0, 1)),
     retraining_job_id   INTEGER REFERENCES retraining_jobs(id),
     created_at          TEXT    DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+# PostgreSQL Schema
+_SCHEMA_TABLES_POSTGRES = """
+CREATE TABLE IF NOT EXISTS users (
+    id                 TEXT PRIMARY KEY,
+    email              TEXT UNIQUE NOT NULL,
+    display_name       TEXT,
+    last_sms_import_at TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sms_transactions (
+    id                    SERIAL PRIMARY KEY,
+    user_id               TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_message_id     TEXT,
+    sender                TEXT,
+    raw_sms_text          TEXT    NOT NULL,
+    raw_sms_hash          TEXT    NOT NULL,
+    sms_time              TIMESTAMPTZ,
+    transaction_time      TIMESTAMPTZ,
+    transaction_type      TEXT    NOT NULL CHECK(transaction_type IN ('income', 'expense')),
+    amount_rwf            NUMERIC(15,2) NOT NULL,
+    fee_rwf               NUMERIC(15,2) NOT NULL DEFAULT 0.0,
+    balance_after_rwf     NUMERIC(15,2),
+    to_who                TEXT,
+    from_who              TEXT,
+    transaction_reference TEXT,
+    parse_confidence      NUMERIC(3,2) DEFAULT 1.0,
+    provider              TEXT,
+    currency              TEXT    DEFAULT 'RWF',
+    created_at            TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS purchase_details (
+    id                    SERIAL PRIMARY KEY,
+    user_id               TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_type           TEXT    NOT NULL CHECK(source_type IN ('receipt', 'user_prompt')),
+    source_id             INTEGER NOT NULL,
+    purchase_time         TIMESTAMPTZ,
+    merchant_name         TEXT,
+    item_name             TEXT    NOT NULL,
+    normalized_item_name  TEXT,
+    quantity              NUMERIC(10,2) DEFAULT 1.0,
+    unit                  TEXT,
+    unit_cost_rwf         NUMERIC(15,2),
+    total_cost_rwf        NUMERIC(15,2) NOT NULL,
+    extraction_confidence NUMERIC(3,2) DEFAULT 1.0,
+    created_at            TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS receipt_uploads (
+    id                    SERIAL PRIMARY KEY,
+    user_id               TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    file_path             TEXT    NOT NULL,
+    ocr_raw_text          TEXT,
+    ocr_status            TEXT    DEFAULT 'pending',
+    extraction_status     TEXT    DEFAULT 'pending',
+    merchant_name         TEXT,
+    total_amount_rwf      NUMERIC(15,2),
+    receipt_timestamp     TIMESTAMPTZ,
+    matched_sms_id        INTEGER REFERENCES sms_transactions(id),
+    match_confidence      NUMERIC(3,2),
+    match_status          TEXT    DEFAULT 'unmatched',
+    ocr_confidence        NUMERIC(3,2),
+    validation_warnings   TEXT,
+    parser_source         TEXT,
+    completeness_score    NUMERIC(3,2),
+    uploaded_at           TIMESTAMPTZ DEFAULT NOW(),
+    processed_at          TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS transaction_purchase_matches (
+    id                   SERIAL PRIMARY KEY,
+    user_id              TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sms_transaction_id   INTEGER NOT NULL REFERENCES sms_transactions(id) ON DELETE CASCADE,
+    purchase_detail_id   INTEGER NOT NULL REFERENCES purchase_details(id) ON DELETE CASCADE,
+    match_status         TEXT    NOT NULL DEFAULT 'auto_matched'
+                         CHECK(match_status IN ('auto_matched', 'user_confirmed', 'unmatched', 'rejected')),
+    match_score          NUMERIC(3,2),
+    matched_by           TEXT    NOT NULL DEFAULT 'system'
+                         CHECK(matched_by IN ('system', 'user')),
+    created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS expense_categories (
+    id                 SERIAL PRIMARY KEY,
+    user_id            TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purchase_detail_id INTEGER NOT NULL UNIQUE REFERENCES purchase_details(id) ON DELETE CASCADE,
+    predicted_category TEXT,
+    confidence         NUMERIC(3,2),
+    final_category     TEXT,
+    category_source    TEXT    NOT NULL DEFAULT 'model'
+                       CHECK(category_source IN ('model', 'user_correction', 'rule')),
+    corrected_at       TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS category_corrections (
+    id                   SERIAL PRIMARY KEY,
+    user_id              TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purchase_detail_id   INTEGER,
+    item_name            TEXT    NOT NULL,
+    normalized_item_name TEXT,
+    merchant_name        TEXT,
+    to_who               TEXT,
+    quantity             NUMERIC(10,2),
+    unit                 TEXT,
+    unit_cost_rwf        NUMERIC(15,2),
+    total_cost_rwf       NUMERIC(15,2),
+    purchase_month       INTEGER,
+    purchase_weekday     INTEGER,
+    previous_category    TEXT,
+    corrected_category   TEXT    NOT NULL,
+    correction_source    TEXT    DEFAULT 'user',
+    created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS custom_categories (
+    id          SERIAL PRIMARY KEY,
+    user_id     TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT    NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS monthly_financial_aggregates (
+    id                         SERIAL PRIMARY KEY,
+    user_id                    TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    year                       INTEGER NOT NULL,
+    month                      INTEGER NOT NULL,
+    category                   TEXT,
+    total_expense_rwf          NUMERIC(15,2) DEFAULT 0.0,
+    total_income_rwf           NUMERIC(15,2) DEFAULT 0.0,
+    expense_transaction_count  INTEGER DEFAULT 0,
+    income_transaction_count   INTEGER DEFAULT 0,
+    average_expense_amount_rwf NUMERIC(15,2),
+    average_income_amount_rwf  NUMERIC(15,2),
+    created_at                 TIMESTAMPTZ DEFAULT NOW(),
+    updated_at                 TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, year, month, category)
+);
+
+CREATE TABLE IF NOT EXISTS retraining_jobs (
+    id                  SERIAL PRIMARY KEY,
+    user_id             TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    model_type          TEXT    NOT NULL
+                        CHECK(model_type IN (
+                            'expense_category',
+                            'monthly_expense_forecast',
+                            'monthly_income_forecast'
+                        )),
+    status              TEXT    NOT NULL,
+    training_rows_count INTEGER,
+    metrics_json        TEXT,
+    model_path          TEXT,
+    started_at          TIMESTAMPTZ DEFAULT NOW(),
+    completed_at        TIMESTAMPTZ,
+    error_message       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS model_versions (
+    id                  SERIAL PRIMARY KEY,
+    user_id             TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    model_type          TEXT    NOT NULL
+                        CHECK(model_type IN (
+                            'expense_category',
+                            'monthly_expense_forecast',
+                            'monthly_income_forecast'
+                        )),
+    version             INTEGER NOT NULL DEFAULT 1,
+    model_path          TEXT    NOT NULL,
+    metrics_json        TEXT,
+    training_rows_count INTEGER,
+    is_active           INTEGER NOT NULL DEFAULT 1
+                        CHECK(is_active IN (0, 1)),
+    retraining_job_id   INTEGER REFERENCES retraining_jobs(id),
+    created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 """
 
@@ -278,8 +495,13 @@ WHERE st.transaction_type = 'expense';
 def _run_migrations(conn) -> None:
     """
     Safely add new columns to tables that may have been created before the
-    current schema.  This replaces Alembic for the simple ALTER TABLE cases.
+    current schema. This replaces Alembic for simple ALTER TABLE cases.
+    Only runs for SQLite (PostgreSQL schema is complete from start).
     """
+    if DB_TYPE == 'postgresql':
+        # PostgreSQL schema is complete, no migrations needed
+        logger.info("PostgreSQL: Skipping migrations (schema is complete)")
+        return
 
     def _has_column(table: str, column: str) -> bool:
         rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
@@ -327,19 +549,56 @@ def _run_migrations(conn) -> None:
 
 
 @contextmanager
-def get_db():
-    conn = sqlite3.connect(settings.database_path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+def get_db() -> Generator[Any, None, None]:
+    """
+    Universal database connection context manager.
+    Auto-detects SQLite vs PostgreSQL from DATABASE_URL env var.
+    """
+    if DB_TYPE == 'postgresql':
+        database_url = os.getenv('DATABASE_URL', '')
+        conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.autocommit = False
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    else:
+        #ursor = conn.cursor()
+        
+        if DB_TYPE == 'postgresql':
+            # PostgreSQL: Execute statements individually
+            for statement in _SCHEMA_TABLES_POSTGRES.split(';'):
+                statement = statement.strip()
+                if statement:
+                    cursor.execute(statement)
+            for statement in _SCHEMA_INDEXES.split(';'):
+                statement = statement.strip()
+                if statement:
+                    cursor.execute(statement)
+            for statement in _SCHEMA_VIEWS.split(';'):
+                statement = statement.strip()
+                if statement:
+                    cursor.execute(statement)
+            logger.info("PostgreSQL database initialized at '%s'", os.getenv('DATABASE_URL', '').split('@')[-1])
+        else:
+            # SQLite: Use executescript
+            conn.executescript(_SCHEMA_TABLES_SQLITE)
+            conn.executescript(_SCHEMA_INDEXES)
+            conn.executescript(_SCHEMA_VIEWS)
+            _run_migrations(conn)
+            logger.info("SQLite database initialized at '%s'L")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def init_db() -> None:

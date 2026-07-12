@@ -2,7 +2,11 @@
 __pycache__/
 *.pyc
 .env
+.env.local
+.env.production
+.env.*.local
 smartspend.db
+smartspend.db-journal
 # Ignore all upload contents recursively (user receipt images, etc.)
 storage/uploads/**
 !storage/uploads/.gitkeep
@@ -10,3 +14,8 @@ storage/user_models/**
 !storage/user_models/.gitkeep
 storage/retraining_jobs/**
 !storage/retraining_jobs/.gitkeep
+# Production credentials (never commit these!)
+google-credentials.json
+service-account.json
+*.pem
+*.key
