@@ -1,127 +1,524 @@
 item_name,normalized_item_name,merchant_name,to_who,quantity,unit,unit_cost_rwf,total_cost_rwf,purchase_month,purchase_weekday,category,label_source,training_weight
-Hoima Sugar 50kg,sugar,Muteso Shop Ltd,Muteso Shop Ltd,1,bag,60100,60100,6,Tuesday,Groceries,base_seed,1.0
-Kabuye Sugar 1kg,sugar,Simba Supermarket,Simba Supermarket,2,kg,1800,3600,7,Saturday,Groceries,base_seed,1.0
-Nyungwe Rice 25kg,rice,Frulep Market,Frulep Market,1,bag,28000,28000,1,Monday,Groceries,base_seed,1.0
-Basmati Rice 5kg,rice,Sawa Citi Supermarket,Sawa Citi Supermarket,1,bag,9500,9500,9,Monday,Groceries,base_seed,1.0
-Kawunga Maize Flour 5kg,maize flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,6500,6500,6,Friday,Groceries,base_seed,1.0
-Amandazi Flour 2kg,wheat flour,Duhahire Supermarket,Duhahire Supermarket,1,bag,3000,3000,1,Friday,Groceries,base_seed,1.0
-Sunseed Cooking Oil 5L,cooking oil,Muteso Shop Ltd,Muteso Shop Ltd,1,bottle,12500,12500,4,Monday,Groceries,base_seed,1.0
-Akabanga Chili Oil 20ml,chili oil,Simba Supermarket,Simba Supermarket,2,bottle,1200,2400,2,Thursday,Groceries,base_seed,1.0
-Inyange Milk 1L,milk,Inyange Shop,Inyange Shop,3,carton,1200,3600,7,Monday,Groceries,base_seed,1.0
-Nyanza Dairy Yogurt 500ml,yogurt,Sawa Citi Supermarket,Sawa Citi Supermarket,2,cup,1500,3000,4,Monday,Groceries,base_seed,1.0
-Ikivuguto 500ml,fermented milk,Local Dairy Shop,Local Dairy Shop,2,bottle,1000,2000,9,Thursday,Groceries,base_seed,1.0
-Mizero Bread,bread,Bakery Rwanda,Bakery Rwanda,2,loaf,1500,3000,1,Sunday,Groceries,base_seed,1.0
-Blue Band Margarine 500g,margarine,Simba Supermarket,Simba Supermarket,1,tub,3800,3800,10,Monday,Groceries,base_seed,1.0
-Royco Beef Cubes,seasoning cubes,Mugisha Mini Market,Mugisha Mini Market,1,pack,1200,1200,4,Saturday,Groceries,base_seed,1.0
-Nescafe Classic 100g,instant coffee,Simba Supermarket,Simba Supermarket,1,jar,6500,6500,11,Friday,Groceries,base_seed,1.0
-Rwanda Mountain Tea 100 bags,tea,Sawa Citi Supermarket,Sawa Citi Supermarket,1,box,3500,3500,1,Friday,Groceries,base_seed,1.0
-Rwandan Arabica Coffee 250g,coffee,Bourbon Coffee,Bourbon Coffee,1,pack,5000,5000,10,Thursday,Groceries,base_seed,1.0
-Agashya Passion Juice 1L,juice,Inyange Shop,Inyange Shop,2,bottle,1800,3600,1,Tuesday,Groceries,base_seed,1.0
-Fresh Tomatoes,tomatoes,Kimironko Market,Kimironko Market,3,kg,1500,4500,1,Friday,Groceries,base_seed,1.0
-Irish Potatoes,potatoes,Kimironko Market,Kimironko Market,10,kg,700,7000,3,Wednesday,Groceries,base_seed,1.0
-Green Bananas Matoke,green bananas,Nyabugogo Market,Nyabugogo Market,5,kg,900,4500,7,Tuesday,Groceries,base_seed,1.0
-Beans 5kg,beans,Kimironko Market,Kimironko Market,1,bag,6500,6500,9,Monday,Groceries,base_seed,1.0
-Cassava Flour 2kg,cassava flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,2500,2500,10,Wednesday,Groceries,base_seed,1.0
-Sambaza Fish 1kg,fish,Kimironko Market,Kimironko Market,1,kg,4500,4500,9,Sunday,Groceries,base_seed,1.0
-Beef 1kg,beef,Local Butchery,Local Butchery,1,kg,6000,6000,11,Tuesday,Groceries,base_seed,1.0
-Eggs Tray 30,eggs,Poultry Shop Rwanda,Poultry Shop Rwanda,1,tray,4500,4500,2,Friday,Groceries,base_seed,1.0
-Mineral Water 12 pack,bottled water,Simba Supermarket,Simba Supermarket,1,pack,6000,6000,10,Saturday,Groceries,base_seed,1.0
-Biscuits Family Pack,biscuits,Duhahire Supermarket,Duhahire Supermarket,2,pack,1800,3600,4,Wednesday,Groceries,base_seed,1.0
-Sosoma Porridge Flour 1kg,porridge flour,Mugisha Mini Market,Mugisha Mini Market,1,bag,2200,2200,2,Friday,Groceries,base_seed,1.0
-Ubushera 1L,sorghum drink,Local Food Shop,Local Food Shop,2,bottle,1000,2000,12,Monday,Groceries,base_seed,1.0
-PH Super Toilet Paper 10 rolls,toilet paper,Jabino Company Ltd,Jabino Company Ltd,1,pack,12200,12200,10,Monday,Household,base_seed,1.0
-PH Soft Toilet Paper 4 rolls,toilet paper,Muteso Shop Ltd,Muteso Shop Ltd,2,pack,3500,7000,10,Tuesday,Household,base_seed,1.0
-Safi Toilet Paper 10 rolls,toilet paper,Duhahire Supermarket,Duhahire Supermarket,1,pack,11000,11000,8,Saturday,Household,base_seed,1.0
-Toto Toilet Paper 4 rolls,toilet paper,Simba Supermarket,Simba Supermarket,1,pack,3200,3200,9,Thursday,Household,base_seed,1.0
-Supa Towel Kitchen Roll,kitchen towels,Simba Supermarket,Simba Supermarket,1,roll,2500,2500,6,Thursday,Household,base_seed,1.0
-Omo Washing Powder 1kg,laundry detergent,Simba Supermarket,Simba Supermarket,1,pack,4500,4500,10,Thursday,Household,base_seed,1.0
-Sulfo Soap 1kg,bar soap,Sulfo Rwanda Shop,Sulfo Rwanda Shop,1,pack,2500,2500,6,Wednesday,Household,base_seed,1.0
-Kleesoft Dishwashing Liquid 750ml,dish soap,Muteso Shop Ltd,Muteso Shop Ltd,1,bottle,2800,2800,4,Sunday,Household,base_seed,1.0
-Jik Bleach 1L,bleach,Duhahire Supermarket,Duhahire Supermarket,1,bottle,1800,1800,3,Saturday,Household,base_seed,1.0
-Air Freshener 300ml,air freshener,Simba Supermarket,Simba Supermarket,1,can,3000,3000,4,Monday,Household,base_seed,1.0
-Colgate Toothpaste 100ml,toothpaste,Pharmacy Kigali,Pharmacy Kigali,1,tube,2500,2500,10,Wednesday,Personal Care,base_seed,1.0
-Toothbrush Medium,toothbrush,Pharmacy Kigali,Pharmacy Kigali,2,piece,1200,2400,9,Thursday,Personal Care,base_seed,1.0
-Vaseline Body Lotion 400ml,body lotion,Simba Supermarket,Simba Supermarket,1,bottle,5500,5500,6,Saturday,Personal Care,base_seed,1.0
-Nivea Roll On 50ml,deodorant,Pharmacy Kigali,Pharmacy Kigali,1,bottle,3000,3000,8,Wednesday,Personal Care,base_seed,1.0
-Always Sanitary Pads,sanitary pads,Pharmacy Kigali,Pharmacy Kigali,1,pack,2800,2800,10,Monday,Personal Care,base_seed,1.0
-Baby Diapers Size 4,diapers,Duhahire Supermarket,Duhahire Supermarket,1,pack,9500,9500,2,Friday,Personal Care,base_seed,1.0
-Electricity Token,electricity,EUCL,EUCL,1,token,10000,10000,7,Tuesday,Utilities,base_seed,1.0
-WASAC Water Bill,water bill,WASAC,WASAC,1,bill,8000,8000,6,Tuesday,Utilities,base_seed,1.0
-CanalPlus Subscription,tv subscription,CanalPlus Rwanda,CanalPlus Rwanda,1,month,15000,15000,8,Thursday,Utilities,base_seed,1.0
-DSTV Subscription,tv subscription,DSTV Rwanda,DSTV Rwanda,1,month,20000,20000,1,Saturday,Utilities,base_seed,1.0
-MTN Airtime,airtime,MTN Rwanda,MTN Rwanda,1,topup,2000,2000,2,Sunday,Telecom,base_seed,1.0
-Airtel Airtime,airtime,Airtel Rwanda,Airtel Rwanda,1,topup,2000,2000,9,Friday,Telecom,base_seed,1.0
-MTN Internet Bundle 30GB,internet bundle,MTN Rwanda,MTN Rwanda,1,bundle,10000,10000,6,Wednesday,Telecom,base_seed,1.0
-Airtel Data Bundle 10GB,internet bundle,Airtel Rwanda,Airtel Rwanda,1,bundle,5000,5000,12,Wednesday,Telecom,base_seed,1.0
-Liquid Home Internet,home internet,Liquid Telecom Rwanda,Liquid Telecom Rwanda,1,month,30000,30000,10,Thursday,Telecom,base_seed,1.0
-Bboxx Solar Payment,solar energy,Bboxx Rwanda,Bboxx Rwanda,1,payment,12000,12000,10,Sunday,Utilities,base_seed,1.0
-Petrol Fuel 20L,petrol,Engen Rwanda,Engen Rwanda,20,litre,1800,36000,8,Monday,Transport,base_seed,1.0
-Diesel Fuel 15L,diesel,SP Rwanda,SP Rwanda,15,litre,1750,26250,2,Wednesday,Transport,base_seed,1.0
-Motorcycle Taxi Ride,moto ride,Yego Moto,Yego Moto,1,ride,1500,1500,8,Saturday,Transport,base_seed,1.0
-Taxi Cab Ride,taxi ride,Yego Cab,Yego Cab,1,ride,6000,6000,11,Monday,Transport,base_seed,1.0
-Kigali Bus Fare,bus fare,Tap&Go,Tap&Go,1,trip,500,500,1,Saturday,Transport,base_seed,1.0
-Airport Taxi,airport taxi,Kigali Taxi Service,Kigali Taxi Service,1,trip,18000,18000,12,Wednesday,Transport,base_seed,1.0
-Car Wash,car wash,Kigali Car Wash,Kigali Car Wash,1,service,3000,3000,11,Friday,Transport,base_seed,1.0
-Vehicle Parking,parking,Kigali Parking,Kigali Parking,1,ticket,1000,1000,11,Sunday,Transport,base_seed,1.0
-Engine Oil 5L,engine oil,Auto Parts Kigali,Auto Parts Kigali,1,bottle,18000,18000,8,Wednesday,Transport,base_seed,1.0
-Tyre Repair,tyre repair,Roadside Garage,Roadside Garage,1,service,5000,5000,12,Thursday,Transport,base_seed,1.0
-Lunch Buffet,restaurant meal,Java House Kigali,Java House Kigali,1,meal,12000,12000,11,Wednesday,Dining,base_seed,1.0
-Coffee Latte,coffee drink,Bourbon Coffee,Bourbon Coffee,1,cup,3500,3500,1,Thursday,Dining,base_seed,1.0
-Chicken Brochette,brochette,Chez Lando,Chez Lando,2,plate,4000,8000,6,Tuesday,Dining,base_seed,1.0
-Pizza Large,pizza,Sole Luna,Sole Luna,1,box,14000,14000,10,Monday,Dining,base_seed,1.0
-Burger Meal,burger meal,KFC Kigali,KFC Kigali,1,meal,9000,9000,8,Monday,Dining,base_seed,1.0
-Cinema Ticket,movie ticket,Century Cinema Kigali,Century Cinema Kigali,1,ticket,5000,5000,4,Sunday,Entertainment,base_seed,1.0
-Gym Monthly Membership,gym membership,Waka Fitness,Waka Fitness,1,month,25000,25000,5,Tuesday,Health & Fitness,base_seed,1.0
-Swimming Pool Entry,swimming entry,Hotel Pool Kigali,Hotel Pool Kigali,1,ticket,7000,7000,12,Tuesday,Entertainment,base_seed,1.0
-Football Match Ticket,sports ticket,Amahoro Stadium,Amahoro Stadium,1,ticket,3000,3000,7,Thursday,Entertainment,base_seed,1.0
-Netflix Subscription,streaming subscription,Netflix,Netflix,1,month,6000,6000,8,Monday,Entertainment,base_seed,1.0
-Panadol Tablets,paracetamol,Pharmacy Kigali,Pharmacy Kigali,1,pack,1500,1500,3,Thursday,Healthcare,base_seed,1.0
-Ibuprofen 400mg,ibuprofen,Pharmacy Kigali,Pharmacy Kigali,1,pack,2500,2500,7,Friday,Healthcare,base_seed,1.0
-Cough Syrup 100ml,cough syrup,Pharmacy Kigali,Pharmacy Kigali,1,bottle,4500,4500,5,Tuesday,Healthcare,base_seed,1.0
-Malaria Test,malaria test,Clinic Rwanda,Clinic Rwanda,1,test,5000,5000,7,Sunday,Healthcare,base_seed,1.0
-Consultation Fee,doctor consultation,Clinic Rwanda,Clinic Rwanda,1,visit,15000,15000,9,Wednesday,Healthcare,base_seed,1.0
-Medical Insurance Contribution,medical insurance,RSSB Mutuelle,RSSB Mutuelle,1,payment,3000,3000,12,Thursday,Healthcare,base_seed,1.0
-Glasses Frame,eyeglasses,Optica Rwanda,Optica Rwanda,1,piece,35000,35000,6,Saturday,Healthcare,base_seed,1.0
-Vitamin C Tablets,vitamins,Pharmacy Kigali,Pharmacy Kigali,1,pack,4000,4000,7,Tuesday,Healthcare,base_seed,1.0
-School Fees Term Payment,school fees,SchoolPay Rwanda,SchoolPay Rwanda,1,term,150000,150000,3,Monday,Education,base_seed,1.0
-Exercise Books 96 pages,exercise books,Bookshop Kigali,Bookshop Kigali,10,book,800,8000,3,Tuesday,Education,base_seed,1.0
-Blue Pens Pack,pens,Bookshop Kigali,Bookshop Kigali,1,pack,1500,1500,4,Saturday,Education,base_seed,1.0
-School Uniform Shirt,school uniform,Uniform Shop Kigali,Uniform Shop Kigali,2,piece,8000,16000,4,Monday,Education,base_seed,1.0
-Textbook Mathematics S3,textbook,Bookshop Kigali,Bookshop Kigali,1,book,12000,12000,8,Sunday,Education,base_seed,1.0
-Online Course Subscription,online course,Coursera,Coursera,1,month,25000,25000,10,Tuesday,Education,base_seed,1.0
-Printing Documents,printing,Campus Copy Center,Campus Copy Center,20,page,100,2000,5,Wednesday,Education,base_seed,1.0
-Laptop Bag Student,laptop bag,Bookshop Kigali,Bookshop Kigali,1,piece,15000,15000,1,Tuesday,Education,base_seed,1.0
-Stone 32 Smart TV,smart tv,Danex Solution Ltd,Danex Solution Ltd,1,piece,230000,230000,7,Friday,Electronics,base_seed,1.0
-Samsung Phone Charger,phone charger,Phone House Kigali,Phone House Kigali,1,piece,8000,8000,6,Friday,Electronics,base_seed,1.0
-Tecno Spark Smartphone,smartphone,Phone House Kigali,Phone House Kigali,1,piece,145000,145000,10,Wednesday,Electronics,base_seed,1.0
-Infinix Hot Smartphone,smartphone,Mobile Zone Rwanda,Mobile Zone Rwanda,1,piece,160000,160000,3,Saturday,Electronics,base_seed,1.0
-Bluetooth Speaker,speaker,Danex Solution Ltd,Danex Solution Ltd,1,piece,35000,35000,9,Friday,Electronics,base_seed,1.0
-USB Flash Disk 64GB,usb flash drive,Computer Shop Kigali,Computer Shop Kigali,1,piece,12000,12000,11,Saturday,Electronics,base_seed,1.0
-Laptop Lenovo ThinkPad,laptop,Computer Shop Kigali,Computer Shop Kigali,1,piece,650000,650000,12,Monday,Electronics,base_seed,1.0
-Computer Mouse,mouse,Computer Shop Kigali,Computer Shop Kigali,1,piece,7000,7000,8,Sunday,Electronics,base_seed,1.0
-Earphones,earphones,Phone House Kigali,Phone House Kigali,1,piece,5000,5000,11,Sunday,Electronics,base_seed,1.0
-Power Bank 10000mAh,power bank,Mobile Zone Rwanda,Mobile Zone Rwanda,1,piece,18000,18000,9,Thursday,Electronics,base_seed,1.0
-Jeans Trousers,jeans,Kigali Fashion Shop,Kigali Fashion Shop,1,piece,25000,25000,7,Thursday,Clothing,base_seed,1.0
-T-Shirt Cotton,t-shirt,Kigali Fashion Shop,Kigali Fashion Shop,2,piece,8000,16000,7,Monday,Clothing,base_seed,1.0
-Leather Shoes,shoes,Kigali Fashion Shop,Kigali Fashion Shop,1,pair,45000,45000,8,Saturday,Clothing,base_seed,1.0
-Sneakers,sneakers,Sportswear Rwanda,Sportswear Rwanda,1,pair,55000,55000,7,Monday,Clothing,base_seed,1.0
-Dress,dress,Kigali Fashion Shop,Kigali Fashion Shop,1,piece,30000,30000,4,Monday,Clothing,base_seed,1.0
-Umushanana Fabric,traditional fabric,Textile Market Kigali,Textile Market Kigali,1,piece,50000,50000,4,Thursday,Clothing,base_seed,1.0
-Tailoring Service,tailoring,Local Tailor,Local Tailor,1,service,20000,20000,3,Monday,Clothing,base_seed,1.0
-School Shoes,school shoes,Uniform Shop Kigali,Uniform Shop Kigali,1,pair,18000,18000,6,Friday,Clothing,base_seed,1.0
-Rent Payment,rent,Landlord,Landlord,1,month,250000,250000,1,Monday,Housing,base_seed,1.0
-Cement 50kg,cement,Hardware Shop Kigali,Hardware Shop Kigali,5,bag,13500,67500,1,Friday,Home Improvement,base_seed,1.0
-Paint 20L,paint,Hardware Shop Kigali,Hardware Shop Kigali,1,bucket,55000,55000,3,Friday,Home Improvement,base_seed,1.0
-PVC Pipe 3m,pvc pipe,Hardware Shop Kigali,Hardware Shop Kigali,4,piece,3500,14000,2,Wednesday,Home Improvement,base_seed,1.0
-Light Bulb LED,light bulb,Hardware Shop Kigali,Hardware Shop Kigali,4,piece,2500,10000,10,Monday,Home Improvement,base_seed,1.0
-Extension Cable,extension cable,Hardware Shop Kigali,Hardware Shop Kigali,1,piece,10000,10000,2,Sunday,Home Improvement,base_seed,1.0
-Door Lock,door lock,Hardware Shop Kigali,Hardware Shop Kigali,1,piece,18000,18000,4,Friday,Home Improvement,base_seed,1.0
-Cleaning Service,cleaning service,Home Services Kigali,Home Services Kigali,1,service,20000,20000,7,Tuesday,Housing,base_seed,1.0
-Bank Transfer Fee,bank fee,Bank of Kigali,Bank of Kigali,1,fee,500,500,11,Wednesday,Financial Services,base_seed,1.0
-Mobile Money Fee,momo fee,MTN Mobile Money,MTN Mobile Money,1,fee,250,250,6,Friday,Financial Services,base_seed,1.0
-Loan Repayment,loan repayment,Bank of Kigali,Bank of Kigali,1,payment,50000,50000,6,Thursday,Financial Services,base_seed,1.0
-Church Offering,offering,Church,Church,1,donation,5000,5000,2,Monday,Donations,base_seed,1.0
-Wedding Contribution,wedding contribution,Mobile Money Transfer,Mobile Money Transfer,1,contribution,20000,20000,8,Thursday,Gifts & Donations,base_seed,1.0
-Birthday Gift,gift,Gift Shop Kigali,Gift Shop Kigali,1,piece,15000,15000,8,Thursday,Gifts & Donations,base_seed,1.0
-Haircut,haircut,Barber Shop Kigali,Barber Shop Kigali,1,service,3000,3000,5,Monday,Personal Care,base_seed,1.0
-Hair Braiding,hair braiding,Salon Kigali,Salon Kigali,1,service,25000,25000,3,Monday,Personal Care,base_seed,1.0
+Dinner,meal,Hotel,Hotel,0.5,meal,7500,3750,1,5,Food & Dining,base_seed,1.0
+Ikivuguto 1L,fermented milk,Dairy Shop,Dairy Shop,1,bottle,1000,1000,4,5,Groceries,base_seed,1.0
+Cassava Flour 2kg,cassava flour,Shop,Shop,1.5,bag,3750,5625,5,0,Groceries,base_seed,1.0
+Donation,donation,Charity,Charity,1,donation,10000,10000,2,2,Personal Transfer,base_seed,1.0
+Ubukode,rent,Nyir'inzu,Nyir'inzu,1,month,200000,200000,11,6,Personal Transfer,base_seed,1.0
+Multivitamins,vitamins,Pharmacy,Pharmacy,1,bottle,8000,8000,10,2,Health,base_seed,1.0
+Fuel,lisansi,Station,Station,15,litre,1800,27000,10,6,Transport,base_seed,1.0
+Multivitamins,vitamins,Pharmacy,Pharmacy,1,bottle,8000,8000,10,3,Health,base_seed,1.0
+Ibuprofen 400mg,ibuprofen,Pharmacy,Pharmacy,1,pack,2500,2500,7,6,Health,base_seed,1.0
+Wedding Contribution,gift,Market,Market,1,contribution,20000,20000,3,1,Personal Transfer,base_seed,1.0
+Gusana ipine,tire repair,Garage,Garage,1,service,5000,5000,2,4,Transport,base_seed,1.0
+beef 1kg,beef,Butchery,Butchery,1,kg,6000,6000,1,6,Groceries,base_seed,1.0
+Eggs Tray 30,eggs,Poultry Shop,Poultry Shop,2,tray,9000,18000,4,2,Groceries,base_seed,1.0
+School Shoes,shoes,Shop,Shop,3,pair,54000,162000,10,6,Education,base_seed,1.0
+Savings Deposit,savings,Bank,Bank,1,deposit,50000,50000,11,1,Savings & Investments,base_seed,1.0
+Koza imodoka,car wash,Car Wash,Car Wash,2,service,6000,12000,1,1,Transport,base_seed,1.0
+Amazi Bill,water,WASAC,WASAC,2,bill,12000,24000,4,2,Utilities,base_seed,1.0
+Vitamin C,vitamins,Pharmacy,Pharmacy,1,pack,4000,4000,8,6,Health,base_seed,1.0
+Imiti y'umubiri,medicine,Pharmacy,Pharmacy,1,pack,5000,5000,4,2,Health,base_seed,1.0
+Salt 1kg,salt,Shop,Shop,1,kg,800,800,5,4,Groceries,base_seed,1.0
+Kwiyungurira,entertainment,Event,Event,1,ticket,10000,10000,9,2,Entertainment,base_seed,1.0
+Sugar 50kg,sugar,Store,Store,1,bag,60000,60000,9,2,Groceries,base_seed,1.0
+Basmati Rice,rice,Supermarket,Supermarket,2,kg,2200,4400,10,0,Groceries,base_seed,1.0
+Yogurt 500ml,yogurt,Supermarket,Supermarket,0.5,cup,375,187,9,6,Groceries,base_seed,1.0
+Juice 1L,juice,Shop,Shop,6,bottle,5400,32400,9,5,Groceries,base_seed,1.0
+Gukina imikino,play games,Game Center,Game Center,1,session,2000,2000,8,2,Entertainment,base_seed,1.0
+UMUNYU,salt,Market,Market,1,kg,700,700,3,1,Groceries,base_seed,1.0
+Tyre Repair,tyre repair,Garage,Garage,1,service,5000,5000,4,2,Transport,base_seed,1.0
+School Fees,school fees,School,School,0.25,term,37500,9375,8,2,Education,base_seed,1.0
+WiFi Subscription,wifi,ISP,ISP,0.25,month,6250,1562,10,4,Communication,base_seed,1.0
+Emergency Fund,savings,Bank,Bank,1,transfer,100000,100000,11,1,Savings & Investments,base_seed,1.0
+Amata 500ml,milk,Inyange Shop,Inyange Shop,3.0,carton,900,2700,1,2,Groceries,base_seed,1.0
+Gutanga impano,give gift,Gift Shop,Gift Shop,1,gift,15000,15000,2,4,Personal Transfer,base_seed,1.0
+Coffee Latte,coffee,Bourbon Coffee,Bourbon Coffee,1,cup,3500,3500,3,2,Food & Dining,base_seed,1.0
+e-learning,online course,Udemy,Udemy,1,course,15000,15000,4,4,Education,base_seed,1.0
+urwagwa,banana beer,Bar,Bar,1,bottle,2000,2000,7,6,Food & Dining,base_seed,1.0
+Printing,printing,Copy Center,Copy Center,20,page,100,2000,5,6,Education,base_seed,1.0
+Wheat Flour 1kg,wheat flour,Supermarket,Supermarket,1,kg,1600,1600,8,2,Groceries,base_seed,1.0
+Cough Syrup,cough syrup,Pharmacy,Pharmacy,1,bottle,4500,4500,7,4,Health,base_seed,1.0
+Toilet Paper,toilet paper,Shop,Shop,1,pack,3500,3500,1,2,Health,base_seed,1.0
+Malaria Test,test,Local Shop,Local Shop,1,test,5000,5000,11,6,Health,base_seed,1.0
+Umuceri 25kg,rice,Store,Store,1,bag,28000,28000,8,4,Groceries,base_seed,1.0
+Diapers,diapers,Supermarket,Supermarket,1,pack,9500,9500,9,5,Health,base_seed,1.0
+Kujya kwa sinema,cinema visit,Cinema,Cinema,4,ticket,20000,80000,7,0,Entertainment,base_seed,1.0
+Lisansi 10L,petrol,Gas Station,Gas Station,30,litre,5550,166500,3,1,Transport,base_seed,1.0
+Red Beans,ibishyimbo,Local Market,Local Market,2,kg,1400,2800,6,4,Groceries,base_seed,1.0
+Bond Investment,investment,Bank,Bank,1,bond,1000000,1000000,5,1,Savings & Investments,base_seed,1.0
+Chips,fries,Shop,Shop,1,plate,2000,2000,11,0,Food & Dining,base_seed,1.0
+Tea 100 bags,tea,Supermarket,Supermarket,1,box,3500,3500,12,5,Groceries,base_seed,1.0
+Netflix,streaming,Netflix,Netflix,0.5,month,3000,1500,6,0,Entertainment,base_seed,1.0
+Amafaranga y'ishuri,school fees,Market,Market,1,term,150000,150000,10,2,Education,base_seed,1.0
+Laptop Bag,bag,Bookshop,Bookshop,1,piece,15000,15000,10,2,Education,base_seed,1.0
+bottled water 12pk,bottled water,Supermarket,Supermarket,1,pack,6000,6000,2,5,Groceries,base_seed,1.0
+Bus Fare,bus,Tap&Go,Tap&Go,1,trip,500,500,5,6,Transport,base_seed,1.0
+Glasses,eyeglasses,Optica,Optica,1,piece,35000,35000,11,2,Health,base_seed,1.0
+Cooking Oil 5L,cooking oil,Shop,Shop,1,bottle,12500,12500,5,0,Groceries,base_seed,1.0
+Vehicle Parking,parking,Parking,Parking,2,ticket,2000,4000,8,0,Transport,base_seed,1.0
+Glasses,eyeglasses,Optica,Optica,3,piece,105000,315000,3,3,Health,base_seed,1.0
+Transfer Fee,fee,Bank of Kigali,Bank of Kigali,0.5,fee,500,250,8,3,Personal Transfer,base_seed,1.0
+Cassava Flour 2kg,cassava flour,Shop,Shop,1,bag,2500,2500,10,1,Groceries,base_seed,1.0
+Ubuto 1L,cooking oil,Shop,Shop,1,bottle,3000,3000,12,3,Groceries,base_seed,1.0
+Savings Deposit,savings,Bank,Bank,4,deposit,200000,800000,11,3,Savings & Investments,base_seed,1.0
+Lab Test,test,Laboratory,Laboratory,1,test,8000,8000,3,1,Health,base_seed,1.0
+Juice 1L,juice,Shop,Shop,2,bottle,1800,3600,1,4,Groceries,base_seed,1.0
+Battery,battery,Auto Shop,Auto Shop,1,piece,85000,85000,4,3,Transport,base_seed,1.0
+Malaria Test,test,Clinic,Clinic,1,test,5000,5000,12,6,Health,base_seed,1.0
+Calculator,calculator,Bookshop,Bookshop,1,piece,8000,8000,2,2,Education,base_seed,1.0
+Chips,fries,Fast Food,Fast Food,1,plate,2000,2000,3,1,Food & Dining,base_seed,1.0
+Birthday Gift,gift,Gift Shop,Gift Shop,2,piece,30000,60000,6,4,Personal Transfer,base_seed,1.0
+Isuku,cleaning,City,City,4,month,10000,40000,5,3,Utilities,base_seed,1.0
+Antibiotics,medicine,Pharmacy,Pharmacy,1,pack,8000,8000,7,4,Health,base_seed,1.0
+Tomatoes 3kg,tomatoes,Market,Market,3,kg,1500,4500,7,5,Groceries,base_seed,1.0
+Umugati,bread,Bakery Rwanda,Bakery Rwanda,3,loaf,4200,12600,1,1,Groceries,base_seed,1.0
+Kwishyura inzu,pay rent,Supermarket,Supermarket,1,month,250000,250000,6,5,Personal Transfer,base_seed,1.0
+Imyumbati,cassava,Market,Market,3,kg,600,1800,12,1,Groceries,base_seed,1.0
+Imyumbati,cassava,Market,Market,9,kg,1800,16200,10,4,Groceries,base_seed,1.0
+Pencils,pencils,Shop,Shop,5,piece,200,1000,8,0,Education,base_seed,1.0
+Car Wash,car wash,Car Wash,Car Wash,1,service,3000,3000,3,1,Transport,base_seed,1.0
+Doctor Consultation,consultation,Clinic,Clinic,1,visit,15000,15000,9,5,Health,base_seed,1.0
+Mobile Money Fee,fee,Mobile Money,Mobile Money,0.25,fee,62,15,3,2,Personal Transfer,base_seed,1.0
+BRAKE PADS,brake pads,Auto Parts,Auto Parts,1,set,25000,25000,11,6,Transport,base_seed,1.0
+Medical Insurance,insurance,Vendor,Vendor,1,month,15000,15000,3,6,Health,base_seed,1.0
+Imyembe,mango,Market,Market,5,piece,500,2500,4,5,Groceries,base_seed,1.0
+Ubukode,rent,Nyir'inzu,Nyir'inzu,1,month,200000,200000,3,5,Personal Transfer,base_seed,1.0
+Multivitamins,vitamins,Supermarket,Supermarket,1,bottle,8000,8000,11,5,Health,base_seed,1.0
+Vehicle Parking,parking,Parking,Parking,1,ticket,1000,1000,12,6,Transport,base_seed,1.0
+Beans 5kg,beans,Market,Market,1,bag,6500,6500,1,0,Groceries,base_seed,1.0
+Snacks,snacks,Shop,Shop,1,pack,1500,1500,12,1,Food & Dining,base_seed,1.0
+ChurchOffering,offering,Church,Church,1,donation,5000,5000,10,0,Personal Transfer,base_seed,1.0
+Birthday Gift,gift,Gift Shop,Gift Shop,1,piece,15000,15000,8,0,Personal Transfer,base_seed,1.0
+Local Rice,umuceri,Kimironko Market,Kimironko Market,5,kg,1500,7500,2,4,Groceries,base_seed,1.0
+Printing,printing,Supermarket,Supermarket,20,page,100,2000,8,0,Education,base_seed,1.0
+Tyre Repair,tyre repair,Garage,Garage,3,service,15000,45000,12,2,Transport,base_seed,1.0
+Toothbrush,toothbrush,Pharmacy,Pharmacy,3.0,piece,1800,5400,5,6,Health,base_seed,1.0
+Charcoal 50kg,charcoal,Vendor,Vendor,1,bag,15000,15000,11,0,Utilities,base_seed,1.0
+PlayStation Subscription,gaming,Supermarket,Supermarket,1,month,8000,8000,2,6,Entertainment,base_seed,1.0
+Umuriro Token,electricity,EUCL,EUCL,3,token,45000,135000,11,1,Utilities,base_seed,1.0
+StarTimes,tv,StarTimes,StarTimes,1,month,8000,8000,3,0,Utilities,base_seed,1.0
+Ifu y'ubugari,cassava flour,Market,Market,1,kg,1300,1300,12,3,Groceries,base_seed,1.0
+YouTube Premium,streaming,YouTube,YouTube,1,month,7000,7000,3,1,Entertainment,base_seed,1.0
+Oil 5L,amavuta,Supermarket,Supermarket,1,bottle,12000,12000,7,4,Groceries,base_seed,1.0
+Ibishyimbo 10kg,beans,Vendor,Vendor,1,bag,12000,12000,1,6,Groceries,base_seed,1.0
+medical insurance,insurance,Insurance Company,Insurance Company,1,month,15000,15000,11,3,Health,base_seed,1.0
+Tea 100 bags,tea,Supermarket,Supermarket,4,box,14000,56000,12,5,Groceries,base_seed,1.0
+Mazutu 20L,diesel,Supermarket,Supermarket,20,litre,1700,34000,2,4,Transport,base_seed,1.0
+Kujya kwa sinema,cinema visit,Store,Store,1,ticket,5000,5000,4,6,Entertainment,base_seed,1.0
+Gufasha umuryango,family support,Mobile Money,Mobile Money,1,transfer,30000,30000,9,2,Personal Transfer,base_seed,1.0
+Cooking Oil 5L,cooking oil,Shop,Shop,2,bottle,25000,50000,1,2,Groceries,base_seed,1.0
+Rice 5kg,rice,Shop,Shop,1,bag,9500,9500,7,1,Groceries,base_seed,1.0
+Kwiyungurira,entertainment,Event,Event,1,ticket,10000,10000,1,3,Entertainment,base_seed,1.0
+Igitoki,plantain,Market,Market,5,piece,1000,5000,10,4,Groceries,base_seed,1.0
+taxi,taxi,Yego Cab,Yego Cab,1,ride,6000,6000,8,3,Transport,base_seed,1.0
+Sugar 50kg,sugar,Wholesaler,Wholesaler,1,bag,60000,60000,1,5,Groceries,base_seed,1.0
+Solar Payment,solar,Bboxx Rwanda,Bboxx Rwanda,3,payment,36000,108000,1,2,Utilities,base_seed,1.0
+Kugenda kwa muganga,doctor visit,Clinic,Clinic,0.25,visit,3750,937,1,3,Health,base_seed,1.0
+kugenda kwa muganga,doctor visit,Clinic,Clinic,1,visit,15000,15000,2,6,Health,base_seed,1.0
+Umuriro Token,electricity,EUCL,EUCL,1,token,15000,15000,8,0,Utilities,base_seed,1.0
+Toothbrush,toothbrush,Shop,Shop,2,piece,1200,2400,5,4,Health,base_seed,1.0
+Online Course,course,Coursera,Coursera,3,month,75000,225000,12,0,Education,base_seed,1.0
+Amasaka,passion fruit,Market,Market,20,piece,600,12000,1,0,Groceries,base_seed,1.0
+Money to Parents,transfer,Shop,Shop,1,transfer,50000,50000,12,3,Personal Transfer,base_seed,1.0
+Kwandika raporo,printing report,Copy Center,Copy Center,10,page,1000,10000,11,0,Education,base_seed,1.0
+Gas Cylinder Refill,gas,Gas Station,Gas Station,1,refill,25000,25000,8,5,Utilities,base_seed,1.0
+Ibinyomoro,avocado,Kimironko Market,Kimironko Market,5,piece,400,2000,9,6,Groceries,base_seed,1.0
+Dish Soap,dish soap,Shop,Shop,1,bottle,2800,2800,10,4,Health,base_seed,1.0
+Seasoning Cubes,seasoning,Shop,Shop,1,pack,1200,1200,7,5,Groceries,base_seed,1.0
+Loan Repayment,loan,Local Shop,Local Shop,1,payment,50000,50000,5,0,Savings & Investments,base_seed,1.0
+Tea,tea,Cafe,Cafe,1,cup,1000,1000,1,2,Food & Dining,base_seed,1.0
+Breakfast,meal,Restaurant,Restaurant,1,meal,5000,5000,7,2,Food & Dining,base_seed,1.0
+Inkwi zo guteka,firewood,Vendor,Vendor,1,bundle,3000,3000,6,4,Utilities,base_seed,1.0
+Family Support,transfer,Mobile Money,Mobile Money,0.5,transfer,15000,7500,5,6,Personal Transfer,base_seed,1.0
+Umuceri 25kg,rice,Market,Market,1,bag,28000,28000,6,6,Groceries,base_seed,1.0
+Rent Payment,rent,Landlord,Landlord,3,month,750000,2250000,3,6,Personal Transfer,base_seed,1.0
+Umwenda w'ishuri,school uniform,Shop,Shop,1,set,15000,15000,11,5,Education,base_seed,1.0
+Imbuto z'isombe,pumpkin seeds,Market,Market,1,kg,2500,2500,7,6,Groceries,base_seed,1.0
+Kwiyungurira,entertainment,Local Shop,Local Shop,1,ticket,10000,10000,8,4,Entertainment,base_seed,1.0
+Medical Insurance,insurance,Insurance Company,Insurance Company,1,month,15000,15000,11,0,Health,base_seed,1.0
+Wheat Flour 1kg,wheat flour,Shop,Shop,1,kg,1600,1600,5,4,Groceries,base_seed,1.0
+Gutera-isuku,pay cleaning,City,City,1,month,2500,2500,1,5,Utilities,base_seed,1.0
+Shampoo,shampoo,Shop,Shop,1,bottle,5000,5000,7,2,Health,base_seed,1.0
+Igitoki,plantain,Local Shop,Local Shop,5,piece,1000,5000,11,2,Groceries,base_seed,1.0
+Indimu,lime,Market,Market,10,piece,400,4000,2,6,Groceries,base_seed,1.0
+Amavuta 2L,cooking oil,Market,Market,1,bottle,5500,5500,3,5,Groceries,base_seed,1.0
+BANK FEE,fee,Bank,Bank,1,fee,500,500,7,6,Personal Transfer,base_seed,1.0
+Amasaka,passion fruit,Market,Market,10,piece,300,3000,4,3,Groceries,base_seed,1.0
+Koza imodoka,car wash,Vendor,Vendor,1,service,3000,3000,5,4,Transport,base_seed,1.0
+Antibiotics,medicine,Pharmacy,Pharmacy,0.5,pack,4000,2000,2,3,Health,base_seed,1.0
+Isabune yo kumesa,laundry soap,Shop,Shop,1.5,pack,6000,9000,11,1,Health,base_seed,1.0
+Ibirayi 5kg,potatoes,Nyabugogo Market,Nyabugogo Market,5,kg,750,3750,10,3,Groceries,base_seed,1.0
+Bisi,bus,KBS,KBS,2,trip,400,800,10,0,Transport,base_seed,1.0
+Ituroryakiliziya,church offering,Church,Church,1,donation,5000,5000,12,5,Personal Transfer,base_seed,1.0
+Gushyira mega,buy data,Airtel,Airtel,1,bundle,5000,5000,9,5,Communication,base_seed,1.0
+Rice 5kg,rice,Supermarket,Supermarket,1,bag,9500,9500,5,3,Groceries,base_seed,1.0
+Samosa,samosa,Vendor,Vendor,7.5,piece,300,2250,2,6,Food & Dining,base_seed,1.0
+Brake Pads,brake pads,Auto Parts,Auto Parts,1.5,set,37500,56250,11,4,Transport,base_seed,1.0
+Money to Parents,transfer,Mobile Money,Mobile Money,0.25,transfer,12500,3125,10,2,Personal Transfer,base_seed,1.0
+Toilet Paper,toilet paper,Market,Market,1,pack,3500,3500,5,3,Health,base_seed,1.0
+Koza imodoka,car wash,Car Wash,Car Wash,1,service,3000,3000,3,0,Transport,base_seed,1.0
+Soft Drink,soda,Restaurant,Restaurant,1,bottle,1000,1000,10,5,Food & Dining,base_seed,1.0
+Milk 1L,milk,Shop,Shop,3,carton,1200,3600,7,1,Groceries,base_seed,1.0
+TUITION,tuition,University,University,1,semester,500000,500000,11,4,Education,base_seed,1.0
+Red Beans,ibishyimbo,Store,Store,2,kg,1400,2800,9,1,Groceries,base_seed,1.0
+School Uniform,uniform,Uniform Shop,Uniform Shop,2,piece,8000,16000,12,2,Education,base_seed,1.0
+Gukata umusatsi,haircut,Barber,Barber,0.5,service,1500,750,8,4,Health,base_seed,1.0
+Ituro rya kiliziya,church offering,Church,Church,1,donation,5000,5000,3,5,Personal Transfer,base_seed,1.0
+Ipine nshya,new tire,Auto Parts,Auto Parts,1,tire,45000,45000,10,2,Transport,base_seed,1.0
+Transfer Fee,fee,Bank of Kigali,Bank of Kigali,1,fee,1000,1000,11,0,Personal Transfer,base_seed,1.0
+Kawunga5kg,maize flour,Shop,Shop,1,bag,6500,6500,12,4,Groceries,base_seed,1.0
+Gym Membership,gym,Waka Fitness,Waka Fitness,0.5,month,12500,6250,1,0,Entertainment,base_seed,1.0
+Birthday-Gift,gift,Gift Shop,Gift Shop,1,piece,15000,15000,8,6,Personal Transfer,base_seed,1.0
+Kuguraumuriro,buy electricity,EUCL,EUCL,1,token,10000,10000,12,3,Utilities,base_seed,1.0
+Inyanya 5kg,tomatoes,Kimironko Market,Kimironko Market,5,kg,1400,7000,5,1,Groceries,base_seed,1.0
+VehicleParking,parking,Parking,Parking,1,ticket,1000,1000,11,1,Transport,base_seed,1.0
+Gusanaipine,tire repair,Garage,Garage,1,service,5000,5000,3,2,Transport,base_seed,1.0
+Tuition,tuition,University,University,1.5,semester,750000,1125000,8,2,Education,base_seed,1.0
+Pens Pack,pens,Bookshop,Bookshop,2,pack,3000,6000,7,6,Education,base_seed,1.0
+Intoryi,eggplant,Nyabugogo Market,Nyabugogo Market,2,kg,1200,2400,8,5,Groceries,base_seed,1.0
+Pencils,pencils,Shop,Shop,7.5,piece,300,2250,4,3,Education,base_seed,1.0
+Hair Braiding,braiding,Salon,Salon,1,service,25000,25000,2,4,Health,base_seed,1.0
+Gufasha umuryango,family support,Vendor,Vendor,1,transfer,30000,30000,5,6,Personal Transfer,base_seed,1.0
+Ubukode,rent,Market,Market,1,month,200000,200000,8,0,Personal Transfer,base_seed,1.0
+Rice 5kg,rice,Shop,Shop,0.5,bag,4750,2375,11,5,Groceries,base_seed,1.0
+Airtel Airtime,airtime,Airtel Rwanda,Airtel Rwanda,0.25,topup,500,125,12,3,Communication,base_seed,1.0
+Cinema Ticket,movie,Shop,Shop,1,ticket,5000,5000,9,6,Entertainment,base_seed,1.0
+Bus Fare,bus,Tap&Go,Tap&Go,2,trip,1000,2000,10,3,Transport,base_seed,1.0
+igitoki,plantain,Market,Market,5,piece,1000,5000,8,3,Groceries,base_seed,1.0
+Akabenz,roasted meat,Street Vendor,Street Vendor,2,skewer,3000,6000,8,5,Food & Dining,base_seed,1.0
+Potatoes 10kg,potatoes,Market,Market,10,kg,700,7000,1,0,Groceries,base_seed,1.0
+Umunyu,salt,Market,Market,1,kg,700,700,7,2,Groceries,base_seed,1.0
+Haircut,haircut,Barber,Barber,1,service,3000,3000,11,4,Health,base_seed,1.0
+amafaranga y'ishuri,school fees,School,School,1,term,150000,150000,11,6,Education,base_seed,1.0
+Umugati,bread,Market,Market,1,loaf,1400,1400,12,2,Groceries,base_seed,1.0
+Kwishyura inzu,pay rent,Nyir'inzu,Nyir'inzu,1,month,250000,250000,6,5,Personal Transfer,base_seed,1.0
+Kwihanganira telefoni,mobile services,MTN Rwanda,MTN Rwanda,3,month,9000,27000,4,3,Communication,base_seed,1.0
+Gas Cylinder Refill,gas,Gas Station,Gas Station,3,refill,75000,225000,8,0,Utilities,base_seed,1.0
+Ubugari n'isombe,cassava paste with greens,Vendor,Vendor,1,meal,3000,3000,2,6,Food & Dining,base_seed,1.0
+Sugar 1kg,sugar,Shop,Shop,1,kg,1800,1800,5,1,Groceries,base_seed,1.0
+Pads z'abakobwa,sanitary pads,Pharmacy,Pharmacy,1,pack,2800,2800,9,4,Health,base_seed,1.0
+Biscuits,biscuits,Shop,Shop,1,pack,1800,1800,11,6,Groceries,base_seed,1.0
+Chips,fries,Fast Food,Fast Food,0.25,plate,500,125,3,3,Food & Dining,base_seed,1.0
+Diapers,diapers,Supermarket,Supermarket,1,pack,9500,9500,6,0,Health,base_seed,1.0
+Dish Soap,dish soap,Store,Store,1,bottle,2800,2800,12,0,Health,base_seed,1.0
+Maize Flour,kawunga,Local Shop,Local Shop,1,bag,6200,6200,11,5,Groceries,base_seed,1.0
+AMAVUTA 2L,cooking oil,Market,Market,1,bottle,5500,5500,5,1,Groceries,base_seed,1.0
+Concert Ticket,concert,Venue,Venue,1,ticket,10000,10000,4,3,Entertainment,base_seed,1.0
+Urwagwa,banana beer,Vendor,Vendor,1,bottle,2000,2000,1,6,Food & Dining,base_seed,1.0
+Stock Purchase,investment,Local Shop,Local Shop,1,transaction,250000,250000,12,6,Savings & Investments,base_seed,1.0
+Inyama 2kg,beef,Local Butchery,Local Butchery,0.5,kg,1450,725,4,6,Groceries,base_seed,1.0
+LUNCH BUFFET,restaurant meal,Java House,Java House,1,meal,12000,12000,6,2,Food & Dining,base_seed,1.0
+Yogurt 500ml,yogurt,Supermarket,Supermarket,2,cup,1500,3000,2,2,Groceries,base_seed,1.0
+Sanitary Pads,pads,Pharmacy,Pharmacy,1,pack,2800,2800,6,5,Health,base_seed,1.0
+Diapers,diapers,Supermarket,Supermarket,0.25,pack,2375,593,6,0,Health,base_seed,1.0
+Birthday Gift,gift,Supermarket,Supermarket,1,piece,15000,15000,10,2,Personal Transfer,base_seed,1.0
+Isuku,cleaning,City,City,1,month,2500,2500,11,4,Utilities,base_seed,1.0
+Kugenda kwa muganga,doctor visit,Clinic,Clinic,1,visit,15000,15000,9,1,Health,base_seed,1.0
+Imyumbati,cassava,Vendor,Vendor,3,kg,600,1800,5,3,Groceries,base_seed,1.0
+Swimming Pool,swimming,Store,Store,1,ticket,7000,7000,3,6,Entertainment,base_seed,1.0
+Pool Game,biyari,Game Center,Game Center,1,game,1000,1000,1,2,Entertainment,base_seed,1.0
+Akabenz,roasted meat,Street Vendor,Street Vendor,1,skewer,1500,1500,11,6,Food & Dining,base_seed,1.0
+Rent Payment,rent,Vendor,Vendor,1,month,250000,250000,2,3,Personal Transfer,base_seed,1.0
+Nyungwe Rice,rice,Shop,Shop,1,bag,27500,27500,6,0,Groceries,base_seed,1.0
+IFI,fish,Kimironko Market,Kimironko Market,2,kg,4200,8400,4,3,Groceries,base_seed,1.0
+Gaz 12kg,gas,Station,Station,4,cylinder,48000,192000,10,1,Utilities,base_seed,1.0
+Kugura umuriro,buy electricity,EUCL,EUCL,1,token,10000,10000,3,2,Utilities,base_seed,1.0
+Money to Parents,transfer,Mobile Money,Mobile Money,1,transfer,50000,50000,8,1,Personal Transfer,base_seed,1.0
+WiFi Subscription,wifi,Local Shop,Local Shop,1,month,25000,25000,11,3,Communication,base_seed,1.0
+Car Wash,car wash,Market,Market,1,service,3000,3000,3,4,Transport,base_seed,1.0
+Kwishyura amazi,pay water,WASAC,WASAC,1,bill,8000,8000,9,0,Utilities,base_seed,1.0
+Amakara 25kg,charcoal,Supermarket,Supermarket,1,bag,8000,8000,11,0,Utilities,base_seed,1.0
+Breakfast,meal,Restaurant,Restaurant,0.25,meal,1250,312,7,2,Food & Dining,base_seed,1.0
+Inkwi zo guteka,firewood,Vendor,Vendor,0.5,bundle,1500,750,10,0,Utilities,base_seed,1.0
+SACCO Contribution,savings,SACCO,SACCO,3,contribution,60000,180000,4,0,Savings & Investments,base_seed,1.0
+Exercise Books,exercise books,Bookshop,Bookshop,10,book,800,8000,10,2,Education,base_seed,1.0
+Data Bundle 5GB,data,Vendor,Vendor,1,bundle,3000,3000,3,3,Communication,base_seed,1.0
+Term Payment,school fees,SchoolPay,SchoolPay,2,term,240000,480000,8,2,Education,base_seed,1.0
+Akabenz,roasted meat,Supermarket,Supermarket,1,skewer,1500,1500,3,3,Food & Dining,base_seed,1.0
+Bisi,bus,KBS,KBS,4,trip,800,3200,10,5,Transport,base_seed,1.0
+Mutuelle Payment,insurance,RSSB,RSSB,1.5,payment,4500,6750,3,6,Health,base_seed,1.0
+Ibitoki,bananas,Supermarket,Supermarket,10,piece,200,2000,2,3,Groceries,base_seed,1.0
+INTORYI,eggplant,Nyabugogo Market,Nyabugogo Market,2,kg,1200,2400,4,4,Groceries,base_seed,1.0
+Gushyira muri mobayo,mobile money,MTN MoMo,MTN MoMo,1,transfer,20000,20000,11,1,Personal Transfer,base_seed,1.0
+Spotify,music,Spotify,Spotify,1,month,5000,5000,12,5,Entertainment,base_seed,1.0
+E-Learning,online course,Vendor,Vendor,1,course,15000,15000,5,6,Education,base_seed,1.0
+Fixed Deposit,investment,Bank of Kigali,Bank of Kigali,1,deposit,500000,500000,12,3,Savings & Investments,base_seed,1.0
+Yogurt500ml,yogurt,Supermarket,Supermarket,2,cup,1500,3000,7,4,Groceries,base_seed,1.0
+Multivitamins,vitamins,Pharmacy,Pharmacy,2,bottle,16000,32000,11,4,Health,base_seed,1.0
+Kujya kwa sinema,cinema visit,Cinema,Cinema,1,ticket,5000,5000,5,1,Entertainment,base_seed,1.0
+Gaz 12kg,gas,Station,Station,1,cylinder,12000,12000,2,2,Utilities,base_seed,1.0
+Kwihanganira telefoni,mobile services,Vendor,Vendor,1,month,3000,3000,9,1,Communication,base_seed,1.0
+Gushyira mega,buy data,Supermarket,Supermarket,1,bundle,5000,5000,5,3,Communication,base_seed,1.0
+Exercise Books,exercise books,Bookshop,Bookshop,5.0,book,400,2000,11,3,Education,base_seed,1.0
+Umugati,bread,Bakery Rwanda,Bakery Rwanda,1,loaf,1400,1400,3,3,Groceries,base_seed,1.0
+Amakara 25kg,charcoal,Market,Market,1,bag,8000,8000,1,3,Utilities,base_seed,1.0
+Dinner,meal,Local Shop,Local Shop,1,meal,15000,15000,9,0,Food & Dining,base_seed,1.0
+Video Game,game,Store,Store,1,game,35000,35000,4,6,Entertainment,base_seed,1.0
+Isabune yo kumesa,laundry soap,Local Shop,Local Shop,1,pack,4000,4000,1,1,Health,base_seed,1.0
+Coffee 250g,coffee,Bourbon Coffee,Bourbon Coffee,1,pack,5000,5000,7,0,Groceries,base_seed,1.0
+Football Match,sports,Amahoro Stadium,Amahoro Stadium,1,ticket,3000,3000,3,2,Entertainment,base_seed,1.0
+PlayStation Subscription,gaming,PlayStation,PlayStation,1,month,8000,8000,12,4,Entertainment,base_seed,1.0
+Umutsima,corn meal,Local Restaurant,Local Restaurant,1.5,plate,3000,4500,7,2,Food & Dining,base_seed,1.0
+Amandazi,fried dough,Bakery,Bakery,5,piece,1000,5000,11,2,Food & Dining,base_seed,1.0
+Airtel Airtime,airtime,Airtel Rwanda,Airtel Rwanda,1,topup,2000,2000,5,3,Communication,base_seed,1.0
+Ibitoki,bananas,Market,Market,10,piece,200,2000,10,4,Groceries,base_seed,1.0
+Notebooks,notebooks,Bookshop Kigali,Bookshop Kigali,5,piece,500,2500,10,2,Education,base_seed,1.0
+Mazutu 20L,diesel,Shell,Shell,60,litre,5100,306000,2,1,Transport,base_seed,1.0
+Data Bundle 5GB,data,MTN,MTN,1,bundle,3000,3000,2,3,Communication,base_seed,1.0
+Ice Cream,ice cream,Vendor,Vendor,1,cone,1500,1500,12,6,Food & Dining,base_seed,1.0
+Umunyu,salt,Market,Market,1.5,kg,1050,1575,7,5,Groceries,base_seed,1.0
+SWIMMING POOL,swimming,Hotel Pool,Hotel Pool,1,ticket,7000,7000,12,3,Entertainment,base_seed,1.0
+StarTimes,tv,Market,Market,1,month,8000,8000,11,6,Utilities,base_seed,1.0
+flour,ifu,Local Shop,Local Shop,2,kg,1500,3000,11,3,Groceries,base_seed,1.0
+MTN Data 30GB,internet bundle,Market,Market,1,bundle,10000,10000,9,0,Communication,base_seed,1.0
+YouTube Premium,streaming,YouTube,YouTube,2,month,14000,28000,1,2,Entertainment,base_seed,1.0
+Kogesha,car wash,Kigali Car Wash,Kigali Car Wash,1,service,2500,2500,2,1,Transport,base_seed,1.0
+Movie Ticket,cinema,Cinema,Cinema,2,ticket,4500,9000,2,2,Entertainment,base_seed,1.0
+Kogesha,car wash,Kigali Car Wash,Kigali Car Wash,0.25,service,625,156,1,3,Transport,base_seed,1.0
+Inkoko,chicken,Vendor,Vendor,1,piece,8000,8000,5,2,Groceries,base_seed,1.0
+Imiti y'umubiri,medicine,Pharmacy,Pharmacy,3,pack,15000,45000,10,3,Health,base_seed,1.0
+Omo 1kg,detergent,Shop,Shop,0.25,kg,1050,262,7,3,Health,base_seed,1.0
+Kujya kwa sinema,cinema visit,Cinema,Cinema,1,ticket,5000,5000,3,6,Entertainment,base_seed,1.0
+Local-Rice,umuceri,Kimironko Market,Kimironko Market,5,kg,1500,7500,5,1,Groceries,base_seed,1.0
+GUKINA IMIKINO,play games,Game Center,Game Center,1,session,2000,2000,7,5,Entertainment,base_seed,1.0
+gushyira muri mobayo,mobile money,MTN MoMo,MTN MoMo,1,transfer,20000,20000,4,0,Personal Transfer,base_seed,1.0
+Isukari 2kg,sugar,Local Shop,Local Shop,2,kg,1750,3500,11,4,Groceries,base_seed,1.0
+dodo,amaranth leaves,Market,Market,1,kg,800,800,12,1,Groceries,base_seed,1.0
+Chicken 1kg,chicken,Butchery,Butchery,1,kg,5500,5500,6,2,Groceries,base_seed,1.0
+Mazutu-20L,diesel,Shell,Shell,20,litre,1700,34000,7,4,Transport,base_seed,1.0
+Term Payment,school fees,SchoolPay,SchoolPay,1,term,120000,120000,3,0,Education,base_seed,1.0
+Loan Repayment,loan,Bank,Bank,1,payment,50000,50000,9,3,Savings & Investments,base_seed,1.0
+Data Bundle 5GB,data,MTN,MTN,2,bundle,6000,12000,2,5,Communication,base_seed,1.0
+Antibiotics,medicine,Shop,Shop,1,pack,8000,8000,5,5,Health,base_seed,1.0
+Ibinyomoro,avocado,Store,Store,5,piece,400,2000,5,1,Groceries,base_seed,1.0
+Medical Checkup,checkup,Market,Market,1,visit,25000,25000,9,1,Health,base_seed,1.0
+DSTV,tv subscription,DSTV Rwanda,DSTV Rwanda,0.5,month,10000,5000,9,2,Utilities,base_seed,1.0
+Sugar 1kg,sugar,Shop,Shop,2,kg,3600,7200,8,6,Groceries,base_seed,1.0
+Toilet Paper,toilet paper,Shop,Shop,4,pack,14000,56000,9,0,Health,base_seed,1.0
+Video Game,game,Store,Store,0.25,game,8750,2187,3,4,Entertainment,base_seed,1.0
+Bank Fee,fee,Bank,Bank,3,fee,1500,4500,9,3,Personal Transfer,base_seed,1.0
+Isombe,cassava leaves,Local Restaurant,Local Restaurant,1.5,plate,3750,5625,5,6,Food & Dining,base_seed,1.0
+Diesel 15L,diesel,Vendor,Vendor,15,litre,1750,26250,10,5,Transport,base_seed,1.0
+Local Rice,umuceri,Kimironko Market,Kimironko Market,2.5,kg,750,1875,4,4,Groceries,base_seed,1.0
+Airtel Data 10GB,internet bundle,Airtel Rwanda,Airtel Rwanda,2,bundle,10000,20000,2,1,Communication,base_seed,1.0
+Amazi Bill,water,Shop,Shop,1,bill,6000,6000,3,6,Utilities,base_seed,1.0
+Stock Purchase,investment,Broker,Broker,1,transaction,250000,250000,3,0,Savings & Investments,base_seed,1.0
+Kwihanganira telefoni,mobile services,MTN Rwanda,MTN Rwanda,1,month,3000,3000,8,3,Communication,base_seed,1.0
+Textbook,textbook,Bookshop,Bookshop,1,book,12000,12000,12,2,Education,base_seed,1.0
+Kugura umuriro,buy electricity,EUCL,EUCL,4,token,40000,160000,1,1,Utilities,base_seed,1.0
+Home Internet,internet,Liquid Telecom,Liquid Telecom,0.25,month,7500,1875,1,2,Communication,base_seed,1.0
+stock purchase,investment,Broker,Broker,1,transaction,250000,250000,8,0,Savings & Investments,base_seed,1.0
+Family Support,transfer,Mobile Money,Mobile Money,1,transfer,30000,30000,9,0,Personal Transfer,base_seed,1.0
+Chicken Brochette,brochette,Street Vendor,Street Vendor,2,plate,4000,8000,8,5,Food & Dining,base_seed,1.0
+Gutera isuku,pay cleaning,City,City,1,month,2500,2500,4,4,Utilities,base_seed,1.0
+Inyanya 5kg,tomatoes,Kimironko Market,Kimironko Market,1.25,kg,350,437,10,2,Groceries,base_seed,1.0
+Deodorant,deodorant,Pharmacy,Pharmacy,1,bottle,3000,3000,7,3,Health,base_seed,1.0
+Water Bill,water,WASAC,WASAC,3,bill,24000,72000,10,1,Utilities,base_seed,1.0
+Body Lotion,lotion,Supermarket,Supermarket,1,bottle,5500,5500,8,6,Health,base_seed,1.0
+Fish 1kg,fish,Market,Market,1,kg,4500,4500,5,6,Groceries,base_seed,1.0
+Washing Powder,detergent,Local Shop,Local Shop,1,pack,4500,4500,2,4,Health,base_seed,1.0
+Cinema Ticket,movie,Century Cinema,Century Cinema,3,ticket,15000,45000,2,5,Entertainment,base_seed,1.0
+Inkoko,chicken,Poultry Shop,Poultry Shop,1,piece,8000,8000,2,6,Groceries,base_seed,1.0
+Ipine-nshya,new tire,Auto Parts,Auto Parts,1,tire,45000,45000,8,5,Transport,base_seed,1.0
+Gushyira muri mobayo,mobile money,MTN MoMo,MTN MoMo,0.25,transfer,5000,1250,6,4,Personal Transfer,base_seed,1.0
+Airtel Data 10GB,internet bundle,Airtel Rwanda,Airtel Rwanda,1,bundle,5000,5000,9,3,Communication,base_seed,1.0
+Ubugari n'isombe,cassava paste with greens,Restaurant,Restaurant,1,meal,3000,3000,11,4,Food & Dining,base_seed,1.0
+Inyama2kg,beef,Local Butchery,Local Butchery,2,kg,5800,11600,8,2,Groceries,base_seed,1.0
+White Sugar,isukari,Simba Supermarket,Simba Supermarket,1,kg,1900,1900,11,0,Groceries,base_seed,1.0
+Malaria Medicine,medicine,Pharmacy,Pharmacy,1,pack,6000,6000,6,6,Health,base_seed,1.0
+Kawunga 5kg,maize flour,Shop,Shop,1,bag,6500,6500,3,2,Groceries,base_seed,1.0
+Mega 20GB,data,MTN Rwanda,MTN Rwanda,0.25,bundle,1750,437,2,2,Communication,base_seed,1.0
+ANTIBIOTICS,medicine,Pharmacy,Pharmacy,1,pack,8000,8000,6,1,Health,base_seed,1.0
+WiFi Subscription,wifi,ISP,ISP,1,month,25000,25000,12,2,Communication,base_seed,1.0
+UMURIRO TOKEN,electricity,EUCL,EUCL,1,token,15000,15000,11,5,Utilities,base_seed,1.0
+Bottled Water 12pk,bottled water,Supermarket,Supermarket,1,pack,6000,6000,11,6,Groceries,base_seed,1.0
+Cinema Ticket,movie,Century Cinema,Century Cinema,1,ticket,5000,5000,6,4,Entertainment,base_seed,1.0
+Malaria Medicine,medicine,Vendor,Vendor,1,pack,6000,6000,3,0,Health,base_seed,1.0
+Online Course,course,Coursera,Coursera,1,month,25000,25000,11,6,Education,base_seed,1.0
+Igikoma,fried dough,Street Vendor,Street Vendor,4.5,piece,750,3375,1,2,Food & Dining,base_seed,1.0
+Mazutu 20L,diesel,Shell,Shell,20,litre,1700,34000,10,2,Transport,base_seed,1.0
+Toothbrush,toothbrush,Pharmacy,Pharmacy,2,piece,1200,2400,8,5,Health,base_seed,1.0
+Isabune yo kumesa,laundry soap,Shop,Shop,1,pack,4000,4000,2,4,Health,base_seed,1.0
+Amagi 10,eggs,Market,Market,40,piece,1000,40000,12,0,Groceries,base_seed,1.0
+Biscuits,biscuits,Shop,Shop,1,pack,1800,1800,7,6,Groceries,base_seed,1.0
+Water Bill,water,WASAC,WASAC,1,bill,8000,8000,3,6,Utilities,base_seed,1.0
+SACCO Contribution,savings,Market,Market,1,contribution,20000,20000,6,2,Savings & Investments,base_seed,1.0
+DINNER,meal,Hotel,Hotel,1,meal,15000,15000,6,1,Food & Dining,base_seed,1.0
+School Uniform,uniform,Uniform Shop,Uniform Shop,0.5,piece,2000,1000,1,6,Education,base_seed,1.0
+Gukata umusatsi,haircut,Barber,Barber,1,service,3000,3000,12,3,Health,base_seed,1.0
+Toothpaste,toothpaste,Pharmacy,Pharmacy,1,tube,2500,2500,2,3,Health,base_seed,1.0
+Taxi,taxi,Yego Cab,Yego Cab,1,ride,6000,6000,9,3,Transport,base_seed,1.0
+Gukina imikino,play games,Game Center,Game Center,1.5,session,3000,4500,1,3,Entertainment,base_seed,1.0
+Pizza Large,pizza,Sole Luna,Sole Luna,0.5,box,7000,3500,4,6,Food & Dining,base_seed,1.0
+School Shoes,shoes,Shop,Shop,1,pair,18000,18000,5,0,Education,base_seed,1.0
+Petrol 20L,petrol,Engen,Engen,20,litre,1800,36000,2,6,Transport,base_seed,1.0
+COFFEE 250G,coffee,Bourbon Coffee,Bourbon Coffee,1,pack,5000,5000,11,2,Groceries,base_seed,1.0
+Sanitary Pads,pads,Pharmacy,Pharmacy,4,pack,11200,44800,10,0,Health,base_seed,1.0
+Amafaranga y'ishuri,school fees,School,School,1,term,150000,150000,6,1,Education,base_seed,1.0
+Maize Flour,kawunga,Mugisha Mini Market,Mugisha Mini Market,0.5,bag,3100,1550,6,1,Groceries,base_seed,1.0
+Bisi,bus,KBS,KBS,2,trip,400,800,4,5,Transport,base_seed,1.0
+Kwiyungurira,entertainment,Event,Event,2,ticket,20000,40000,2,0,Entertainment,base_seed,1.0
+Medical Checkup,checkup,Hospital,Hospital,1,visit,25000,25000,2,4,Health,base_seed,1.0
+Airport Taxi,taxi,Taxi Service,Taxi Service,1,trip,18000,18000,4,2,Transport,base_seed,1.0
+Diesel 15L,diesel,SP Rwanda,SP Rwanda,22.5,litre,2625,59062,8,0,Transport,base_seed,1.0
+SACCO Contribution,savings,SACCO,SACCO,1,contribution,20000,20000,1,6,Savings & Investments,base_seed,1.0
+Inyama 2kg,beef,Local Butchery,Local Butchery,2,kg,5800,11600,8,1,Groceries,base_seed,1.0
+Brake Pads,brake pads,Auto Parts,Auto Parts,1,set,25000,25000,5,6,Transport,base_seed,1.0
+Bread,bread,Bakery,Bakery,1.0,loaf,750,750,4,6,Groceries,base_seed,1.0
+Umuceri 25kg,rice,Market,Market,4,bag,112000,448000,2,0,Groceries,base_seed,1.0
+Pens Pack,pens,Bookshop,Bookshop,1,pack,1500,1500,5,1,Education,base_seed,1.0
+Pizza Large,pizza,Sole Luna,Sole Luna,1,box,14000,14000,1,1,Food & Dining,base_seed,1.0
+MTN Data 30GB,internet bundle,MTN Rwanda,MTN Rwanda,1,bundle,10000,10000,3,2,Communication,base_seed,1.0
+Amakara 25kg,charcoal,Market,Market,0.5,bag,4000,2000,7,3,Utilities,base_seed,1.0
+Kwishyuraamazi,pay water,WASAC,WASAC,1,bill,8000,8000,8,3,Utilities,base_seed,1.0
+Electricity Token,electricity,EUCL,EUCL,1,token,10000,10000,4,0,Utilities,base_seed,1.0
+kwihanganira telefoni,mobile services,MTN Rwanda,MTN Rwanda,1,month,3000,3000,7,1,Communication,base_seed,1.0
+Burger Meal,burger,KFC,KFC,1,meal,9000,9000,11,0,Food & Dining,base_seed,1.0
+Kwipimisha,medical test,Hospital,Hospital,1,test,8000,8000,6,5,Health,base_seed,1.0
+Ifu y'ingano 2kg,wheat flour,Market,Market,4,bag,12000,48000,5,4,Groceries,base_seed,1.0
+Umutsima,corn meal,Local Restaurant,Local Restaurant,1,plate,2000,2000,8,0,Food & Dining,base_seed,1.0
+Inkari n'ikaramu,pencils and pens,Bookshop,Bookshop,1,set,2000,2000,2,5,Education,base_seed,1.0
+Margarine 500g,margarine,Supermarket,Supermarket,1,tub,3800,3800,7,5,Groceries,base_seed,1.0
+Mobile Money Fee,fee,Mobile Money,Mobile Money,1,fee,250,250,10,0,Personal Transfer,base_seed,1.0
+MTN Airtime,airtime,MTN Rwanda,MTN Rwanda,1,topup,2000,2000,9,1,Communication,base_seed,1.0
+Home Internet,internet,Liquid Telecom,Liquid Telecom,1,month,30000,30000,9,2,Communication,base_seed,1.0
+Bus-Fare,bus,Tap&Go,Tap&Go,1,trip,500,500,5,4,Transport,base_seed,1.0
+Milk 1L,milk,Shop,Shop,4.5,carton,1800,8100,1,2,Groceries,base_seed,1.0
+nyungwe rice,rice,Shop,Shop,1,bag,27500,27500,4,2,Groceries,base_seed,1.0
+Gym Membership,gym,Waka Fitness,Waka Fitness,1,month,25000,25000,8,4,Entertainment,base_seed,1.0
+Samosa,samosa,Vendor,Vendor,5,piece,200,1000,12,5,Food & Dining,base_seed,1.0
+Isabune,soap,Market,Market,2,piece,700,1400,5,0,Health,base_seed,1.0
+Phone Credit,airtime,Store,Store,1,topup,5000,5000,4,5,Communication,base_seed,1.0
+Sanitary Pads,pads,Local Shop,Local Shop,1,pack,2800,2800,11,5,Health,base_seed,1.0
+Mega 20GB,data,MTN Rwanda,MTN Rwanda,1,bundle,7000,7000,12,1,Communication,base_seed,1.0
+Body Lotion,lotion,Supermarket,Supermarket,2,bottle,11000,22000,10,5,Health,base_seed,1.0
+Soap,soap,Market,Market,1,bar,800,800,1,2,Health,base_seed,1.0
+Tea 100 bags,tea,Shop,Shop,1,box,3500,3500,4,2,Groceries,base_seed,1.0
+Hair Braiding,braiding,Salon,Salon,1.5,service,37500,56250,11,1,Health,base_seed,1.0
+Mutuelle Payment,insurance,RSSB,RSSB,1,payment,3000,3000,3,4,Health,base_seed,1.0
+Gukina imikino,play games,Game Center,Game Center,1,session,2000,2000,1,1,Entertainment,base_seed,1.0
+ice cream,ice cream,Shop,Shop,1,cone,1500,1500,11,1,Food & Dining,base_seed,1.0
+Tomatoes 3kg,tomatoes,Shop,Shop,3,kg,1500,4500,1,0,Groceries,base_seed,1.0
+Bank Fee,fee,Bank,Bank,1,fee,500,500,12,3,Personal Transfer,base_seed,1.0
+Engine Oil 5L,engine oil,Auto Parts,Auto Parts,3,bottle,54000,162000,5,0,Transport,base_seed,1.0
+WATER BILL,water,WASAC,WASAC,1,bill,8000,8000,9,1,Utilities,base_seed,1.0
+Moto Ride,moto,Yego Moto,Yego Moto,1,ride,1500,1500,10,1,Transport,base_seed,1.0
+Swimming Pool,swimming,Hotel Pool,Hotel Pool,1,ticket,7000,7000,8,5,Entertainment,base_seed,1.0
+Maize Flour,kawunga,Mugisha Mini Market,Mugisha Mini Market,1,bag,6200,6200,4,5,Groceries,base_seed,1.0
+amata 500ml,milk,Inyange Shop,Inyange Shop,2,carton,600,1200,4,5,Groceries,base_seed,1.0
+Ifi,fish,Kimironko Market,Kimironko Market,2,kg,4200,8400,4,1,Groceries,base_seed,1.0
+Umucunga,orange,Market,Market,40,piece,1200,48000,5,4,Groceries,base_seed,1.0
+Batiri ya moteri,car battery,Auto Shop,Auto Shop,1,piece,80000,80000,12,6,Transport,base_seed,1.0
+Lunch Buffet,restaurant meal,Java House,Java House,0.5,meal,6000,3000,4,3,Food & Dining,base_seed,1.0
+Eggs Tray 30,eggs,Poultry Shop,Poultry Shop,1,tray,4500,4500,12,6,Groceries,base_seed,1.0
+Phone Credit,airtime,MTN,MTN,1,topup,5000,5000,11,4,Communication,base_seed,1.0
+Dodo,amaranth leaves,Market,Market,1,kg,800,800,8,6,Groceries,base_seed,1.0
+HAIRCUT,haircut,Barber,Barber,1,service,3000,3000,3,2,Health,base_seed,1.0
+Bread,bread,Bakery,Bakery,2,loaf,1500,3000,12,1,Groceries,base_seed,1.0
+Online Course,course,Store,Store,1,month,25000,25000,10,5,Education,base_seed,1.0
+School Fees,school fees,School,School,1,term,150000,150000,11,2,Education,base_seed,1.0
+Lisansi 10L,petrol,Gas Station,Gas Station,10,litre,1850,18500,11,0,Transport,base_seed,1.0
+Soap,soap,Shop,Shop,1,bar,800,800,8,0,Health,base_seed,1.0
+Beef 1kg,beef,Butchery,Butchery,1,kg,6000,6000,7,6,Groceries,base_seed,1.0
+Bisi,bus,Shop,Shop,2,trip,400,800,2,6,Transport,base_seed,1.0
+Urwagwa,banana beer,Bar,Bar,1,bottle,2000,2000,2,4,Food & Dining,base_seed,1.0
+Vitamin C,vitamins,Pharmacy,Pharmacy,1.5,pack,6000,9000,10,6,Health,base_seed,1.0
+Soft Drink,soda,Shop,Shop,1,bottle,1000,1000,7,3,Food & Dining,base_seed,1.0
+Lab Test,test,Laboratory,Laboratory,3,test,24000,72000,2,1,Health,base_seed,1.0
+Coffee Latte,coffee,Supermarket,Supermarket,1,cup,3500,3500,2,4,Food & Dining,base_seed,1.0
+Ifi,fish,Local Shop,Local Shop,2,kg,4200,8400,1,5,Groceries,base_seed,1.0
+Power Token,electricity,Vendor,Vendor,1,token,20000,20000,1,6,Utilities,base_seed,1.0
+Igikoma,fried dough,Vendor,Vendor,3,piece,500,1500,9,3,Food & Dining,base_seed,1.0
+Salt 1kg,salt,Store,Store,1,kg,800,800,5,5,Groceries,base_seed,1.0
+Airtime,airtime,Mobile Money,Mobile Money,1,topup,1000,1000,2,0,Communication,base_seed,1.0
+Spotify,music,Spotify,Spotify,1.5,month,7500,11250,6,6,Entertainment,base_seed,1.0
+Kogesha,car wash,Store,Store,1,service,2500,2500,8,5,Transport,base_seed,1.0
+Gusana ipine,tire repair,Garage,Garage,2,service,10000,20000,4,5,Transport,base_seed,1.0
+Tomatoes 3kg,tomatoes,Market,Market,0.75,kg,375,281,9,2,Groceries,base_seed,1.0
+Flour,ifu,Local Shop,Local Shop,2,kg,1500,3000,1,0,Groceries,base_seed,1.0
+Transfer Fee,fee,Vendor,Vendor,1,fee,1000,1000,11,4,Personal Transfer,base_seed,1.0
+Ubuto 1L,cooking oil,Shop,Shop,0.5,bottle,1500,750,9,5,Groceries,base_seed,1.0
+Ipine nshya,new tire,Market,Market,1,tire,45000,45000,8,0,Transport,base_seed,1.0
+Chips,fries,Fast Food,Fast Food,1,plate,2000,2000,10,1,Food & Dining,base_seed,1.0
+Airport Taxi,taxi,Taxi Service,Taxi Service,0.5,trip,9000,4500,11,0,Transport,base_seed,1.0
+Panadol,paracetamol,Pharmacy,Pharmacy,1,pack,1500,1500,6,0,Health,base_seed,1.0
+UMUTI W'AMENYO,toothpaste,Pharmacy,Pharmacy,1,tube,2500,2500,6,2,Health,base_seed,1.0
+Umuti w'amenyo,toothpaste,Pharmacy,Pharmacy,1,tube,2500,2500,3,2,Health,base_seed,1.0
+Umucunga,orange,Market,Market,10,piece,300,3000,11,0,Groceries,base_seed,1.0
+Kugura credit,buy airtime,MTN,MTN,1,topup,2000,2000,12,2,Communication,base_seed,1.0
+Chicken Brochette,brochette,Street Vendor,Street Vendor,3.0,plate,6000,18000,5,6,Food & Dining,base_seed,1.0
+Kwiyungurira,entertainment,Event,Event,1,ticket,10000,10000,10,3,Entertainment,base_seed,1.0
+PizzaLarge,pizza,Sole Luna,Sole Luna,1,box,14000,14000,1,4,Food & Dining,base_seed,1.0
+Notebooks,notebooks,Bookshop Kigali,Bookshop Kigali,2.5,piece,250,625,10,2,Education,base_seed,1.0
+DSTV,tv subscription,DSTV Rwanda,DSTV Rwanda,1,month,20000,20000,3,1,Utilities,base_seed,1.0
+Internet 50GB,internet,Airtel,Airtel,1,bundle,15000,15000,10,4,Communication,base_seed,1.0
+Isukari 2kg,sugar,Market,Market,2,kg,1750,3500,5,4,Groceries,base_seed,1.0
+Garbage Collection,garbage,Municipality,Municipality,1,month,3000,3000,4,4,Utilities,base_seed,1.0
+Amazi Bill,water,WASAC,WASAC,1,bill,6000,6000,10,1,Utilities,base_seed,1.0
+Engine Oil 5L,engine oil,Auto Parts,Auto Parts,1,bottle,18000,18000,10,3,Transport,base_seed,1.0
+Amafaranga y'ishuri,school fees,School,School,2,term,300000,600000,11,1,Education,base_seed,1.0
+Washing Powder,detergent,Supermarket,Supermarket,1,pack,4500,4500,11,6,Health,base_seed,1.0
+Umunyu,salt,Local Shop,Local Shop,1,kg,700,700,5,4,Groceries,base_seed,1.0
+Kwishyura amazi,pay water,WASAC,WASAC,0.5,bill,4000,2000,12,0,Utilities,base_seed,1.0
+Lunch Buffet,restaurant meal,Java House,Java House,1,meal,12000,12000,7,2,Food & Dining,base_seed,1.0
+Ibitabo by'ishuri,school books,Bookshop,Bookshop,3,book,10000,30000,12,6,Education,base_seed,1.0
+Omo 1kg,detergent,Shop,Shop,1,kg,4200,4200,10,4,Health,base_seed,1.0
+Wedding Contribution,gift,Mobile Money,Mobile Money,1,contribution,20000,20000,4,6,Personal Transfer,base_seed,1.0
+Ifu y'ingano 2kg,wheat flour,Market,Market,1,bag,3000,3000,3,2,Groceries,base_seed,1.0
+Ibishyimbo 10kg,beans,Kimironko Market,Kimironko Market,1,bag,12000,12000,3,4,Groceries,base_seed,1.0
+Sugar 1kg,sugar,Market,Market,1,kg,1800,1800,9,5,Groceries,base_seed,1.0
+Concert Ticket,concert,Supermarket,Supermarket,1,ticket,10000,10000,2,2,Entertainment,base_seed,1.0
+Shampoo,shampoo,Shop,Shop,1.5,bottle,7500,11250,5,5,Health,base_seed,1.0
+Kawunga 5kg,maize flour,Shop,Shop,0.5,bag,3250,1625,2,0,Groceries,base_seed,1.0
+E-Learning,online course,Udemy,Udemy,1,course,15000,15000,8,6,Education,base_seed,1.0
+Movie Ticket,cinema,Local Shop,Local Shop,2,ticket,4500,9000,2,6,Entertainment,base_seed,1.0
+Igikoma,fried dough,Street Vendor,Street Vendor,3,piece,500,1500,10,6,Food & Dining,base_seed,1.0
+Power Token,electricity,Energy Company,Energy Company,1,token,20000,20000,10,0,Utilities,base_seed,1.0
+Kujya kwa sinema,cinema visit,Cinema,Cinema,0.25,ticket,1250,312,5,0,Entertainment,base_seed,1.0
+Lab Test,test,Store,Store,1,test,8000,8000,5,1,Health,base_seed,1.0
+CanalPlus,tv subscription,CanalPlus,CanalPlus,1,month,15000,15000,10,0,Utilities,base_seed,1.0
+INKWI ZO GUTEKA,firewood,Vendor,Vendor,1,bundle,3000,3000,8,4,Utilities,base_seed,1.0
+Green Bananas,green bananas,Market,Market,5,kg,900,4500,6,3,Groceries,base_seed,1.0
+INKOKO,chicken,Poultry Shop,Poultry Shop,1,piece,8000,8000,11,4,Groceries,base_seed,1.0
+Umwenda w'ishuri,school uniform,Shop,Shop,0.25,set,3750,937,3,5,Education,base_seed,1.0
+Mortgage Payment,loan,Bank of Kigali,Bank of Kigali,1,payment,200000,200000,5,2,Savings & Investments,base_seed,1.0
+Laptop Bag,bag,Store,Store,1,piece,15000,15000,12,1,Education,base_seed,1.0
+Green Bananas,green bananas,Market,Market,5,kg,900,4500,6,5,Groceries,base_seed,1.0
+Garbage Collection,garbage,Store,Store,1,month,3000,3000,6,0,Utilities,base_seed,1.0
+Mega 20GB,data,Local Shop,Local Shop,1,bundle,7000,7000,7,2,Communication,base_seed,1.0
+Amata 500ml,milk,Inyange Shop,Inyange Shop,2,carton,600,1200,6,6,Groceries,base_seed,1.0
+Textbook,textbook,Bookshop,Bookshop,0.25,book,3000,750,8,6,Education,base_seed,1.0
+Water Bill,water,Vendor,Vendor,1,bill,8000,8000,2,6,Utilities,base_seed,1.0
+Brochettes,brochette,Chez Lando,Chez Lando,3,stick,1500,4500,6,1,Food & Dining,base_seed,1.0
+CanalPlus,tv subscription,Store,Store,1,month,15000,15000,5,6,Utilities,base_seed,1.0
+Amagi 10,eggs,Market,Market,10,piece,250,2500,3,6,Groceries,base_seed,1.0
+Dinner,meal,Hotel,Hotel,1,meal,15000,15000,2,3,Food & Dining,base_seed,1.0
+School Uniform,uniform,Supermarket,Supermarket,2,piece,8000,16000,11,3,Education,base_seed,1.0
+Rent Payment,rent,Landlord,Landlord,1,month,250000,250000,4,0,Personal Transfer,base_seed,1.0
+Solar Payment,solar,Bboxx Rwanda,Bboxx Rwanda,1,payment,12000,12000,1,1,Utilities,base_seed,1.0
+Instant Coffee,coffee,Shop,Shop,1,jar,6500,6500,10,2,Groceries,base_seed,1.0
+Indimu,lime,Market,Market,5,piece,200,1000,10,2,Groceries,base_seed,1.0
+Beans 5kg,beans,Market,Market,4,bag,26000,104000,2,5,Groceries,base_seed,1.0
+Football Match,sports,Supermarket,Supermarket,1,ticket,3000,3000,8,4,Entertainment,base_seed,1.0
+Burger Meal,burger,Store,Store,1,meal,9000,9000,11,0,Food & Dining,base_seed,1.0
+PlayStation Subscription,gaming,PlayStation,PlayStation,0.25,month,2000,500,9,3,Entertainment,base_seed,1.0
+Tuition,tuition,University,University,1,semester,500000,500000,11,0,Education,base_seed,1.0
+LoanRepayment,loan,Bank,Bank,1,payment,50000,50000,11,1,Savings & Investments,base_seed,1.0
+Family Support,transfer,Market,Market,1,transfer,30000,30000,5,5,Personal Transfer,base_seed,1.0
+Urwagwa,banana beer,Bar,Bar,0.25,bottle,500,125,11,2,Food & Dining,base_seed,1.0
+Ibinyomoro,avocado,Kimironko Market,Kimironko Market,20,piece,1600,32000,1,2,Groceries,base_seed,1.0
+Medical-Checkup,checkup,Hospital,Hospital,1,visit,25000,25000,6,2,Health,base_seed,1.0
+SACCOContribution,savings,SACCO,SACCO,1,contribution,20000,20000,9,3,Savings & Investments,base_seed,1.0
+Church Offering,offering,Church,Church,1,donation,5000,5000,9,1,Personal Transfer,base_seed,1.0
+Ice Cream,ice cream,Shop,Shop,1,cone,1500,1500,2,4,Food & Dining,base_seed,1.0
+Isombe,cassava leaves,Local Restaurant,Local Restaurant,1,plate,2500,2500,2,5,Food & Dining,base_seed,1.0
+PowerToken,electricity,Energy Company,Energy Company,1,token,20000,20000,6,1,Utilities,base_seed,1.0
+Brochettes,brochette,Chez Lando,Chez Lando,0.75,stick,375,281,10,4,Food & Dining,base_seed,1.0
+Umucunga,orange,Vendor,Vendor,10,piece,300,3000,11,5,Groceries,base_seed,1.0
+Bread,bread,Local Shop,Local Shop,2,loaf,1500,3000,3,6,Groceries,base_seed,1.0
+Donation,donation,Local Shop,Local Shop,1,donation,10000,10000,7,5,Personal Transfer,base_seed,1.0
+Netflix,streaming,Netflix,Netflix,1,month,6000,6000,4,0,Entertainment,base_seed,1.0
+Amasaka,passion fruit,Market,Market,10,piece,300,3000,4,1,Groceries,base_seed,1.0
+Diesel 15L,diesel,SP Rwanda,SP Rwanda,15,litre,1750,26250,2,3,Transport,base_seed,1.0
+Imyembe,mango,Store,Store,5,piece,500,2500,5,1,Groceries,base_seed,1.0
+Ibuprofen 400mg,ibuprofen,Pharmacy,Pharmacy,3,pack,7500,22500,2,1,Health,base_seed,1.0

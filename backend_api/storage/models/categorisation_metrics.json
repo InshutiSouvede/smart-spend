@@ -6,14 +6,23 @@
     "unit_cost_rwf",
     "total_cost_rwf",
     "purchase_month",
-    "purchase_weekday"
+    "purchase_weekday",
+    "price_range_very_cheap",
+    "price_range_cheap",
+    "price_range_medium",
+    "price_range_expensive",
+    "price_range_very_expensive",
+    "is_weekend",
+    "is_month_start",
+    "is_month_end",
+    "text_length",
+    "word_count"
   ],
   "text_source_columns": [
     "item_name",
     "normalized_item_name",
     "merchant_name",
-    "to_who",
-    "unit"
+    "to_who"
   ],
   "numeric_feature_columns": [
     "quantity",
@@ -31,32 +40,50 @@
       "merchant_name",
       "to_who",
       "quantity",
-      "unit",
       "unit_cost_rwf",
       "total_cost_rwf",
       "purchase_month",
       "purchase_weekday"
     ],
-    "build_model_text_as": "item + normalized_item + merchant_name + to_who + unit",
-    "amount_currency": "RWF"
+    "build_model_text_as": "item_name + normalized_item_name + merchant_name + to_who (space-separated)",
+    "note": "unit is stored in dataset but NOT used in model_text (matches backend)",
+    "amount_currency": "RWF",
+    "backend_compatibility": "backend_api/app/services/model_service.py::_build_category_df()"
   },
   "metrics": {
-    "test_accuracy": 0.23076923076923078,
-    "test_precision_macro": 0.3333333333333333,
-    "test_recall_macro": 0.27619047619047615,
-    "test_f1_macro": 0.2833333333333333,
-    "test_f1_weighted": 0.25961538461538464,
-    "cv_mean_accuracy": null,
-    "cv_std_accuracy": null,
+    "test_accuracy": 0.8571428571428571,
+    "test_precision_macro": 0.8705738705738707,
+    "test_recall_macro": 0.8756481481481482,
+    "test_f1_macro": 0.8608224539687465,
+    "test_f1_weighted": 0.8551705043669808,
+    "cv_mean_accuracy": 0.8795054945054945,
+    "cv_std_accuracy": 0.03256811967130093,
     "feature_columns": [
       "model_text",
       "quantity",
       "unit_cost_rwf",
       "total_cost_rwf",
       "purchase_month",
-      "purchase_weekday"
+      "purchase_weekday",
+      "price_range_very_cheap",
+      "price_range_cheap",
+      "price_range_medium",
+      "price_range_expensive",
+      "price_range_very_expensive",
+      "is_weekend",
+      "is_month_start",
+      "is_month_end",
+      "text_length",
+      "word_count"
     ],
     "target_column": "category",
     "uses_sample_weight": true
+  },
+  "training_date": "2026-07-12T19:46:19.416667",
+  "improvements_2026_07_12": {
+    "dataset_size": "523 samples (was 125)",
+    "categories": "10 backend-aligned categories (was 18 mismatched)",
+    "feature_fix": "Removed unit from model_text to match backend",
+    "hyperparameters": "C=1.0, max_features=5000, max_iter=2000"
   }
 }
