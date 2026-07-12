@@ -13,6 +13,7 @@ This directory contains the training datasets, Jupyter notebooks, and trained mo
 ml/
 ├── 01_categorisation_model.ipynb                       Train and evaluate the TF-IDF + LR categorisation model
 ├── 02_prediction_model.ipynb                           Train and evaluate the XGBoost prediction models
+├── train_enhanced_models.py                            Automated training script
 ├── smartspend_initial_synthetic_momo_sms_dataset.csv
 ├── smartspend_initial_synthetic_prediction_demo_dataset.csv
 ├── requirements.txt

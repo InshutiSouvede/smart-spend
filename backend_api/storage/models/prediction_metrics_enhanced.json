@@ -1,0 +1,92 @@
+{
+  "dataset_size": 1511,
+  "training_samples": 906,
+  "validation_samples": 302,
+  "test_samples": 303,
+  "features": [
+    "day_of_month",
+    "income_received_to_date",
+    "expense_to_date",
+    "historical_monthly_income_avg",
+    "historical_monthly_expense_avg",
+    "food_dining_to_date",
+    "transport_to_date",
+    "groceries_to_date",
+    "communication_to_date",
+    "education_to_date",
+    "utilities_to_date",
+    "health_to_date",
+    "entertainment_to_date",
+    "savings_investments_to_date",
+    "personal_transfer_to_date"
+  ],
+  "expense_model": {
+    "best_params": {
+      "colsample_bytree": 0.8,
+      "learning_rate": 0.1,
+      "max_depth": 6,
+      "n_estimators": 200,
+      "subsample": 0.9
+    },
+    "cross_validation_mae": 125950.42716742982,
+    "test_metrics": {
+      "set": "Test",
+      "MAE": 103901.96,
+      "RMSE": 175075.63,
+      "R\u00b2": 0.7171,
+      "MAPE%": 35.19
+    },
+    "feature_importance": {
+      "expense_to_date": 0.23255544900894165,
+      "groceries_to_date": 0.14217032492160797,
+      "transport_to_date": 0.13172200322151184,
+      "personal_transfer_to_date": 0.11283601075410843,
+      "historical_monthly_expense_avg": 0.10388695448637009,
+      "food_dining_to_date": 0.06925959140062332,
+      "communication_to_date": 0.06545568257570267,
+      "historical_monthly_income_avg": 0.05993351340293884,
+      "income_received_to_date": 0.04657718539237976,
+      "day_of_month": 0.026552680879831314,
+      "savings_investments_to_date": 0.00905047357082367,
+      "utilities_to_date": 0.0,
+      "education_to_date": 0.0,
+      "entertainment_to_date": 0.0,
+      "health_to_date": 0.0
+    }
+  },
+  "income_model": {
+    "best_params": {
+      "colsample_bytree": 0.7,
+      "learning_rate": 0.1,
+      "max_depth": 6,
+      "n_estimators": 200,
+      "subsample": 0.8
+    },
+    "cross_validation_mae": 134863.11190358276,
+    "test_metrics": {
+      "set": "Test",
+      "MAE": 108879.27,
+      "RMSE": 166756.81,
+      "R\u00b2": 0.7503,
+      "MAPE%": 46.41
+    },
+    "feature_importance": {
+      "income_received_to_date": 0.16763652861118317,
+      "historical_monthly_income_avg": 0.14302127063274384,
+      "savings_investments_to_date": 0.1260603368282318,
+      "food_dining_to_date": 0.08953643590211868,
+      "historical_monthly_expense_avg": 0.08918469399213791,
+      "transport_to_date": 0.0814102441072464,
+      "communication_to_date": 0.07876044511795044,
+      "groceries_to_date": 0.07457912713289261,
+      "personal_transfer_to_date": 0.0588473305106163,
+      "expense_to_date": 0.04879412055015564,
+      "day_of_month": 0.04216940328478813,
+      "utilities_to_date": 0.0,
+      "education_to_date": 0.0,
+      "entertainment_to_date": 0.0,
+      "health_to_date": 0.0
+    }
+  },
+  "note": "Enhanced model with hyperparameter tuning, cross-validation, and comprehensive evaluation. Trained on realistic synthetic data derived from actual SMS transaction patterns. For production use, retrain with accumulated user transaction history (minimum 2-3 months)."
+}

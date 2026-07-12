@@ -1,13 +1,120 @@
 {
+  "dataset_size": 1511,
+  "training_samples": 906,
+  "validation_samples": 302,
+  "test_samples": 303,
+  "features": [
+    "day_of_month",
+    "income_received_to_date",
+    "expense_to_date",
+    "historical_monthly_income_avg",
+    "historical_monthly_expense_avg",
+    "food_dining_to_date",
+    "transport_to_date",
+    "groceries_to_date",
+    "communication_to_date",
+    "education_to_date",
+    "utilities_to_date",
+    "health_to_date",
+    "entertainment_to_date",
+    "savings_investments_to_date",
+    "personal_transfer_to_date"
+  ],
   "expense_model": {
-    "MAE": 26452.58,
-    "RMSE": 33465.1,
-    "R2": 0.6976
+    "best_params": {
+      "colsample_bytree": 0.8,
+      "learning_rate": 0.1,
+      "max_depth": 5,
+      "n_estimators": 200,
+      "subsample": 0.9
+    },
+    "cross_validation_mae": 128111.51340283528,
+    "test_metrics": {
+      "MAE": 108629.91,
+      "RMSE": 183210.83,
+      "R\u00b2": 0.6902,
+      "MAPE%": 38.36
+    },
+    "train_metrics": {
+      "MAE": 29979.32,
+      "RMSE": 43484.68,
+      "R\u00b2": 0.9841,
+      "MAPE%": 10.74
+    },
+    "val_metrics": {
+      "MAE": 128162.21,
+      "RMSE": 239957.37,
+      "R\u00b2": 0.5882,
+      "MAPE%": 50.88
+    },
+    "feature_importance": {
+      "expense_to_date": 0.2403261363506317,
+      "groceries_to_date": 0.11695978790521622,
+      "historical_monthly_expense_avg": 0.11657062917947769,
+      "transport_to_date": 0.11182388663291931,
+      "personal_transfer_to_date": 0.10991845279932022,
+      "food_dining_to_date": 0.07376501709222794,
+      "communication_to_date": 0.06813890486955643,
+      "historical_monthly_income_avg": 0.06310176104307175,
+      "income_received_to_date": 0.053051404654979706,
+      "day_of_month": 0.03716909512877464,
+      "savings_investments_to_date": 0.009174923412501812,
+      "utilities_to_date": 0.0,
+      "education_to_date": 0.0,
+      "entertainment_to_date": 0.0,
+      "health_to_date": 0.0
+    }
   },
   "income_model": {
-    "MAE": 27943.52,
-    "RMSE": 37220.49,
-    "R2": 0.868
+    "best_params": {
+      "colsample_bytree": 0.9,
+      "learning_rate": 0.1,
+      "max_depth": 5,
+      "n_estimators": 200,
+      "subsample": 0.8
+    },
+    "cross_validation_mae": 138784.0996336058,
+    "test_metrics": {
+      "MAE": 107218.71,
+      "RMSE": 169813.99,
+      "R\u00b2": 0.7411,
+      "MAPE%": 40.66
+    },
+    "train_metrics": {
+      "MAE": 30800.11,
+      "RMSE": 42026.85,
+      "R\u00b2": 0.9861,
+      "MAPE%": 11.39
+    },
+    "val_metrics": {
+      "MAE": 109003.48,
+      "RMSE": 177037.04,
+      "R\u00b2": 0.7582,
+      "MAPE%": 34.43
+    },
+    "feature_importance": {
+      "income_received_to_date": 0.20517189800739288,
+      "historical_monthly_income_avg": 0.1392320841550827,
+      "historical_monthly_expense_avg": 0.09767274558544159,
+      "savings_investments_to_date": 0.09562380611896515,
+      "communication_to_date": 0.0817837044596672,
+      "food_dining_to_date": 0.07494805753231049,
+      "personal_transfer_to_date": 0.07450373470783234,
+      "groceries_to_date": 0.0674937441945076,
+      "transport_to_date": 0.06669675558805466,
+      "expense_to_date": 0.049609459936618805,
+      "day_of_month": 0.0472639724612236,
+      "utilities_to_date": 0.0,
+      "education_to_date": 0.0,
+      "entertainment_to_date": 0.0,
+      "health_to_date": 0.0
+    }
   },
-  "note": "Trained on synthetic scaffold data. Retrain with accumulated user transaction history during the pilot for meaningful accuracy."
+  "improvements": {
+    "dataset_quality": "16x larger dataset with realistic SMS-derived patterns",
+    "cross_validation": "5-fold CV for robust performance estimates",
+    "hyperparameter_tuning": "Grid search over 108 combinations per model",
+    "evaluation": "Train/val/test split with comprehensive metrics"
+  },
+  "note": "Enhanced model with hyperparameter tuning, cross-validation, and comprehensive evaluation. Trained on realistic synthetic data derived from actual SMS transaction patterns. For production use, retrain with accumulated user transaction history (minimum 2-3 months)."
 }
