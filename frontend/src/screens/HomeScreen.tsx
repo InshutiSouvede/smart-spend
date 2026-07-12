@@ -28,8 +28,10 @@ const { width } = Dimensions.get('window');
 const CHART_WIDTH = width - spacing.xl * 2;
 
 function formatRWF(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M RWF`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K RWF`;
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M RWF`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(0)}K RWF`;
   return `${Math.round(amount).toLocaleString()} RWF`;
 }
 
@@ -196,7 +198,7 @@ export function HomeScreen() {
                 <View style={[styles.card, { backgroundColor: colors.successLight }]}>
                   <Text style={styles.cardLabel}>Forecasted total income</Text>
                   <Text style={[styles.cardAmount, { color: colors.income }]}>
-                    {formatRWF(Math.abs(status.predicted_month_end_income))}
+                    {formatRWF(status.predicted_month_end_income)}
                   </Text>
                 </View>
               )}
@@ -204,7 +206,7 @@ export function HomeScreen() {
                 <View style={[styles.card, { backgroundColor: colors.errorLight }]}>
                   <Text style={styles.cardLabel}>Forecasted total expense</Text>
                   <Text style={[styles.cardAmount, { color: colors.expense }]}>
-                    {formatRWF(Math.abs(status.predicted_month_end_expense))}
+                    {formatRWF(status.predicted_month_end_expense)}
                   </Text>
                 </View>
               )}
@@ -218,7 +220,7 @@ export function HomeScreen() {
                   fontWeight: '600',
                 }}
               >
-                {formatRWF(status?.projected_net ?? 0)}
+                {(status?.projected_net ?? 0) >= 0 ? '+' : ''}{formatRWF(status?.projected_net ?? 0)}
               </Text>
             </Text>
             <Text style={[styles.predHint, { fontSize: 11, marginTop: 4, fontStyle: 'italic' }]}>
