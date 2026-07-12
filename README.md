@@ -4,6 +4,7 @@ Android-based personal finance management system for Rwandan youth. SmartSpend e
 
 Built as a BSc. Software Engineering capstone project — African Leadership University, 2026.
 
+### [Video Presentation](https://shorturl.at/DPoaW)
 ---
 
 ## Table of contents
