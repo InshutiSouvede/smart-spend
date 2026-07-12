@@ -68,13 +68,41 @@ app.add_exception_handler(SmartSpendException, smartspend_exception_handler)
 
 
 @app.on_event("startup")
-def on_startup() -> None:
-    init_db()
-    logger.info(
-        "SmartSpend API started. env=%s mock_auth=%s",
-        settings.app_env,
-        settings.mock_auth_enabled,
-    )
+async def on_startup() -> None:
+    """Initialize database on startup with exponential backoff retry logic."""
+    import time
+    max_retries = 5
+    base_delay = 1  # seconds
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info("Attempting database initialization (attempt %d/%d)...", attempt, max_retries)
+            init_db()
+            logger.info(
+                "✓ SmartSpend API started successfully. env=%s mock_auth=%s",
+                settings.app_env,
+                settings.mock_auth_enabled,
+            )
+            return
+        except Exception as e:
+            # Exponential backoff: 1s, 2s, 4s, 8s, 16s
+            retry_delay = base_delay * (2 ** (attempt - 1))
+            logger.error(
+                "✗ Database initialization failed (attempt %d/%d): %s",
+                attempt, max_retries, str(e)
+            )
+            if attempt < max_retries:
+                logger.info("Retrying in %d seconds...", retry_delay)
+                time.sleep(retry_delay)
+            else:
+                logger.critical(
+                    "Failed to initialize database after %d attempts. Starting anyway...",
+                    max_retries
+                )
+                logger.warning("API will start but database operations may fail!")
+                logger.warning("Check DATABASE_URL environment variable and Supabase connectivity")
+                # Don't raise - allow the API to start so health checks work
+                return
 
 
 @app.get("/", tags=["System"], summary="API root")

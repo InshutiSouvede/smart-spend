@@ -553,10 +553,19 @@ def get_db() -> Generator[Any, None, None]:
     """
     Universal database connection context manager.
     Auto-detects SQLite vs PostgreSQL from DATABASE_URL env var.
+    Supports both direct (port 5432) and serverless pooling (port 6543) connections.
     """
     if DB_TYPE == 'postgresql':
         database_url = os.getenv('DATABASE_URL', '')
-        conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
+        if not database_url:
+            raise ValueError("DATABASE_URL environment variable not set")
+        
+        # Connection settings optimized for serverless pooling
+        conn = psycopg2.connect(
+            database_url,
+            cursor_factory=psycopg2.extras.RealDictCursor,
+            connect_timeout=10  # 10 second timeout
+        )
         conn.autocommit = False
         try:
             yield conn
@@ -567,30 +576,9 @@ def get_db() -> Generator[Any, None, None]:
         finally:
             conn.close()
     else:
-        #ursor = conn.cursor()
-        
-        if DB_TYPE == 'postgresql':
-            # PostgreSQL: Execute statements individually
-            for statement in _SCHEMA_TABLES_POSTGRES.split(';'):
-                statement = statement.strip()
-                if statement:
-                    cursor.execute(statement)
-            for statement in _SCHEMA_INDEXES.split(';'):
-                statement = statement.strip()
-                if statement:
-                    cursor.execute(statement)
-            for statement in _SCHEMA_VIEWS.split(';'):
-                statement = statement.strip()
-                if statement:
-                    cursor.execute(statement)
-            logger.info("PostgreSQL database initialized at '%s'", os.getenv('DATABASE_URL', '').split('@')[-1])
-        else:
-            # SQLite: Use executescript
-            conn.executescript(_SCHEMA_TABLES_SQLITE)
-            conn.executescript(_SCHEMA_INDEXES)
-            conn.executescript(_SCHEMA_VIEWS)
-            _run_migrations(conn)
-            logger.info("SQLite database initialized at '%s'L")
+        # SQLite
+        conn = sqlite3.connect(settings.database_path)
+        conn.row_factory = sqlite3.Row
         try:
             yield conn
             conn.commit()
@@ -603,9 +591,35 @@ def get_db() -> Generator[Any, None, None]:
 
 def init_db() -> None:
     """Create all tables, indexes, views, and run incremental column migrations."""
-    with get_db() as conn:
-        conn.executescript(_SCHEMA_TABLES)
-        conn.executescript(_SCHEMA_INDEXES)
-        conn.executescript(_SCHEMA_VIEWS)
-        _run_migrations(conn)
-    logger.info("Database initialised at '%s'.", settings.database_path)
+    try:
+        with get_db() as conn:
+            if DB_TYPE == 'postgresql':
+                # PostgreSQL: Execute statements individually
+                cursor = conn.cursor()
+                for statement in _SCHEMA_TABLES_POSTGRES.split(';'):
+                    statement = statement.strip()
+                    if statement:
+                        cursor.execute(statement)
+                for statement in _SCHEMA_INDEXES.split(';'):
+                    statement = statement.strip()
+                    if statement:
+                        cursor.execute(statement)
+                for statement in _SCHEMA_VIEWS.split(';'):
+                    statement = statement.strip()
+                    if statement:
+                        cursor.execute(statement)
+                cursor.close()
+                logger.info("PostgreSQL database initialized")
+            else:
+                # SQLite: Use executescript
+                conn.executescript(_SCHEMA_TABLES_SQLITE)
+                conn.executescript(_SCHEMA_INDEXES)
+                conn.executescript(_SCHEMA_VIEWS)
+                _run_migrations(conn)
+                logger.info("SQLite database initialized at '%s'", settings.database_path)
+    except Exception as e:
+        logger.error("Failed to initialize database: %s", str(e))
+        logger.error("Database type: %s", DB_TYPE)
+        if DB_TYPE == 'postgresql':
+            logger.error("DATABASE_URL: %s", os.getenv('DATABASE_URL', 'NOT_SET')[:50] + '...')
+        raise
