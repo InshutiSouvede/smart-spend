@@ -436,7 +436,8 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     final_projected_net = projected_net
     if predicted_expense is not None and predicted_income is not None:
         # ML forecast: predicted values are month-end totals
-        ml_projected_net = round(predicted_income - predicted_expense, 2)
+        # Use abs() to ensure positive amounts in case model predicts with wrong sign
+        ml_projected_net = round(abs(predicted_income) - abs(predicted_expense), 2)
         final_projected_net = ml_projected_net
         
         # Adjust risk level if ML forecast contradicts current assessment
@@ -460,8 +461,8 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
         risk_level=risk_level,
         status_message=status_messages[risk_level],
         call_to_action=cta_messages[risk_level],
-        predicted_month_end_expense=predicted_expense,
-        predicted_month_end_income=predicted_income,
+        predicted_month_end_expense=abs(predicted_expense) if predicted_expense is not None else None,
+        predicted_month_end_income=abs(predicted_income) if predicted_income is not None else None,
         unmatched_expense_count=int(unmatched_count),
     )
 
