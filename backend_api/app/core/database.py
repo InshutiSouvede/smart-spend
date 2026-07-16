@@ -18,6 +18,116 @@ except ImportError:
     logger.warning("psycopg2 not installed - PostgreSQL support disabled")
 
 
+class DatabaseConnection:
+    """
+    Wrapper class that provides a unified interface for both SQLite and PostgreSQL connections.
+    Adds an execute() method to PostgreSQL connections (which only have cursor.execute()).
+    """
+    def __init__(self, conn, db_type: str):
+        self._conn = conn
+        self._db_type = db_type
+        self._cursor = None
+        
+    def execute(self, query: str, params: tuple = ()):
+        """
+        Execute a query and return a cursor-like object.
+        Handles both SQLite (which has conn.execute) and PostgreSQL (which needs cursor).
+        Automatically converts ? placeholders to %s for PostgreSQL and common SQL patterns.
+        """
+        if self._db_type == 'postgresql':
+            # Convert SQLite-specific SQL to PostgreSQL
+            query = self._convert_sql_dialect(query)
+            # Convert ? to %s for PostgreSQL
+            query = query.replace('?', '%s')
+            # For PostgreSQL, create a cursor if needed and execute
+            if self._cursor is None:
+                self._cursor = self._conn.cursor()
+            self._cursor.execute(query, params)
+            return self._cursor
+        else:
+            # For SQLite, use the built-in execute method
+            return self._conn.execute(query, params)
+    
+    def _convert_sql_dialect(self, query: str) -> str:
+        """Convert SQLite SQL syntax to PostgreSQL."""
+        import re
+        
+        # Convert strftime('%Y-%m', column) to TO_CHAR(column, 'YYYY-MM')
+        query = re.sub(
+            r"strftime\s*\(\s*'%Y-%m'\s*,\s*(\w+)\s*\)",
+            r"TO_CHAR(\1, 'YYYY-MM')",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        # Convert strftime('%s', ?) to EXTRACT(EPOCH FROM ?::TIMESTAMP) for parameters
+        query = re.sub(
+            r"strftime\s*\(\s*'%s'\s*,\s*\?\s*\)",
+            r"EXTRACT(EPOCH FROM ?::TIMESTAMP)",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        # Convert strftime('%s', column) to EXTRACT(EPOCH FROM column) for columns
+        query = re.sub(
+            r"strftime\s*\(\s*'%s'\s*,\s*([^)]+)\s*\)",
+            r"EXTRACT(EPOCH FROM \1)",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        # Convert date(?, '-3 months') to CAST(? AS TIMESTAMP) - INTERVAL '3 months'
+        query = re.sub(
+            r"date\s*\(\s*\?\s*,\s*'-(\d+)\s+months'\s*\)",
+            r"(CAST(? AS TIMESTAMP) - INTERVAL '\1 months')",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        # Convert DATE(column) to DATE(column) - this works in both
+        # But DATE('now', ...) needs conversion
+        # Convert DATE('now', '-' || ? || ' days') to (CURRENT_DATE - (? || ' days')::INTERVAL)
+        query = re.sub(
+            r"DATE\s*\(\s*'now'\s*,\s*'-'\s*\|\|\s*\?\s*\|\|\s*'\s*days'\s*\)",
+            r"(CURRENT_DATE - (? || ' days')::INTERVAL)",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        # Convert DATE('now') to CURRENT_DATE
+        query = re.sub(
+            r"DATE\s*\(\s*'now'\s*\)",
+            r"CURRENT_DATE",
+            query,
+            flags=re.IGNORECASE
+        )
+        
+        return query
+    
+    def cursor(self):
+        """Create and return a new cursor."""
+        return self._conn.cursor()
+    
+    def commit(self):
+        return self._conn.commit()
+    
+    def rollback(self):
+        return self._conn.rollback()
+    
+    def close(self):
+        if self._cursor:
+            self._cursor.close()
+        return self._conn.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._cursor:
+            self._cursor.close()
+        return False
+
+
 def get_database_type() -> str:
     """Detect database type from environment."""
     database_url = os.getenv('DATABASE_URL', '')
@@ -594,7 +704,11 @@ def get_db() -> Generator[Any, None, None]:
     """
     Universal database connection context manager.
     Auto-detects SQLite vs PostgreSQL from DATABASE_URL env var.
-    Supports both direct (port 5432) and serverless pooling (port 6543) connections.
+    Returns a DatabaseConnection wrapper that provides a unified interface.
+    
+    IMPORTANT: For PostgreSQL (Supabase), use direct connection (port 5432), 
+    NOT pooling connection (port 6543). Transaction pooling cannot execute 
+    DDL statements (CREATE TABLE, ALTER TABLE) needed during initialization.
     """
     if DB_TYPE == 'postgresql':
         database_url = os.getenv('DATABASE_URL', '')
@@ -602,12 +716,13 @@ def get_db() -> Generator[Any, None, None]:
             raise ValueError("DATABASE_URL environment variable not set")
         
         # Connection settings optimized for serverless pooling
-        conn = psycopg2.connect(
+        raw_conn = psycopg2.connect(
             database_url,
             cursor_factory=psycopg2.extras.RealDictCursor,
             connect_timeout=10  # 10 second timeout
         )
-        conn.autocommit = False
+        raw_conn.autocommit = False
+        conn = DatabaseConnection(raw_conn, 'postgresql')
         try:
             yield conn
             conn.commit()
@@ -618,8 +733,9 @@ def get_db() -> Generator[Any, None, None]:
             conn.close()
     else:
         # SQLite
-        conn = sqlite3.connect(settings.database_path)
-        conn.row_factory = sqlite3.Row
+        raw_conn = sqlite3.connect(settings.database_path)
+        raw_conn.row_factory = sqlite3.Row
+        conn = DatabaseConnection(raw_conn, 'sqlite')
         try:
             yield conn
             conn.commit()
