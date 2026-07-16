@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     mock_user_id: str = "demo_user_001"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
-    supabase_jwt_secret: str | None = None
-    jwt_algorithm: str = "HS256"
+    # JWT verification now uses JWKS (automatic public key fetching)
+    # No manual JWT_ALGORITHM or SUPABASE_JWT_SECRET needed
 
     # CORS — use JSON array format in .env: ["url1","url2"]
     cors_origins: List[str] = [
