@@ -637,28 +637,37 @@ def init_db() -> None:
             if DB_TYPE == 'postgresql':
                 # PostgreSQL: Execute statements individually
                 cursor = conn.cursor()
+                # Step 1: Create tables
                 for statement in _SCHEMA_TABLES_POSTGRES.split(';'):
                     statement = statement.strip()
                     if statement:
                         cursor.execute(statement)
+                cursor.close()
+                
+                # Step 2: Run migrations BEFORE creating indexes (indexes may reference new columns)
+                _run_migrations(conn)
+                
+                # Step 3: Create indexes (now that all columns exist)
+                cursor = conn.cursor()
                 for statement in _SCHEMA_INDEXES.split(';'):
                     statement = statement.strip()
                     if statement:
                         cursor.execute(statement)
+                
+                # Step 4: Create views
                 for statement in _SCHEMA_VIEWS.split(';'):
                     statement = statement.strip()
                     if statement:
                         cursor.execute(statement)
                 cursor.close()
-                # Run migrations for PostgreSQL (add missing columns to existing tables)
-                _run_migrations(conn)
                 logger.info("PostgreSQL database initialized")
             else:
                 # SQLite: Use executescript
                 conn.executescript(_SCHEMA_TABLES_SQLITE)
+                # Run migrations before indexes (indexes may reference new columns)
+                _run_migrations(conn)
                 conn.executescript(_SCHEMA_INDEXES)
                 conn.executescript(_SCHEMA_VIEWS)
-                _run_migrations(conn)
                 logger.info("SQLite database initialized at '%s'", settings.database_path)
     except Exception as e:
         logger.error("Failed to initialize database: %s", str(e))
