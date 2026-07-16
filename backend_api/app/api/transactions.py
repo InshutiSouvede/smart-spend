@@ -448,8 +448,8 @@ def list_transactions(
 
     with get_db() as conn:
         total = conn.execute(
-            f"SELECT COUNT(*) FROM sms_transactions WHERE {where}", params
-        ).fetchone()[0]
+            f"SELECT COUNT(*) AS count FROM sms_transactions WHERE {where}", params
+        ).fetchone()["count"]
 
         rows = conn.execute(
             f"SELECT * FROM sms_transactions WHERE {where}"
@@ -508,7 +508,7 @@ def list_unmatched(
     with get_db() as conn:
         total = conn.execute(
             """
-            SELECT COUNT(*) FROM sms_transactions st
+            SELECT COUNT(*) AS count FROM sms_transactions st
             WHERE st.user_id = ?
               AND st.transaction_type = 'expense'
               AND NOT EXISTS (
@@ -518,7 +518,7 @@ def list_unmatched(
               )
             """,
             (user_id,),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
         rows = conn.execute(
             """
@@ -784,9 +784,9 @@ def add_correction(
 
         # Count this user's total corrections to decide on auto-trigger
         total_corrections = conn.execute(
-            "SELECT COUNT(*) FROM category_corrections WHERE user_id = ?",
+            "SELECT COUNT(*) AS count FROM category_corrections WHERE user_id = ?",
             (user_id,),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
     # -- Determine whether to queue retraining --
     # Auto-trigger when corrections reach a multiple of the configured threshold.

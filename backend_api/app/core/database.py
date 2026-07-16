@@ -18,6 +18,86 @@ except ImportError:
     logger.warning("psycopg2 not installed - PostgreSQL support disabled")
 
 
+class HybridRow:
+    """
+    Row wrapper that supports both numeric and named indexing.
+    Compatible with both SQLite Row and PostgreSQL RealDictRow.
+    """
+    def __init__(self, data):
+        if isinstance(data, dict):
+            # PostgreSQL RealDictRow (is a dict-like object)
+            self._dict = dict(data)
+            self._keys = list(data.keys())
+        elif hasattr(data, 'keys'):
+            # SQLite Row or similar
+            self._keys = list(data.keys())
+            self._dict = {k: data[k] for k in self._keys}
+        else:
+            # Fallback
+            self._dict = {}
+            self._keys = []
+    
+    def __getitem__(self, key):
+        """Support both numeric (row[0]) and named (row['column']) indexing."""
+        if isinstance(key, int):
+            # Numeric indexing
+            if 0 <= key < len(self._keys):
+                return self._dict[self._keys[key]]
+            raise IndexError(f"Row index out of range: {key}")
+        else:
+            # Named indexing
+            return self._dict[key]
+    
+    def __contains__(self, key):
+        return key in self._dict
+    
+    def keys(self):
+        return self._keys
+    
+    def values(self):
+        return [self._dict[k] for k in self._keys]
+    
+    def items(self):
+        return [(k, self._dict[k]) for k in self._keys]
+    
+    def get(self, key, default=None):
+        if isinstance(key, int):
+            if 0 <= key < len(self._keys):
+                return self._dict[self._keys[key]]
+            return default
+        return self._dict.get(key, default)
+
+
+class CursorWrapper:
+    """Wrapper for database cursor that converts rows to HybridRow."""
+    def __init__(self, cursor):
+        self._cursor = cursor
+    
+    def fetchone(self):
+        """Fetch one row and wrap it."""
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        return HybridRow(row)
+    
+    def fetchall(self):
+        """Fetch all rows and wrap them."""
+        rows = self._cursor.fetchall()
+        return [HybridRow(row) for row in rows]
+    
+    def fetchmany(self, size=None):
+        """Fetch many rows and wrap them."""
+        if size is None:
+            rows = self._cursor.fetchmany()
+        else:
+            rows = self._cursor.fetchmany(size)
+        return [HybridRow(row) for row in rows]
+    
+    def __getattr__(self, name):
+        """Delegate other attributes to the underlying cursor."""
+        return getattr(self._cursor, name)
+
+
 class DatabaseConnection:
     """
     Wrapper class that provides a unified interface for both SQLite and PostgreSQL connections.
@@ -33,6 +113,7 @@ class DatabaseConnection:
         Execute a query and return a cursor-like object.
         Handles both SQLite (which has conn.execute) and PostgreSQL (which needs cursor).
         Automatically converts ? placeholders to %s for PostgreSQL and common SQL patterns.
+        Returns a CursorWrapper that supports both numeric and named row indexing.
         """
         if self._db_type == 'postgresql':
             # Convert SQLite-specific SQL to PostgreSQL
@@ -43,10 +124,12 @@ class DatabaseConnection:
             if self._cursor is None:
                 self._cursor = self._conn.cursor()
             self._cursor.execute(query, params)
-            return self._cursor
+            # Return wrapped cursor for consistent row access
+            return CursorWrapper(self._cursor)
         else:
-            # For SQLite, use the built-in execute method
-            return self._conn.execute(query, params)
+            # For SQLite, execute and wrap the cursor
+            cursor = self._conn.execute(query, params)
+            return CursorWrapper(cursor)
     
     def _convert_sql_dialect(self, query: str) -> str:
         """Convert SQLite SQL syntax to PostgreSQL."""

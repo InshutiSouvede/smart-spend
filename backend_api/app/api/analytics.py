@@ -201,9 +201,9 @@ def get_category_breakdown(
         # Calculate grand total from all expense transactions
         grand_total = float(
             conn.execute(
-                f"SELECT COALESCE(SUM(amount_rwf), 0) FROM sms_transactions st WHERE {where}",
+                f"SELECT COALESCE(SUM(amount_rwf), 0) AS total FROM sms_transactions st WHERE {where}",
                 params,
-            ).fetchone()[0]
+            ).fetchone()["total"]
         )
         
         # Category breakdown: use item costs when available, transaction amounts otherwise
@@ -335,7 +335,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
 
         unmatched_count = conn.execute(
             """
-            SELECT COUNT(*) FROM sms_transactions st
+            SELECT COUNT(*) AS count FROM sms_transactions st
             WHERE st.user_id = ? AND st.transaction_type = 'expense'
               AND NOT EXISTS (
                   SELECT 1 FROM transaction_purchase_matches tpm
@@ -344,7 +344,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
               )
             """,
             (user_id,),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
     top_category        = cat_rows[0]["category"] if cat_rows else None
     top_category_amount = float(cat_rows[0]["total"]) if cat_rows else 0.0

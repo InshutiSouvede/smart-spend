@@ -91,6 +91,16 @@ export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
     );
   }
 
+  // Check if SmsAndroid module is available
+  if (!SmsAndroid || typeof SmsAndroid.list !== 'function') {
+    return Promise.reject(
+      new Error(
+        'SMS module not available. Make sure you have run "npx expo prebuild" ' +
+        'and built the native Android app with "npx expo run:android".'
+      ),
+    );
+  }
+
   const filterObj: Record<string, unknown> = {
     box: 'inbox',
     maxCount: filter.maxCount ?? 500,
@@ -118,6 +128,11 @@ export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
 
 /** Group a flat list of SMS messages into conversations keyed by sender address. */
 export function groupByConversation(messages: DeviceSMS[]): SMSConversation[] {
+  // Handle null, undefined, or empty arrays
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
   const map = new Map<string, SMSConversation>();
 
   for (const msg of messages) {

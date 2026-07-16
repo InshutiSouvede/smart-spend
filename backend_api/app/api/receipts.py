@@ -728,9 +728,9 @@ def list_receipts(
     offset = (page - 1) * page_size
     with get_db() as conn:
         total = conn.execute(
-            "SELECT COUNT(*) FROM receipt_uploads WHERE user_id = ?",
+            "SELECT COUNT(*) AS count FROM receipt_uploads WHERE user_id = ?",
             (user_id,),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
         rows = conn.execute(
             _RECEIPT_SUMMARY_SQL + " GROUP BY ru.id ORDER BY ru.uploaded_at DESC LIMIT ? OFFSET ?",
@@ -769,10 +769,10 @@ def list_unmatched_receipts(
     extra = " AND (ru.match_status = 'unmatched' OR ru.match_status IS NULL)"
     with get_db() as conn:
         total = conn.execute(
-            "SELECT COUNT(*) FROM receipt_uploads WHERE user_id = ?"
+            "SELECT COUNT(*) AS count FROM receipt_uploads WHERE user_id = ?"
             " AND (match_status = 'unmatched' OR match_status IS NULL)",
             (user_id,),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
         rows = conn.execute(
             _RECEIPT_SUMMARY_SQL + extra
@@ -930,12 +930,12 @@ def link_receipt_to_sms(
         pd_ids = _pd_ids_for_receipt(conn, user_id, receipt_id)
         if match_total is None and pd_ids:
             row = conn.execute(
-                "SELECT SUM(total_cost_rwf) FROM purchase_details WHERE id IN ({})".format(
+                "SELECT SUM(total_cost_rwf) AS total FROM purchase_details WHERE id IN ({})".format(
                     ",".join("?" * len(pd_ids))
                 ),
                 pd_ids,
             ).fetchone()
-            match_total = row[0] if row and row[0] else None
+            match_total = row["total"] if row and row["total"] else None
 
         confidence: float | None = None
         if match_total is not None and match_total > 0:
