@@ -110,14 +110,34 @@ export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
   if (filter.address !== undefined) filterObj.address = filter.address;
 
   return new Promise((resolve, reject) => {
-    SmsAndroid.list(
-      JSON.stringify(filterObj),
-      (fail: string) => reject(new Error(fail)),
-      (_count: number, smsList: string) => {
-        try {
-          resolve(JSON.parse(smsList) as DeviceSMS[]);
-        } catch {
-          resolve([]);
+    try {
+      SmsAndroid.list(
+        JSON.stringify(filterObj),
+        (fail: string) => {
+          console.error('SmsAndroid.list failed:', fail);
+          reject(new Error(fail || 'Failed to read SMS'));
+        },
+        (_count: number, smsList: string) => {
+          try {
+            if (!smsList || smsList.trim() === '' || smsList === 'null') {
+              console.log('SmsAndroid returned empty or null result, returning empty array');
+              resolve([]);
+              return;
+            }
+            const parsed = JSON.parse(smsList);
+            resolve(Array.isArray(parsed) ? parsed : []);
+          } catch (err) {
+            console.error('Failed to parse SMS list:', err);
+            resolve([]);
+          }
+        },
+      );
+    } catch (err) {
+      console.error('Error calling SmsAndroid.list:', err);
+      reject(new Error('Failed to read SMS: ' + (err instanceof Error ? err.message : String(err))));
+    }
+  });
+}
         }
       },
     );

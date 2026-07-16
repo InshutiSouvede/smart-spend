@@ -70,8 +70,10 @@ class HybridRow:
 
 class CursorWrapper:
     """Wrapper for database cursor that converts rows to HybridRow."""
-    def __init__(self, cursor):
+    def __init__(self, cursor, db_type: str):
         self._cursor = cursor
+        self._db_type = db_type
+        self._lastrowid = None
     
     def fetchone(self):
         """Fetch one row and wrap it."""
@@ -93,6 +95,18 @@ class CursorWrapper:
             rows = self._cursor.fetchmany(size)
         return [HybridRow(row) for row in rows]
     
+    @property
+    def lastrowid(self):
+        """Return the last inserted row ID (compatible with SQLite and PostgreSQL)."""
+        if self._lastrowid is not None:
+            return self._lastrowid
+        # Fallback to SQLite behavior
+        return getattr(self._cursor, 'lastrowid', None)
+    
+    def _set_lastrowid(self, row_id):
+        """Internal method to set lastrowid for PostgreSQL RETURNING."""
+        self._lastrowid = row_id
+    
     def __getattr__(self, name):
         """Delegate other attributes to the underlying cursor."""
         return getattr(self._cursor, name)
@@ -113,6 +127,7 @@ class DatabaseConnection:
         Execute a query and return a cursor-like object.
         Handles both SQLite (which has conn.execute) and PostgreSQL (which needs cursor).
         Automatically converts ? placeholders to %s for PostgreSQL and common SQL patterns.
+        For PostgreSQL INSERTs, automatically adds RETURNING id to support lastrowid.
         Returns a CursorWrapper that supports both numeric and named row indexing.
         """
         if self._db_type == 'postgresql':
@@ -120,16 +135,37 @@ class DatabaseConnection:
             query = self._convert_sql_dialect(query)
             # Convert ? to %s for PostgreSQL
             query = query.replace('?', '%s')
+            
+            # Auto-add RETURNING id for INSERT statements (to support lastrowid)
+            is_insert = query.strip().upper().startswith('INSERT')
+            has_returning = 'RETURNING' in query.upper()
+            
+            if is_insert and not has_returning:
+                # Add RETURNING id for PostgreSQL to get auto-generated ID
+                query = query.rstrip().rstrip(';') + ' RETURNING id'
+            
             # For PostgreSQL, create a cursor if needed and execute
             if self._cursor is None:
                 self._cursor = self._conn.cursor()
             self._cursor.execute(query, params)
-            # Return wrapped cursor for consistent row access
-            return CursorWrapper(self._cursor)
+            
+            # Create wrapped cursor
+            wrapper = CursorWrapper(self._cursor, 'postgresql')
+            
+            # If INSERT with RETURNING, fetch the returned ID
+            if is_insert and 'RETURNING' in query.upper():
+                try:
+                    result = self._cursor.fetchone()
+                    if result and 'id' in result:
+                        wrapper._set_lastrowid(result['id'])
+                except Exception:
+                    pass  # If fetch fails, lastrowid will be None
+            
+            return wrapper
         else:
             # For SQLite, execute and wrap the cursor
             cursor = self._conn.execute(query, params)
-            return CursorWrapper(cursor)
+            return CursorWrapper(cursor, 'sqlite')
     
     def _convert_sql_dialect(self, query: str) -> str:
         """Convert SQLite SQL syntax to PostgreSQL."""
