@@ -496,27 +496,61 @@ def _run_migrations(conn) -> None:
     """
     Safely add new columns to tables that may have been created before the
     current schema. This replaces Alembic for simple ALTER TABLE cases.
-    Only runs for SQLite (PostgreSQL schema is complete from start).
+    Supports both SQLite and PostgreSQL.
     """
-    if DB_TYPE == 'postgresql':
-        # PostgreSQL schema is complete, no migrations needed
-        logger.info("PostgreSQL: Skipping migrations (schema is complete)")
-        return
-
     def _has_column(table: str, column: str) -> bool:
-        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
-        return any(row["name"] == column for row in rows)
+        if DB_TYPE == 'postgresql':
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = %s
+                )
+            """, (table, column))
+            result = cursor.fetchone()
+            cursor.close()
+            return result[0] if result else False
+        else:
+            rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
+            return any(row["name"] == column for row in rows)
+    
+    def _execute(sql: str) -> None:
+        """Execute SQL for current DB type."""
+        if DB_TYPE == 'postgresql':
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            cursor.close()
+        else:
+            conn.execute(sql)
+
+    # Define migrations with DB-specific type mappings
+    def _get_type(sqlite_type: str) -> str:
+        """Convert SQLite type to appropriate type for current DB."""
+        if DB_TYPE == 'sqlite':
+            return sqlite_type
+        # PostgreSQL type mappings
+        type_map = {
+            'TEXT': 'TEXT',
+            'REAL': 'NUMERIC(15,2)',
+            'INTEGER': 'INTEGER',
+            'TEXT DEFAULT \'unmatched\'': 'TEXT DEFAULT \'unmatched\'',
+            'TEXT DEFAULT \'RWF\'': 'TEXT DEFAULT \'RWF\'',
+            'TIMESTAMPTZ': 'TIMESTAMPTZ',
+        }
+        return type_map.get(sqlite_type, sqlite_type)
 
     if not _has_column("users", "last_sms_import_at"):
-        conn.execute("ALTER TABLE users ADD COLUMN last_sms_import_at TEXT")
+        col_type = 'TIMESTAMPTZ' if DB_TYPE == 'postgresql' else 'TEXT'
+        _execute(f"ALTER TABLE users ADD COLUMN last_sms_import_at {col_type}")  # noqa: S608
         logger.info("Migration: added users.last_sms_import_at")
 
     if not _has_column("sms_transactions", "provider"):
-        conn.execute("ALTER TABLE sms_transactions ADD COLUMN provider TEXT")
+        _execute("ALTER TABLE sms_transactions ADD COLUMN provider TEXT")
         logger.info("Migration: added sms_transactions.provider")
 
     if not _has_column("sms_transactions", "currency"):
-        conn.execute(
+        _execute(
             "ALTER TABLE sms_transactions ADD COLUMN currency TEXT DEFAULT 'RWF'"
         )
         logger.info("Migration: added sms_transactions.currency")
@@ -525,14 +559,15 @@ def _run_migrations(conn) -> None:
     _receipt_cols = [
         ("merchant_name",    "TEXT"),
         ("total_amount_rwf", "REAL"),
-        ("receipt_timestamp","TEXT"),
+        ("receipt_timestamp","TEXT" if DB_TYPE == 'sqlite' else "TIMESTAMPTZ"),
         ("matched_sms_id",   "INTEGER"),
         ("match_confidence", "REAL"),
         ("match_status",     "TEXT DEFAULT 'unmatched'"),
     ]
     for col, defn in _receipt_cols:
         if not _has_column("receipt_uploads", col):
-            conn.execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {defn}")  # noqa: S608
+            col_type = _get_type(defn)
+            _execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {col_type}")  # noqa: S608
             logger.info("Migration: added receipt_uploads.%s", col)
     
     # receipt_uploads: Enhanced OCR quality indicators
@@ -544,8 +579,14 @@ def _run_migrations(conn) -> None:
     ]
     for col, defn in _receipt_quality_cols:
         if not _has_column("receipt_uploads", col):
-            conn.execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {defn}")  # noqa: S608
+            col_type = _get_type(defn)
+            _execute(f"ALTER TABLE receipt_uploads ADD COLUMN {col} {col_type}")  # noqa: S608
             logger.info("Migration: added receipt_uploads.%s", col)
+    
+    # retraining_jobs: Ensure status column exists (critical for job tracking)
+    if not _has_column("retraining_jobs", "status"):
+        _execute("ALTER TABLE retraining_jobs ADD COLUMN status TEXT NOT NULL DEFAULT 'queued'")  # noqa: S608
+        logger.info("Migration: added retraining_jobs.status")
 
 
 @contextmanager
@@ -609,6 +650,8 @@ def init_db() -> None:
                     if statement:
                         cursor.execute(statement)
                 cursor.close()
+                # Run migrations for PostgreSQL (add missing columns to existing tables)
+                _run_migrations(conn)
                 logger.info("PostgreSQL database initialized")
             else:
                 # SQLite: Use executescript
