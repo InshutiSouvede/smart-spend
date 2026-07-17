@@ -737,8 +737,18 @@ def list_receipts(
             (user_id, page_size, offset),
         ).fetchall()
 
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    items = []
+    for r in rows:
+        row_dict = dict(r)
+        if row_dict.get('uploaded_at') and hasattr(row_dict['uploaded_at'], 'isoformat'):
+            row_dict['uploaded_at'] = row_dict['uploaded_at'].isoformat()
+        if row_dict.get('receipt_timestamp') and hasattr(row_dict['receipt_timestamp'], 'isoformat'):
+            row_dict['receipt_timestamp'] = row_dict['receipt_timestamp'].isoformat()
+        items.append(ReceiptSummary(**row_dict))
+
     return ReceiptListResponse(
-        items=[ReceiptSummary(**dict(r)) for r in rows],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
@@ -780,8 +790,18 @@ def list_unmatched_receipts(
             (user_id, page_size, offset),
         ).fetchall()
 
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    items = []
+    for r in rows:
+        row_dict = dict(r)
+        if row_dict.get('uploaded_at') and hasattr(row_dict['uploaded_at'], 'isoformat'):
+            row_dict['uploaded_at'] = row_dict['uploaded_at'].isoformat()
+        if row_dict.get('receipt_timestamp') and hasattr(row_dict['receipt_timestamp'], 'isoformat'):
+            row_dict['receipt_timestamp'] = row_dict['receipt_timestamp'].isoformat()
+        items.append(ReceiptSummary(**row_dict))
+
     return ReceiptListResponse(
-        items=[ReceiptSummary(**dict(r)) for r in rows],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
