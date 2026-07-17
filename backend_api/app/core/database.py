@@ -816,6 +816,20 @@ def _run_migrations(conn) -> None:
     if not _has_column("retraining_jobs", "status"):
         _execute("ALTER TABLE retraining_jobs ADD COLUMN status TEXT NOT NULL DEFAULT 'queued'")  # noqa: S608
         logger.info("Migration: added retraining_jobs.status")
+    
+    # expense_categories: Add missing columns for category tracking
+    _expense_category_cols = [
+        ("predicted_category", "TEXT", "TEXT"),
+        ("confidence", "REAL", "NUMERIC(3,2)"),
+        ("final_category", "TEXT", "TEXT"),
+        ("category_source", "TEXT DEFAULT 'model'", "TEXT DEFAULT 'model'"),
+        ("corrected_at", "TEXT", "TIMESTAMPTZ"),
+    ]
+    for col, sqlite_type, pg_type in _expense_category_cols:
+        if not _has_column("expense_categories", col):
+            col_type = sqlite_type if DB_TYPE == 'sqlite' else pg_type
+            _execute(f"ALTER TABLE expense_categories ADD COLUMN {col} {col_type}")  # noqa: S608
+            logger.info("Migration: added expense_categories.%s", col)
 
 
 @contextmanager
