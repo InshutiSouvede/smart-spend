@@ -502,7 +502,12 @@ def get_unmatched_expenses(
     for row in rows:
         amount = row["amount_rwf"]
         to_who = row["to_who"] or "someone"
-        tx_time = (row["transaction_time"] or "")[:16].replace("T", " ")
+        
+        # Convert datetime to string for formatting
+        tx_time_value = row["transaction_time"]
+        if tx_time_value and hasattr(tx_time_value, 'isoformat'):
+            tx_time_value = tx_time_value.isoformat()
+        tx_time = (tx_time_value or "")[:16].replace("T", " ")
         
         clarification_prompt = (
             f"You sent {int(amount):,} RWF to {to_who}"
@@ -514,7 +519,7 @@ def get_unmatched_expenses(
             "sms_transaction_id": row["id"],
             "amount_rwf": float(amount),
             "to_who": row["to_who"],
-            "transaction_time": row["transaction_time"],
+            "transaction_time": tx_time_value,  # Already converted to ISO string
             "clarification_prompt": clarification_prompt,
         })
     

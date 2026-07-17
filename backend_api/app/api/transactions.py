@@ -93,6 +93,13 @@ def _get_purchase_details_for_transaction(conn, sms_id: int) -> list:
     result = []
     for r in rows:
         row_dict = dict(r)
+        
+        # Convert datetime objects to ISO strings for PostgreSQL compatibility
+        if row_dict.get('purchase_time') and hasattr(row_dict['purchase_time'], 'isoformat'):
+            row_dict['purchase_time'] = row_dict['purchase_time'].isoformat()
+        if row_dict.get('created_at') and hasattr(row_dict['created_at'], 'isoformat'):
+            row_dict['created_at'] = row_dict['created_at'].isoformat()
+        
         result.append(
             PurchaseDetailOut(
                 id=row_dict["id"],
@@ -461,6 +468,14 @@ def list_transactions(
         for r in rows:
             d = dict(r)
             
+            # Convert datetime objects to ISO strings for PostgreSQL compatibility
+            if d.get('transaction_time') and hasattr(d['transaction_time'], 'isoformat'):
+                d['transaction_time'] = d['transaction_time'].isoformat()
+            if d.get('created_at') and hasattr(d['created_at'], 'isoformat'):
+                d['created_at'] = d['created_at'].isoformat()
+            if d.get('sms_time') and hasattr(d['sms_time'], 'isoformat'):
+                d['sms_time'] = d['sms_time'].isoformat()
+            
             # Fetch purchase details for this transaction
             purchase_details = _get_purchase_details_for_transaction(conn, d["id"])
             
@@ -540,6 +555,15 @@ def list_unmatched(
     items = []
     for r in rows:
         row_dict = dict(r)
+        
+        # Convert datetime objects to ISO strings for PostgreSQL compatibility
+        if row_dict.get('transaction_time') and hasattr(row_dict['transaction_time'], 'isoformat'):
+            row_dict['transaction_time'] = row_dict['transaction_time'].isoformat()
+        if row_dict.get('created_at') and hasattr(row_dict['created_at'], 'isoformat'):
+            row_dict['created_at'] = row_dict['created_at'].isoformat()
+        if row_dict.get('sms_time') and hasattr(row_dict['sms_time'], 'isoformat'):
+            row_dict['sms_time'] = row_dict['sms_time'].isoformat()
+        
         items.append(
             SMSTransactionOut(
                 id=row_dict["id"],

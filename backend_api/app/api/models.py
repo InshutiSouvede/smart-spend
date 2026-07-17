@@ -193,6 +193,13 @@ def list_retraining_jobs(
     result = []
     for r in rows:
         d = dict(r)
+        
+        # Convert datetime objects to ISO strings for PostgreSQL compatibility
+        if d.get('started_at') and hasattr(d['started_at'], 'isoformat'):
+            d['started_at'] = d['started_at'].isoformat()
+        if d.get('completed_at') and hasattr(d['completed_at'], 'isoformat'):
+            d['completed_at'] = d['completed_at'].isoformat()
+        
         d["metrics"] = json.loads(d.pop("metrics_json", None) or "{}")
         result.append(d)
     return result
@@ -217,6 +224,13 @@ def get_retraining_job(
     if not row:
         raise HTTPException(status_code=404, detail="Retraining job not found.")
     d = dict(row)
+    
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    if d.get('started_at') and hasattr(d['started_at'], 'isoformat'):
+        d['started_at'] = d['started_at'].isoformat()
+    if d.get('completed_at') and hasattr(d['completed_at'], 'isoformat'):
+        d['completed_at'] = d['completed_at'].isoformat()
+    
     d["metrics"] = json.loads(d.pop("metrics_json", None) or "{}")
     return d
 
@@ -263,6 +277,11 @@ def list_model_versions(
     result = []
     for r in rows:
         d = dict(r)
+        
+        # Convert datetime objects to ISO strings for PostgreSQL compatibility
+        if d.get('created_at') and hasattr(d['created_at'], 'isoformat'):
+            d['created_at'] = d['created_at'].isoformat()
+        
         d["metrics"]   = json.loads(d.pop("metrics_json", None) or "{}")
         d["is_active"] = bool(d["is_active"])
         result.append(d)
@@ -312,7 +331,13 @@ def create_custom_category(
                 )
             raise
     
-    return dict(row)
+    row_dict = dict(row)
+    
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    if row_dict.get('created_at') and hasattr(row_dict['created_at'], 'isoformat'):
+        row_dict['created_at'] = row_dict['created_at'].isoformat()
+    
+    return row_dict
 
 
 # ─── GET /models/categories/custom ────────────────────────────────────────────
@@ -331,7 +356,16 @@ def list_custom_categories(
             "SELECT * FROM custom_categories WHERE user_id = ? ORDER BY name",
             (user_id,),
         ).fetchall()
-    return [dict(r) for r in rows]
+    
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    result = []
+    for r in rows:
+        row_dict = dict(r)
+        if row_dict.get('created_at') and hasattr(row_dict['created_at'], 'isoformat'):
+            row_dict['created_at'] = row_dict['created_at'].isoformat()
+        result.append(row_dict)
+    
+    return result
 
 
 # ─── DELETE /models/categories/custom/{category_id} ───────────────────────────

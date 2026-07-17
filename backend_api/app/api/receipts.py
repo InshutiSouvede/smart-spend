@@ -239,6 +239,13 @@ def _build_pd_out(rows) -> list[PurchaseDetailOut]:
     result = []
     for r in rows:
         row_dict = dict(r)
+        
+        # Convert datetime objects to ISO strings for PostgreSQL compatibility
+        if row_dict.get('purchase_time') and hasattr(row_dict['purchase_time'], 'isoformat'):
+            row_dict['purchase_time'] = row_dict['purchase_time'].isoformat()
+        if row_dict.get('created_at') and hasattr(row_dict['created_at'], 'isoformat'):
+            row_dict['created_at'] = row_dict['created_at'].isoformat()
+        
         result.append(
             PurchaseDetailOut(
                 id=row_dict["id"],
@@ -859,21 +866,28 @@ def get_receipt(
             validation_warnings = json.loads(ru["validation_warnings"])
         except json.JSONDecodeError:
             validation_warnings = None
+    
+    # Convert datetime objects to ISO strings for PostgreSQL compatibility
+    ru_dict = dict(ru)
+    if ru_dict.get('receipt_timestamp') and hasattr(ru_dict['receipt_timestamp'], 'isoformat'):
+        ru_dict['receipt_timestamp'] = ru_dict['receipt_timestamp'].isoformat()
+    if ru_dict.get('uploaded_at') and hasattr(ru_dict['uploaded_at'], 'isoformat'):
+        ru_dict['uploaded_at'] = ru_dict['uploaded_at'].isoformat()
 
     return ReceiptUploadOut(
         receipt_id=receipt_id,
-        ocr_status=ru["ocr_status"],
-        extraction_status=ru["extraction_status"],
-        merchant_name=ru["merchant_name"],
-        total_amount_rwf=ru["total_amount_rwf"],
-        receipt_timestamp=ru["receipt_timestamp"],
+        ocr_status=ru_dict["ocr_status"],
+        extraction_status=ru_dict["extraction_status"],
+        merchant_name=ru_dict["merchant_name"],
+        total_amount_rwf=ru_dict["total_amount_rwf"],
+        receipt_timestamp=ru_dict["receipt_timestamp"],
         match=match_obj,
         purchase_details=_build_pd_out(pd_rows),
-        uploaded_at=ru["uploaded_at"],
-        ocr_confidence=ru["ocr_confidence"],
+        uploaded_at=ru_dict["uploaded_at"],
+        ocr_confidence=ru_dict["ocr_confidence"],
         validation_warnings=validation_warnings,
-        parser_source=ru["parser_source"],
-        completeness_score=ru["completeness_score"],
+        parser_source=ru_dict["parser_source"],
+        completeness_score=ru_dict["completeness_score"],
     )
 
 
