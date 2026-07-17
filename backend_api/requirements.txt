@@ -18,7 +18,7 @@ supabase==2.3.4
 # Image processing (resize before OCR, magic-byte validation)
 Pillow>=10.0.0
 # OCR Libraries (PaddleOCR for production deployment)
-paddlepaddle==2.6.1
+paddlepaddle==2.6.2
 paddleocr==2.7.3
 # Set PADDLE_OCR_ENABLED=true in environment variables (default: true)
 # Alternative: EasyOCR (if paddleocr has issues): pip install easyocr
