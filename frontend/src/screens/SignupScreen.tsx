@@ -51,13 +51,23 @@ export function SignupScreen() {
       await authApi.register(data);
       // After registration, log in immediately
       const loginRes = await authApi.login({ email: data.email, password: data.password });
-      const token = loginRes.access_token ?? 'mock-token';
-      await setAuth(token, {
+      console.log('Post-registration login:', { 
+        auth_mode: loginRes.auth_mode, 
+        has_token: !!loginRes.access_token,
+        token_preview: loginRes.access_token?.substring(0, 20)
+      });
+      
+      if (!loginRes.access_token) {
+        throw new Error(`Authentication failed: No access token received (auth_mode: ${loginRes.auth_mode})`);
+      }
+      
+      await setAuth(loginRes.access_token, {
         user_id: loginRes.user_id,
         email: loginRes.email,
         display_name: loginRes.display_name ?? data.display_name,
       });
     } catch (e) {
+      console.error('Signup error:', e);
       setApiError(getErrorMessage(e));
     }
   };

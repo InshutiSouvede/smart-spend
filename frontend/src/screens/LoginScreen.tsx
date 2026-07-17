@@ -47,15 +47,37 @@ export function LoginScreen() {
   const onSubmit = async (data: FormData) => {
     setApiError(null);
     try {
+      console.log('[LOGIN] Attempting login with email:', data.email);
       const res = await authApi.login(data);
-      // In mock mode the server returns no real JWT; use a placeholder token
-      const token = res.access_token ?? 'mock-token';
-      await setAuth(token, {
+      
+      console.log('[LOGIN] ✓ Login API response received');
+      console.log('[LOGIN] Auth mode:', res.auth_mode);
+      console.log('[LOGIN] User ID:', res.user_id);
+      console.log('[LOGIN] Token type:', res.token_type);
+      console.log('[LOGIN] Has access_token:', !!res.access_token);
+      
+      if (res.access_token) {
+        console.log('[LOGIN] Token length:', res.access_token.length);
+        console.log('[LOGIN] Token preview:', res.access_token.substring(0, 30) + '...');
+        console.log('[LOGIN] Token looks like JWT:', res.access_token.startsWith('eyJ'));
+      } else {
+        console.error('[LOGIN] ❌ No access_token in response!');
+        console.error('[LOGIN] ❌ This means backend is in mock mode or Supabase login failed');
+      }
+      
+      if (!res.access_token) {
+        throw new Error(`Authentication failed: No access token received (auth_mode: ${res.auth_mode}). Check backend MOCK_AUTH_ENABLED setting.`);
+      }
+      
+      console.log('[LOGIN] Saving token to SecureStore...');
+      await setAuth(res.access_token, {
         user_id: res.user_id,
         email: res.email,
         display_name: res.display_name,
       });
+      console.log('[LOGIN] ✓ Token saved successfully');
     } catch (e) {
+      console.error('[LOGIN] ❌ Login failed:', e);
       setApiError(getErrorMessage(e));
     }
   };

@@ -138,11 +138,6 @@ export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
     }
   });
 }
-        }
-      },
-    );
-  });
-}
 
 // ─── Grouping helpers ─────────────────────────────────────────────────────────
 
