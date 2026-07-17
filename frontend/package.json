@@ -7,7 +7,12 @@
     "start:dev": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "prebuild": "expo prebuild --clean --platform android",
+    "prebuild:production": "expo prebuild --clean --platform android && node scripts/add-proguard-rules.js",
+    "build:release": "cd android && .\\gradlew assembleRelease",
+    "build:apk": "npm run prebuild:production && npm run build:release",
+    "postinstall": "node scripts/add-proguard-rules.js || exit 0"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",

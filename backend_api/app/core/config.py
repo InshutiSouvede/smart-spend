@@ -40,9 +40,10 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
     allowed_upload_extensions: List[str] = [".jpg", ".jpeg", ".png", ".pdf", ".webp"]
 
-    # OCR — PaddleOCR runs locally; no API key required.
-    # Install: pip install paddlepaddle paddleocr  (then set PADDLE_OCR_ENABLED=true)
-    paddle_ocr_enabled: bool = True
+    # OCR — Tesseract runs locally; no API key required.
+    # System packages: tesseract-ocr, tesseract-ocr-eng (installed via nixpacks.toml)
+    # Python package: pip install pytesseract (then set TESSERACT_OCR_ENABLED=true)
+    tesseract_ocr_enabled: bool = True
 
     # Receipt-to-SMS matching thresholds
     receipt_match_amount_tolerance: float = 0.10   # max fractional amount diff (10 %)

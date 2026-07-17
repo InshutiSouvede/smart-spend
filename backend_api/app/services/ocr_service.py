@@ -1,14 +1,15 @@
 """
-OCR service — PaddleOCR-based receipt text extraction and parsing.
+OCR service — Tesseract OCR-based receipt text extraction and parsing.
 
 Design notes
 ------------
-* PaddleOCR is the primary OCR engine for reliable text extraction
-* The PaddleOCR instance is a module-level lazy singleton to avoid
-  re-initializing the model on every request
+* Tesseract OCR is the primary OCR engine for reliable text extraction
+* The Tesseract instance is initialized once (lazy singleton pattern)
 * Large images are resized in-place (max _MAX_OCR_DIMENSION px) before OCR
   to reduce memory and inference time
+* Images are preprocessed (grayscale + contrast enhancement) for better accuracy
 * File content is validated against magic bytes before being written to disk
+* Tesseract system package must be installed: tesseract-ocr, tesseract-ocr-eng
 """
 import io
 import logging
@@ -160,20 +161,20 @@ _MAGIC_MAP: List[Tuple[bytes, str]] = [
 ]
 
 # ---------------------------------------------------------------------------
-# PaddleOCR singleton service
+# Tesseract OCR singleton service
 # ---------------------------------------------------------------------------
 
 
 class OCRService:
-    """Singleton wrapper around PaddleOCR for receipt text extraction."""
+    """Singleton wrapper around Tesseract OCR for receipt text extraction."""
 
     _instance: ClassVar[Optional["OCRService"]] = None
-    _engine: Optional[object]
+    _engine_ready: bool = False
 
     def __new__(cls) -> "OCRService":
         if cls._instance is None:
             instance = super().__new__(cls)
-            instance._engine = None
+            instance._engine_ready = False
             cls._instance = instance
         return cls._instance
 
@@ -183,8 +184,8 @@ class OCRService:
 
     def extract(self, image_bytes: bytes) -> OCRResult:
         """Run OCR and return text, per-line details, and overall confidence."""
-        image_array = self._decode_image(image_bytes)
-        return self._run_ocr(image_array)
+        image = self._decode_image(image_bytes)
+        return self._run_ocr(image)
 
     def extract_text(self, image_bytes: bytes) -> str:
         """Convenience wrapper — returns only the text string."""
@@ -200,75 +201,122 @@ class OCRService:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _get_engine(self) -> object:
-        """Lazy-load PaddleOCR engine (singleton)."""
-        if self._engine is None:
+    def _ensure_engine(self) -> None:
+        """Verify Tesseract is available (one-time check)."""
+        if not self._engine_ready:
             try:
-                from paddleocr import PaddleOCR
-                logger.info("Initializing PaddleOCR (first call — model download may occur)…")
-                self._engine = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
-                logger.info("PaddleOCR ready.")
+                import pytesseract
+                # Test if tesseract binary is accessible
+                version = pytesseract.get_tesseract_version()
+                logger.info(f"Initializing Tesseract OCR v{version}…")
+                self._engine_ready = True
+                logger.info("Tesseract OCR ready.")
             except ImportError as exc:
                 logger.error(
-                    "PaddleOCR not installed. Install with: pip install paddlepaddle paddleocr"
+                    "pytesseract not installed. Install with: pip install pytesseract"
                 )
-                raise RuntimeError("PaddleOCR is not installed") from exc
-        return self._engine
+                raise RuntimeError("Tesseract OCR is not installed") from exc
+            except Exception as exc:
+                logger.error(
+                    "Tesseract binary not found. Install system package: "
+                    "apt-get install tesseract-ocr tesseract-ocr-eng"
+                )
+                raise RuntimeError("Tesseract OCR binary is not available") from exc
 
     @staticmethod
-    def _decode_image(image_bytes: bytes) -> np.ndarray:
-        """Decode image bytes to numpy array."""
+    def _decode_image(image_bytes: bytes) -> Image.Image:
+        """Decode image bytes to PIL Image with preprocessing."""
         try:
             image = Image.open(io.BytesIO(image_bytes))
             image.load()
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-            return np.array(image)
+            
+            # Preprocess for better OCR results
+            # 1. Convert to grayscale to improve text detection
+            if image.mode != "L":
+                image = image.convert("L")
+            
+            # 2. Enhance contrast (receipts often have low contrast)
+            from PIL import ImageEnhance
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(1.5)  # Increase contrast by 50%
+            
+            return image
         except UnidentifiedImageError as exc:
             raise ValueError("The file does not appear to be a valid image.") from exc
         except Exception as exc:
             raise ValueError(f"Could not decode image: {exc}") from exc
 
-    def _run_ocr(self, image_array: np.ndarray) -> OCRResult:
-        """Run PaddleOCR on image array and return structured result."""
+    def _run_ocr(self, image: Image.Image) -> OCRResult:
+        """Run Tesseract OCR on PIL Image and return structured result."""
         try:
-            engine = self._get_engine()
-            raw = engine.ocr(image_array, cls=True)
+            import pytesseract
+            
+            self._ensure_engine()
+            
+            # Tesseract config: PSM 6 = Assume uniform text block (best for receipts)
+            # OEM 3 = Default OCR Engine Mode (LSTM)
+            config = r'--psm 6 --oem 3'
+            
+            # Get detailed data including line-level information and confidence
+            data = pytesseract.image_to_data(
+                image, 
+                config=config,
+                output_type=pytesseract.Output.DICT,
+                lang='eng'
+            )
+            
         except Exception as exc:
-            logger.exception("PaddleOCR raised an unexpected error.")
+            logger.exception("Tesseract OCR raised an unexpected error.")
             raise RuntimeError("OCR processing failed.") from exc
 
-        if not raw or not raw[0]:
+        if not data or not data.get('text'):
             return OCRResult(text="", lines=[], confidence=0.0)
 
+        # Process Tesseract output
+        # Group words into lines based on line_num
+        line_groups: Dict[int, List[Tuple[str, float, int]]] = {}
         all_confidences: List[float] = []
-        detections: List[tuple] = []  # (top_y, left_x, text, confidence, bbox)
-
-        for det in raw[0]:
-            if not det or len(det) < 2:
+        
+        for i in range(len(data['text'])):
+            word = data['text'][i].strip()
+            conf = float(data['conf'][i])
+            line_num = data['line_num'][i]
+            left = data['left'][i]
+            
+            if not word or conf < 0:  # Tesseract returns -1 for low confidence
                 continue
-            bbox, text_info = det[0], det[1]
-            if not text_info or len(text_info) < 2:
-                continue
-            text, conf = str(text_info[0]), float(text_info[1])
-
-            if conf < _MIN_RAW_CONF:
-                continue
-            all_confidences.append(conf)
-
-            if conf >= _MIN_LINE_CONF:
-                top_y = min(pt[1] for pt in bbox)
-                left_x = min(pt[0] for pt in bbox)
-                detections.append((top_y, left_x, text, conf, bbox))
-
-        # Sort reading order: top→bottom, then left→right
-        detections.sort(key=lambda d: (d[0], d[1]))
-
-        lines = [
-            OCRLine(text=t, confidence=c, bbox=b)
-            for _, _, t, c, b in detections
-        ]
+            
+            # Normalize confidence to 0-1 range (Tesseract uses 0-100)
+            conf_normalized = conf / 100.0
+            
+            if conf_normalized >= _MIN_RAW_CONF:
+                all_confidences.append(conf_normalized)
+                
+                if conf_normalized >= _MIN_LINE_CONF:
+                    if line_num not in line_groups:
+                        line_groups[line_num] = []
+                    line_groups[line_num].append((word, conf_normalized, left))
+        
+        # Build OCRLine objects from grouped words
+        lines: List[OCRLine] = []
+        for line_num in sorted(line_groups.keys()):
+            # Sort words in line by left position (reading order)
+            words_data = sorted(line_groups[line_num], key=lambda x: x[2])
+            
+            # Combine words into line text
+            line_text = " ".join(word for word, _, _ in words_data)
+            
+            # Average confidence for the line
+            line_conf = float(np.mean([conf for _, conf, _ in words_data]))
+            
+            # Create simple bounding box (Tesseract doesn't provide detailed bbox like PaddleOCR)
+            # We use empty list to maintain compatibility
+            lines.append(OCRLine(text=line_text, confidence=line_conf, bbox=[]))
+        
+        # Combine all lines into full text
         full_text = "\n".join(ln.text for ln in lines)
+        
+        # Overall confidence is mean of all word confidences
         overall_conf = float(np.mean(all_confidences)) if all_confidences else 0.0
 
         return OCRResult(text=full_text, lines=lines, confidence=overall_conf)
@@ -360,14 +408,14 @@ def extract_text_from_receipt(file_path: str) -> Tuple[str, str]:
 
     This function provides backward compatibility with the existing codebase.
     """
-    if not settings.paddle_ocr_enabled:
-        logger.warning("PaddleOCR is disabled in settings. Enable with PADDLE_OCR_ENABLED=true")
+    if not settings.tesseract_ocr_enabled:
+        logger.warning("Tesseract OCR is disabled in settings. Enable with TESSERACT_OCR_ENABLED=true")
         raise RuntimeError("OCR is disabled")
 
     try:
         ocr_service = OCRService()
         result = ocr_service.extract_from_file(file_path)
-        return result.text, "paddleocr"
+        return result.text, "tesseract"
     except RuntimeError as exc:
         logger.error("OCR failed for '%s': %s", file_path, exc)
         raise
