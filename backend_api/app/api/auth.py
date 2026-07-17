@@ -113,9 +113,28 @@ async def _supabase_register(payload: RegisterRequest) -> RegisterResponse:
 
     data = resp.json()
     user = data.get("user") or {}
+    user_id = user.get("id", "")
+    email = user.get("email", payload.email)
+    user_meta = user.get("user_metadata") or {}
+    display_name_value = payload.display_name or user_meta.get("display_name")
+
+    # Sync user to local PostgreSQL database (required for foreign key constraints)
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO users (id, email, display_name, created_at)
+            VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                email = EXCLUDED.email,
+                display_name = COALESCE(EXCLUDED.display_name, users.display_name)
+            """,
+            (user_id, email, display_name_value)
+        )
+    logger.info("Supabase user synced to local database: %s (%s)", email, user_id)
+
     return RegisterResponse(
-        user_id=user.get("id", ""),
-        email=user.get("email", payload.email),
+        user_id=user_id,
+        email=email,
         display_name=payload.display_name,
         access_token=data.get("access_token"),
         auth_mode="supabase",
@@ -204,11 +223,29 @@ async def _supabase_login(payload: LoginRequest) -> LoginResponse:
 
     data = resp.json()
     user = data.get("user") or {}
+    user_id = user.get("id", "")
+    email = user.get("email", payload.email)
     user_meta = user.get("user_metadata") or {}
+    display_name_value = user_meta.get("display_name")
+
+    # Ensure user exists in local database (backfill for existing Supabase users)
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO users (id, email, display_name, created_at)
+            VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                email = EXCLUDED.email,
+                display_name = COALESCE(EXCLUDED.display_name, users.display_name)
+            """,
+            (user_id, email, display_name_value)
+        )
+    logger.info("Supabase user synced to local database on login: %s (%s)", email, user_id)
+
     return LoginResponse(
-        user_id=user.get("id", ""),
-        email=user.get("email", payload.email),
-        display_name=user_meta.get("display_name"),
+        user_id=user_id,
+        email=email,
+        display_name=display_name_value,
         access_token=data.get("access_token"),
         auth_mode="supabase",
     )

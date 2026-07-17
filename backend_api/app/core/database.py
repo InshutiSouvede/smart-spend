@@ -838,7 +838,7 @@ def get_db() -> Generator[Any, None, None]:
         raw_conn = psycopg2.connect(
             database_url,
             cursor_factory=psycopg2.extras.RealDictCursor,
-            connect_timeout=10  # 10 second timeout
+            connect_timeout=30  # 30 second timeout for serverless cold starts
         )
         raw_conn.autocommit = False
         conn = DatabaseConnection(raw_conn, 'postgresql')
