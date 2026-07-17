@@ -1,0 +1,19 @@
+# Nixpacks configuration for Railway deployment
+# Specifies system dependencies required by the SmartSpend backend
+
+[phases.setup]
+# System packages required for Tesseract OCR
+aptPkgs = [
+    "tesseract-ocr",       # Tesseract OCR engine
+    "tesseract-ocr-eng",   # English language data
+    "libtesseract-dev"     # Development headers for pytesseract
+]
+
+[phases.install]
+# Python dependencies are installed from requirements.txt (default behavior)
+
+[phases.build]
+# No build phase needed for Python applications
+
+[start]
+# Start command is defined in Procfile
