@@ -661,8 +661,13 @@ def submit_prompt_response(
             # Category prediction
             from datetime import datetime as _dt
             try:
-                pt = _dt.fromisoformat(purchase_time[:10]) if purchase_time else _dt.now()
-            except ValueError:
+                if isinstance(purchase_time, _dt):
+                    pt = purchase_time
+                elif purchase_time:
+                    pt = _dt.fromisoformat(str(purchase_time)[:10])
+                else:
+                    pt = _dt.now()
+            except (ValueError, TypeError):
                 pt = _dt.now()
 
             features = {
@@ -681,9 +686,13 @@ def submit_prompt_response(
         # Refresh monthly aggregates
         if sms["transaction_time"]:
             try:
-                dt = datetime.fromisoformat(sms["transaction_time"][:10])
+                tt = sms["transaction_time"]
+                if isinstance(tt, datetime):
+                    dt = tt
+                else:
+                    dt = datetime.fromisoformat(str(tt)[:10])
                 _rebuild_monthly_aggregates(conn, user_id, dt.year, dt.month)
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
 
     logger.info(
@@ -769,11 +778,16 @@ def add_correction(
              payload.corrected_category, now),
         )
 
-        purchase_time = pd_row["purchase_time"] or ""
+        purchase_time = pd_row["purchase_time"]
         try:
-            pt = datetime.fromisoformat(purchase_time[:10])
-            p_month   = pt.month
-            p_weekday = pt.weekday()
+            if isinstance(purchase_time, datetime):
+                pt = purchase_time
+            elif purchase_time:
+                pt = datetime.fromisoformat(str(purchase_time)[:10])
+            else:
+                pt = None
+            p_month   = pt.month if pt else None
+            p_weekday = pt.weekday() if pt else None
         except (ValueError, TypeError):
             p_month, p_weekday = None, None
 
