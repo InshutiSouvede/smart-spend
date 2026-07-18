@@ -124,8 +124,10 @@ def _get_purchase_details_for_transaction(conn, sms_id: int) -> list:
 
 def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> None:
     """Incrementally refresh monthly_financial_aggregates for one (user, year, month)."""
+    import calendar
     period_start = f"{year}-{month:02d}-01"
-    period_end   = f"{year}-{month:02d}-31"
+    last_day = calendar.monthrange(year, month)[1]
+    period_end   = f"{year}-{month:02d}-{last_day:02d}"
 
     # Income from sms_transactions
     income_row = conn.execute(
