@@ -49,6 +49,7 @@ def _try_auto_match(conn, user_id: str, sms_id: int, amount_rwf: float,
     """
     if not transaction_time:
         return []
+    denominator = max(amount_rwf, 1)
     rows = conn.execute(
         """
         SELECT pd.id, pd.total_cost_rwf
@@ -60,10 +61,10 @@ def _try_auto_match(conn, user_id: str, sms_id: int, amount_rwf: float,
           )
           AND ABS(CAST(strftime('%s', pd.purchase_time) AS REAL)
                -  CAST(strftime('%s', ?) AS REAL)) <= 7200
-          AND ABS(pd.total_cost_rwf - ?) / MAX(?, 1) <= 0.10
+          AND ABS(pd.total_cost_rwf - ?) / ? <= 0.10
         LIMIT 20
         """,
-        (user_id, transaction_time, amount_rwf, amount_rwf),
+        (user_id, transaction_time, amount_rwf, denominator),
     ).fetchall()
     return [r["id"] for r in rows]
 
@@ -381,10 +382,11 @@ def sync_sms(
                 if matched_pd_ids:
                     for pd_id in matched_pd_ids:
                         conn.execute(
-                            "INSERT OR IGNORE INTO transaction_purchase_matches"
+                            "INSERT INTO transaction_purchase_matches"
                             " (user_id, sms_transaction_id, purchase_detail_id,"
                             "  match_status, matched_by)"
-                            " VALUES (?, ?, ?, 'auto_matched', 'system')",
+                            " VALUES (?, ?, ?, 'auto_matched', 'system')"
+                            " ON CONFLICT DO NOTHING",
                             (user_id, sms_id, pd_id),
                         )
                     row_out["match_status"] = "auto_matched"
@@ -643,10 +645,11 @@ def submit_prompt_response(
             pd_ids.append(pd_id)
 
             conn.execute(
-                "INSERT OR IGNORE INTO transaction_purchase_matches"
+                "INSERT INTO transaction_purchase_matches"
                 " (user_id, sms_transaction_id, purchase_detail_id,"
                 "  match_status, match_score, matched_by)"
-                " VALUES (?, ?, ?, 'user_confirmed', 1.0, 'user')",
+                " VALUES (?, ?, ?, 'user_confirmed', 1.0, 'user')"
+                " ON CONFLICT DO NOTHING",
                 (user_id, sms_id, pd_id),
             )
 

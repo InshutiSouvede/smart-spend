@@ -133,17 +133,18 @@ def _find_best_sms_match(
     so the caller can log what score the best candidate achieved.
     """
     pre_filter = settings.receipt_match_amount_tolerance * 2
+    denominator = max(receipt_total, 1)
     rows = conn.execute(
         """
         SELECT id, amount_rwf, transaction_time, to_who
         FROM sms_transactions
         WHERE user_id = ?
           AND transaction_type = 'expense'
-          AND ABS(amount_rwf - ?) / MAX(?, 1) <= ?
+          AND ABS(amount_rwf - ?) / ? <= ?
         ORDER BY ABS(amount_rwf - ?)
         LIMIT 20
         """,
-        (user_id, receipt_total, receipt_total, pre_filter, receipt_total),
+        (user_id, receipt_total, denominator, pre_filter, receipt_total),
     ).fetchall()
 
     best_id: int | None = None

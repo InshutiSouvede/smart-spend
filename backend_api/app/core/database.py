@@ -221,6 +221,13 @@ class DatabaseConnection:
             flags=re.IGNORECASE
         )
         
+        # Convert INSERT OR IGNORE INTO to INSERT INTO ... ON CONFLICT DO NOTHING
+        if re.search(r'INSERT\s+OR\s+IGNORE\s+INTO', query, flags=re.IGNORECASE):
+            query = re.sub(r'INSERT\s+OR\s+IGNORE\s+INTO', 'INSERT INTO', query, flags=re.IGNORECASE)
+            # Only append if ON CONFLICT is not already present
+            if 'ON CONFLICT' not in query.upper():
+                query = query.rstrip().rstrip(';') + ' ON CONFLICT DO NOTHING'
+        
         return query
     
     def cursor(self):
