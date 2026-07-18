@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { TransactionsScreen } from '../screens/TransactionsScreen';
@@ -21,8 +22,8 @@ import { colors } from '../theme';
 export type AppTabParamList = {
   HomeTab: undefined;
   AnalyticsTab: undefined;
-  TransactionsTab: undefined;
-  ReceiptsTab: undefined;
+  TransactionsTab: NavigatorScreenParams<TransactionsStackParamList>;
+  ReceiptsTab: NavigatorScreenParams<ReceiptsStackParamList>;
   ExportTab: undefined;
   ProfileTab: undefined;
 };

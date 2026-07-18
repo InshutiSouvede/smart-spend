@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import type { SMSTransactionOut } from '../types/api';
@@ -7,6 +7,8 @@ import type { SMSTransactionOut } from '../types/api';
 interface Props {
   tx: SMSTransactionOut;
   onCategoryFix?: (purchaseDetailId: number, currentCategory: string) => void;
+  onPress?: (tx: SMSTransactionOut) => void;
+  highlight?: boolean;
 }
 
 function formatRWF(amount: number): string {
@@ -19,7 +21,7 @@ function formatDate(iso?: string | null): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function TransactionCard({ tx, onCategoryFix }: Props) {
+export function TransactionCard({ tx, onCategoryFix, onPress, highlight }: Props) {
   const isIncome = tx.transaction_type === 'income';
   const merchantLabel = isIncome ? tx.from_who ?? 'Income' : tx.to_who ?? 'Payment';
   const purchaseDetails = tx.purchase_details ?? [];
@@ -33,27 +35,49 @@ export function TransactionCard({ tx, onCategoryFix }: Props) {
 
   const canFix = !isIncome && pd != null && onCategoryFix != null;
 
-  return (
-    <View style={styles.card}>
+  // Highlight animation
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (highlight) {
+      highlightAnim.setValue(1);
+      Animated.timing(highlightAnim, {
+        toValue: 0,
+        duration: 1200,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [highlight]);
+
+  const cardBg = highlightAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.surface, colors.primaryLight],
+  });
+
+  const cardContent = (
+    <Animated.View style={[styles.card, { backgroundColor: cardBg }]}>
       <View style={[styles.dot, { backgroundColor: isIncome ? colors.income : colors.expense }]} />
       <View style={styles.body}>
         <Text style={styles.label} numberOfLines={1}>
           {merchantLabel}
         </Text>
         <View style={styles.metaRow}>
-          {/* Item Name Tag */}
-          <View style={styles.itemBadge}>
-            <Text style={styles.itemText} numberOfLines={1}>
-              {itemName || 'Unknown'}
-            </Text>
-          </View>
-          {/* Category Tag */}
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText} numberOfLines={1}>
-              {category || 'Unknown'}
-            </Text>
-          </View>
-          {confidence != null && (
+          {/* Item Name Tag - only for expenses */}
+          {!isIncome && (
+            <View style={styles.itemBadge}>
+              <Text style={styles.itemText} numberOfLines={1}>
+                {itemName || 'Unknown'}
+              </Text>
+            </View>
+          )}
+          {/* Category Tag - only for expenses */}
+          {!isIncome && (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText} numberOfLines={1}>
+                {category || 'Unknown'}
+              </Text>
+            </View>
+          )}
+          {!isIncome && confidence != null && (
             <>
               <Text style={styles.metaDot}>·</Text>
               <Text style={styles.meta}>{Math.round(confidence * 100)}%</Text>
@@ -79,15 +103,25 @@ export function TransactionCard({ tx, onCategoryFix }: Props) {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
+
+  if (onPress && !isIncome) {
+    return (
+      <Pressable onPress={() => onPress(tx)}>
+        {cardContent}
+      </Pressable>
+    );
+  }
+
+  return cardContent;
 }
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface, // default, overridden by animated style when highlighting
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,

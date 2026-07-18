@@ -13,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useSpendingStatus, useMonthlyTrends, useDailyTrends } from '../hooks/useAnalytics';
@@ -22,7 +24,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { TransactionCard } from '../components/TransactionCard';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
-import type { AppTabParamList } from '../navigation/AppTabs';
+import type { AppTabParamList, TransactionsStackParamList } from '../navigation/AppTabs';
 
 const { width } = Dimensions.get('window');
 const CHART_WIDTH = width - spacing.xl * 2;
@@ -42,7 +44,10 @@ const RISK_CONFIG = {
   no_data: { color: colors.textMuted, label: 'No data yet', icon: 'help-circle-outline' as const },
 };
 
-type Nav = BottomTabNavigationProp<AppTabParamList>;
+type Nav = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabParamList>,
+  NativeStackNavigationProp<TransactionsStackParamList>
+>;
 
 type TrendView = 'daily' | 'monthly';
 
@@ -297,7 +302,7 @@ export function HomeScreen() {
         {(status?.unmatched_expense_count ?? 0) > 0 && (
           <TouchableOpacity
             style={styles.alertCard}
-            onPress={() => navigation.navigate('TransactionsTab')}
+            onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
           >
             <Ionicons name="receipt-outline" size={18} color={colors.warning} />
             <Text style={styles.alertText}>
@@ -317,7 +322,20 @@ export function HomeScreen() {
               </TouchableOpacity>
             </View>
             {recentTx.map((tx) => (
-              <TransactionCard key={tx.id} tx={tx} />
+              <TransactionCard
+                key={tx.id}
+                tx={tx}
+                onPress={(t) => {
+                  navigation.navigate('TransactionsTab', {
+                    screen: 'ItemDetails',
+                    params: {
+                      smsTransactionId: t.id,
+                      amount: t.amount_rwf,
+                      merchant: t.to_who || undefined,
+                    },
+                  });
+                }}
+              />
             ))}
           </View>
         )}

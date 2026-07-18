@@ -226,14 +226,11 @@ def sync_sms(
     - ``failed`` — no matching pattern; not stored; returned for manual review
     - ``sensitive_warnings`` — contained security-sensitive keywords; not stored
     """
-    logger.info("=== SMS Sync Debug ===")
-    logger.info("Payload type: %s", type(payload))
-    logger.info("Consent confirmed: %s", payload.consent_confirmed)
-    logger.info("Messages count: %d", len(payload.messages))
-    if payload.messages:
-        logger.info("First message type: %s", type(payload.messages[0]))
-        logger.info("First message data: %s", payload.messages[0])
-    
+    logger.info(
+        "SMS sync: user='%s', messages=%d, consent=%s",
+        user_id, len(payload.messages), payload.consent_confirmed,
+    )
+
     if not payload.consent_confirmed:
         raise ConsentRequiredError()
 
@@ -747,97 +744,113 @@ def add_correction(
     Update the final_category in expense_categories and record a correction
     in category_corrections for personalised retraining.
     """
-    with get_db() as conn:
-        pd_row = conn.execute(
-            "SELECT pd.*, ec.final_category AS previous_category,"
-            "       ec.predicted_category, ec.confidence"
-            " FROM purchase_details pd"
-            " LEFT JOIN expense_categories ec ON ec.purchase_detail_id = pd.id"
-            " WHERE pd.id = ? AND pd.user_id = ?",
-            (payload.purchase_detail_id, user_id),
-        ).fetchone()
-        if not pd_row:
-            raise HTTPException(status_code=404, detail="Purchase detail not found.")
+    try:
+        with get_db() as conn:
+            pd_row = conn.execute(
+                "SELECT pd.*, ec.final_category AS previous_category,"
+                "       ec.predicted_category, ec.confidence"
+                " FROM purchase_details pd"
+                " LEFT JOIN expense_categories ec ON ec.purchase_detail_id = pd.id"
+                " WHERE pd.id = ? AND pd.user_id = ?",
+                (payload.purchase_detail_id, user_id),
+            ).fetchone()
+            if not pd_row:
+                raise HTTPException(status_code=404, detail="Purchase detail not found.")
 
-        now = datetime.now(timezone.utc).isoformat()
-        # Use INSERT OR REPLACE to ensure category is updated even if row doesn't exist
-        conn.execute(
-            """
-            INSERT INTO expense_categories
-                (user_id, purchase_detail_id, predicted_category, confidence,
-                 final_category, category_source, corrected_at)
-            VALUES (?, ?, ?, ?, ?, 'user_correction', ?)
-            ON CONFLICT(purchase_detail_id) DO UPDATE SET
-                final_category = excluded.final_category,
-                category_source = excluded.category_source,
-                corrected_at = excluded.corrected_at
-            """,
-            (user_id, payload.purchase_detail_id,
-             pd_row["predicted_category"],  # Preserve existing predicted category
-             pd_row["confidence"],  # Preserve existing confidence
-             payload.corrected_category, now),
+            now = datetime.now(timezone.utc).isoformat()
+            predicted_cat = pd_row.get("predicted_category")
+            confidence_val = pd_row.get("confidence")
+
+            # Use INSERT OR REPLACE to ensure category is updated even if row doesn't exist
+            conn.execute(
+                """
+                INSERT INTO expense_categories
+                    (user_id, purchase_detail_id, predicted_category, confidence,
+                     final_category, category_source, corrected_at)
+                VALUES (?, ?, ?, ?, ?, 'user_correction', ?)
+                ON CONFLICT(purchase_detail_id) DO UPDATE SET
+                    final_category = excluded.final_category,
+                    category_source = excluded.category_source,
+                    corrected_at = excluded.corrected_at
+                """,
+                (user_id, payload.purchase_detail_id,
+                 predicted_cat,  # Preserve existing predicted category
+                 confidence_val,  # Preserve existing confidence
+                 payload.corrected_category, now),
+            )
+
+            purchase_time = pd_row.get("purchase_time")
+            try:
+                if isinstance(purchase_time, datetime):
+                    pt = purchase_time
+                elif purchase_time:
+                    pt = datetime.fromisoformat(str(purchase_time)[:10])
+                else:
+                    pt = None
+                p_month   = pt.month if pt else None
+                p_weekday = pt.weekday() if pt else None
+            except (ValueError, TypeError):
+                p_month, p_weekday = None, None
+
+            # Find the linked SMS to_who for context
+            sms_row = conn.execute(
+                """
+                SELECT st.to_who FROM sms_transactions st
+                JOIN transaction_purchase_matches tpm ON tpm.sms_transaction_id = st.id
+                WHERE tpm.purchase_detail_id = ? LIMIT 1
+                """,
+                (payload.purchase_detail_id,),
+            ).fetchone()
+
+            conn.execute(
+                """
+                INSERT INTO category_corrections
+                    (user_id, purchase_detail_id, item_name, normalized_item_name,
+                     merchant_name, to_who, quantity, unit,
+                     unit_cost_rwf, total_cost_rwf,
+                     purchase_month, purchase_weekday,
+                     previous_category, corrected_category, correction_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')
+                """,
+                (
+                    user_id,
+                    payload.purchase_detail_id,
+                    pd_row.get("item_name", ""),
+                    pd_row.get("normalized_item_name"),
+                    pd_row.get("merchant_name"),
+                    sms_row["to_who"] if sms_row else None,
+                    pd_row.get("quantity"),
+                    pd_row.get("unit"),
+                    pd_row.get("unit_cost_rwf"),
+                    pd_row.get("total_cost_rwf"),
+                    p_month, p_weekday,
+                    pd_row.get("previous_category"),
+                    payload.corrected_category,
+                ),
+            )
+
+            # Count this user's total corrections to decide on auto-trigger
+            total_corrections = conn.execute(
+                "SELECT COUNT(*) AS count FROM category_corrections WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()["count"]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(
+            "Category correction failed for user '%s', pd_id=%d: %s",
+            user_id, payload.purchase_detail_id, exc, exc_info=True,
         )
-
-        purchase_time = pd_row["purchase_time"]
-        try:
-            if isinstance(purchase_time, datetime):
-                pt = purchase_time
-            elif purchase_time:
-                pt = datetime.fromisoformat(str(purchase_time)[:10])
-            else:
-                pt = None
-            p_month   = pt.month if pt else None
-            p_weekday = pt.weekday() if pt else None
-        except (ValueError, TypeError):
-            p_month, p_weekday = None, None
-
-        # Find the linked SMS to_who for context
-        sms_row = conn.execute(
-            """
-            SELECT st.to_who FROM sms_transactions st
-            JOIN transaction_purchase_matches tpm ON tpm.sms_transaction_id = st.id
-            WHERE tpm.purchase_detail_id = ? LIMIT 1
-            """,
-            (payload.purchase_detail_id,),
-        ).fetchone()
-
-        conn.execute(
-            """
-            INSERT INTO category_corrections
-                (user_id, purchase_detail_id, item_name, normalized_item_name,
-                 merchant_name, to_who, quantity, unit,
-                 unit_cost_rwf, total_cost_rwf,
-                 purchase_month, purchase_weekday,
-                 previous_category, corrected_category, correction_source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')
-            """,
-            (
-                user_id,
-                payload.purchase_detail_id,
-                pd_row["item_name"],
-                pd_row["normalized_item_name"],
-                pd_row["merchant_name"],
-                sms_row["to_who"] if sms_row else None,
-                pd_row["quantity"],
-                pd_row["unit"],
-                pd_row["unit_cost_rwf"],
-                pd_row["total_cost_rwf"],
-                p_month, p_weekday,
-                pd_row["previous_category"],
-                payload.corrected_category,
-            ),
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save category correction: {exc}",
         )
-
-        # Count this user's total corrections to decide on auto-trigger
-        total_corrections = conn.execute(
-            "SELECT COUNT(*) AS count FROM category_corrections WHERE user_id = ?",
-            (user_id,),
-        ).fetchone()["count"]
 
     # -- Determine whether to queue retraining --
     # Auto-trigger when corrections reach a multiple of the configured threshold.
     # Manual trigger (payload.trigger_retraining=True) always queues a job.
     # Guard: skip if a job for this user is already queued or running.
+    # Wrapped in try-except so retraining failures never block the correction response.
     threshold = settings.min_corrections_for_retraining
     auto_trigger = (
         threshold > 0
@@ -847,35 +860,48 @@ def add_correction(
     should_retrain = payload.trigger_retraining or auto_trigger
 
     if should_retrain:
-        with get_db() as conn:
-            already_active = conn.execute(
-                "SELECT 1 FROM retraining_jobs"
-                " WHERE user_id = ? AND model_type = 'expense_category'"
-                "   AND status IN ('queued', 'running')",
-                (user_id,),
-            ).fetchone()
-        if already_active:
+        try:
+            with get_db() as conn:
+                already_active = conn.execute(
+                    "SELECT 1 FROM retraining_jobs"
+                    " WHERE user_id = ? AND model_type = 'expense_category'"
+                    "   AND status IN ('queued', 'running')",
+                    (user_id,),
+                ).fetchone()
+            if already_active:
+                return {
+                    "job_id": "not_started", "status": "saved",
+                    "message": (
+                        "Correction saved. A retraining job is already active; "
+                        "skipped duplicate queuing."
+                    ),
+                }
+            job_id = create_job(user_id, "expense_category")
+            trigger_reason = "manual" if payload.trigger_retraining else f"auto ({total_corrections} corrections)"
+            background_tasks.add_task(retrain_category_model, job_id, user_id)
+            return {
+                "job_id": job_id, "status": "queued",
+                "message": f"Correction saved. Category model retraining queued ({trigger_reason}).",
+            }
+        except Exception as exc:
+            logger.error("Retraining trigger failed (correction still saved): %s", exc)
             return {
                 "job_id": "not_started", "status": "saved",
-                "message": (
-                    "Correction saved. A retraining job is already active; "
-                    "skipped duplicate queuing."
-                ),
+                "message": "Correction saved. Retraining could not be triggered at this time.",
             }
-        job_id = create_job(user_id, "expense_category")
-        trigger_reason = "manual" if payload.trigger_retraining else f"auto ({total_corrections} corrections)"
-        background_tasks.add_task(retrain_category_model, job_id, user_id)
-        return {
-            "job_id": job_id, "status": "queued",
-            "message": f"Correction saved. Category model retraining queued ({trigger_reason}).",
-        }
 
+    if threshold > 0:
+        remaining = threshold - (total_corrections % threshold or threshold)
+        return {
+            "job_id": "not_started", "status": "saved",
+            "message": (
+                f"Correction saved. "
+                f"Retraining will auto-trigger after {remaining} more correction(s)."
+            ),
+        }
     return {
         "job_id": "not_started", "status": "saved",
-        "message": (
-            f"Correction saved. "
-            f"Retraining will auto-trigger after {threshold - (total_corrections % threshold or threshold)} more correction(s)."
-        ),
+        "message": "Correction saved.",
     }
 
 

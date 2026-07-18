@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,8 @@ export function TransactionsScreen() {
   const [filter, setFilter] = useState<Filter>('all');
   const [correcting, setCorrecting] = useState<{ pdId: number; current: string } | null>(null);
   const [showUnmatched, setShowUnmatched] = useState(true);
+  const [recentlyChanged, setRecentlyChanged] = useState<Set<number>>(new Set());
+  const changeTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useTransactions(filter === 'all' ? {} : { transaction_type: filter });
@@ -58,14 +60,30 @@ export function TransactionsScreen() {
 
   const handleCategorySelect = async (category: string) => {
     if (!correcting) return;
+    const changedPdId = correcting.pdId;
     try {
-      const result = await correctCategory({
-        purchase_detail_id: correcting.pdId,
+      await correctCategory({
+        purchase_detail_id: changedPdId,
         corrected_category: category,
-        trigger_retraining: true,
       });
       setCorrecting(null);
-      Alert.alert('Category updated', result.message);
+
+      // Highlight the changed transaction briefly
+      setRecentlyChanged((prev) => new Set(prev).add(changedPdId));
+      // Clear any existing timer for this item
+      const existing = changeTimers.current.get(changedPdId);
+      if (existing) clearTimeout(existing);
+      changeTimers.current.set(
+        changedPdId,
+        setTimeout(() => {
+          setRecentlyChanged((prev) => {
+            const next = new Set(prev);
+            next.delete(changedPdId);
+            return next;
+          });
+          changeTimers.current.delete(changedPdId);
+        }, 1500),
+      );
     } catch (e) {
       Alert.alert('Error', getErrorMessage(e));
     }
@@ -102,12 +120,23 @@ export function TransactionsScreen() {
         <FlatList
           data={allTx}
           keyExtractor={(tx) => String(tx.id)}
-          renderItem={({ item }) => (
-            <TransactionCard
-              tx={item}
-              onCategoryFix={(pdId, current) => setCorrecting({ pdId, current })}
-            />
-          )}
+          renderItem={({ item }) => {
+            const pdId = item.purchase_details?.[0]?.id;
+            return (
+              <TransactionCard
+                tx={item}
+                onPress={(tx) => {
+                  navigation.navigate('ItemDetails', {
+                    smsTransactionId: tx.id,
+                    amount: tx.amount_rwf,
+                    merchant: tx.to_who || undefined,
+                  });
+                }}
+                onCategoryFix={(pdId, current) => setCorrecting({ pdId, current })}
+                highlight={pdId != null && recentlyChanged.has(pdId)}
+              />
+            );
+          }}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>

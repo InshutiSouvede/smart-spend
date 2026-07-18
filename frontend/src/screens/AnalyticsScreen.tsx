@@ -17,7 +17,7 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAnalyticsSummary, useMonthlyTrends, useCategoryBreakdown, useUnmatchedExpenses } from '../hooks/useAnalytics';
+import { useAnalyticsSummary, useMonthlyTrends, useCategoryBreakdown } from '../hooks/useAnalytics';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, typography } from '../theme';
@@ -62,8 +62,6 @@ export function AnalyticsScreen() {
   const { data: monthly, isLoading: monthlyLoading } = useMonthlyTrends(monthsNum);
 
   const { data: categories, isLoading: catLoading } = useCategoryBreakdown(fromDate, toDate);
-
-  const { data: unmatchedExpenses } = useUnmatchedExpenses();
 
   // Month navigation helpers
   const goToPreviousMonth = () => {
@@ -211,38 +209,82 @@ export function AnalyticsScreen() {
                 style={{ borderRadius: radius.md }}
               />
               {/* Category details - top 6 always visible */}
-              {topCategories.map((cat) => (
-                <View key={cat.category} style={styles.catRow}>
-                  <View style={styles.catInfo}>
-                    <Text style={styles.catName}>{cat.category}</Text>
-                    <Text style={styles.catMeta}>
-                      {cat.item_count} item{cat.item_count !== 1 ? 's' : ''}
-                    </Text>
+              {topCategories.map((cat) => {
+                const isUncategorised = cat.category === 'Uncategorised';
+                return isUncategorised ? (
+                  <TouchableOpacity
+                    key={cat.category}
+                    style={styles.catRow}
+                    onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.catInfo}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="alert-circle" size={14} color={colors.warning} />
+                        <Text style={[styles.catName, { color: colors.warning }]}>{cat.item_count} Uncategorized</Text>
+                      </View>
+                      <Text style={styles.catMeta}>Tap to categorize</Text>
+                    </View>
+                    <View style={styles.catRight}>
+                      <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
+                      <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View key={cat.category} style={styles.catRow}>
+                    <View style={styles.catInfo}>
+                      <Text style={styles.catName}>{cat.category}</Text>
+                      <Text style={styles.catMeta}>
+                        {cat.item_count} item{cat.item_count !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.catRight}>
+                      <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
+                      <Text style={styles.catPct}>{cat.percentage.toFixed(0)}%</Text>
+                    </View>
                   </View>
-                  <View style={styles.catRight}>
-                    <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
-                    <Text style={styles.catPct}>{cat.percentage.toFixed(0)}%</Text>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
               
               {/* Expandable section for remaining categories */}
               {categories && categories.length > 6 && (
                 <>
-                  {showAllCategories && categories.slice(6).map((cat) => (
-                    <View key={cat.category} style={styles.catRow}>
-                      <View style={styles.catInfo}>
-                        <Text style={styles.catName}>{cat.category}</Text>
-                        <Text style={styles.catMeta}>
-                          {cat.item_count} item{cat.item_count !== 1 ? 's' : ''}
-                        </Text>
+                  {showAllCategories && categories.slice(6).map((cat) => {
+                    const isUncategorised = cat.category === 'Uncategorised';
+                    return isUncategorised ? (
+                      <TouchableOpacity
+                        key={cat.category}
+                        style={styles.catRow}
+                        onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.catInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Ionicons name="alert-circle" size={14} color={colors.warning} />
+                            <Text style={[styles.catName, { color: colors.warning }]}>{cat.item_count} Uncategorized</Text>
+                          </View>
+                          <Text style={styles.catMeta}>Tap to categorize</Text>
+                        </View>
+                        <View style={styles.catRight}>
+                          <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
+                          <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+                        </View>
+                      </TouchableOpacity>
+                    ) : (
+                      <View key={cat.category} style={styles.catRow}>
+                        <View style={styles.catInfo}>
+                          <Text style={styles.catName}>{cat.category}</Text>
+                          <Text style={styles.catMeta}>
+                            {cat.item_count} item{cat.item_count !== 1 ? 's' : ''}
+                          </Text>
+                        </View>
+                        <View style={styles.catRight}>
+                          <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
+                          <Text style={styles.catPct}>{cat.percentage.toFixed(0)}%</Text>
+                        </View>
                       </View>
-                      <View style={styles.catRight}>
-                        <Text style={styles.catAmount}>{formatRWF(cat.total_rwf)} RWF</Text>
-                        <Text style={styles.catPct}>{cat.percentage.toFixed(0)}%</Text>
-                      </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                   
                   <TouchableOpacity
                     style={styles.toggleBtn}
@@ -262,60 +304,6 @@ export function AnalyticsScreen() {
                 </>
               )}
             </>
-          ) : (unmatchedExpenses && unmatchedExpenses.length > 0) ? (
-            <View style={styles.unmatchedSection}>
-              <View style={styles.unmatchedHeader}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.warning} />
-                <Text style={styles.unmatchedTitle}>
-                  Unmatched expenses ({unmatchedExpenses.length})
-                </Text>
-              </View>
-              <Text style={styles.unmatchedSubtitle}>
-                These expenses need to be identified. Tap an expense to specify what it was for.
-              </Text>
-              {unmatchedExpenses.slice(0, 5).map((expense) => (
-                <TouchableOpacity
-                  key={expense.sms_transaction_id}
-                  style={styles.unmatchedItem}
-                  onPress={() => {
-                    navigation.navigate('TransactionsTab', {
-                      screen: 'ItemDetails',
-                      params: {
-                        smsTransactionId: expense.sms_transaction_id,
-                        amount: expense.amount_rwf,
-                        merchant: expense.to_who || undefined,
-                      },
-                    });
-                  }}
-                >
-                  <View style={styles.unmatchedLeft}>
-                    <Text style={styles.unmatchedAmount}>
-                      {formatRWF(expense.amount_rwf)} RWF
-                    </Text>
-                    <Text style={styles.unmatchedMerchant}>
-                      {expense.to_who || 'Unknown merchant'}
-                    </Text>
-                    {expense.transaction_time && (
-                      <Text style={styles.unmatchedTime}>
-                        {new Date(expense.transaction_time).toLocaleDateString()}
-                      </Text>
-                    )}
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
-              ))}
-              {unmatchedExpenses.length > 5 && (
-                <TouchableOpacity
-                  style={styles.viewAllBtn}
-                  onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
-                >
-                  <Text style={styles.viewAllText}>
-                    View all {unmatchedExpenses.length} unmatched expenses
-                  </Text>
-                  <Ionicons name="arrow-forward" size={14} color={colors.primary} />
-                </TouchableOpacity>
-              )}
-            </View>
           ) : (
             <Text style={styles.empty}>No purchase data yet. Upload receipts or answer item prompts.</Text>
           )}

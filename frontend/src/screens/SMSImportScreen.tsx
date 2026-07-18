@@ -61,7 +61,7 @@ export function SMSImportScreen() {
   const [conversations, setConversations] = useState<SMSConversation[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set()); // set of message _id
-  const [filterFromMs, setFilterFromMs] = useState<number>(() => isoToMs(lastImportAt));
+  const [filterFromMs, setFilterFromMs] = useState<number | null>(null); // null = all messages
   const [previewVisible, setPreviewVisible] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -84,7 +84,11 @@ export function SMSImportScreen() {
     if (!permissionGranted) return;
     setLoadingMessages(true);
     try {
-      const msgs = await readSMS({ minDate: filterFromMs, maxCount: 500 });
+      const filter: { minDate?: number; maxCount: number } = { maxCount: 500 };
+      if (filterFromMs !== null) {
+        filter.minDate = filterFromMs;
+      }
+      const msgs = await readSMS(filter);
       setConversations(groupByConversation(msgs));
     } catch (e) {
       Alert.alert('Error loading SMS', getErrorMessage(e));
@@ -232,18 +236,26 @@ export function SMSImportScreen() {
   const FilterBar = () => (
     <View style={styles.filterBar}>
       <Text style={styles.filterLabel}>
-        Showing from: {new Date(filterFromMs).toLocaleDateString()}
+        Showing from: {filterFromMs !== null ? new Date(filterFromMs).toLocaleDateString() : 'All time'}
       </Text>
       <View style={styles.filterActions}>
+        <TouchableOpacity
+          onPress={() => setFilterFromMs(null)}
+          style={[styles.chip, filterFromMs === null && styles.chipActive]}
+        >
+          <Text style={[styles.chipText, filterFromMs === null && styles.chipTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
         {[7, 30, 90].map((days) => {
           const ms = Date.now() - days * 86_400_000;
           return (
             <TouchableOpacity
               key={days}
               onPress={() => setFilterFromMs(ms)}
-              style={[styles.chip, filterFromMs === ms && styles.chipActive]}
+              style={[styles.chip, filterFromMs !== null && Math.abs(filterFromMs - ms) < 86_400_000 && styles.chipActive]}
             >
-              <Text style={[styles.chipText, filterFromMs === ms && styles.chipTextActive]}>
+              <Text style={[styles.chipText, filterFromMs !== null && Math.abs(filterFromMs - ms) < 86_400_000 && styles.chipTextActive]}>
                 {days}d
               </Text>
             </TouchableOpacity>

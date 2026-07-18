@@ -1,6 +1,6 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { transactionsApi, TransactionListParams } from '../api/transactions';
-import type { CategoryCorrectionRequest, SMSIngestRequest } from '../types/api';
+import type { CategoryCorrectionRequest, SMSIngestRequest, PaginatedResponse, SMSTransactionOut } from '../types/api';
 
 const PAGE_SIZE = 20;
 
@@ -30,7 +30,49 @@ export function useCategoryCorrection() {
   return useMutation({
     mutationFn: (payload: CategoryCorrectionRequest) =>
       transactionsApi.correctCategory(payload),
-    onSuccess: () => {
+    onMutate: async (payload) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await qc.cancelQueries({ queryKey: ['transactions'] });
+
+      // Snapshot all transaction query caches for rollback
+      const previousQueries = qc.getQueriesData<InfiniteData<PaginatedResponse<SMSTransactionOut>>>({
+        queryKey: ['transactions'],
+      });
+
+      // Optimistically update every cached transaction page
+      qc.setQueriesData<InfiniteData<PaginatedResponse<SMSTransactionOut>>>(
+        { queryKey: ['transactions'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((tx) => ({
+                ...tx,
+                purchase_details: tx.purchase_details?.map((pd) =>
+                  pd.id === payload.purchase_detail_id
+                    ? { ...pd, final_category: payload.corrected_category }
+                    : pd,
+                ),
+              })),
+            })),
+          };
+        },
+      );
+
+      return { previousQueries };
+    },
+    onError: (_err, _payload, context) => {
+      // Roll back optimistic update on failure
+      if (context?.previousQueries) {
+        for (const [queryKey, data] of context.previousQueries) {
+          qc.setQueryData(queryKey, data);
+        }
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure server state is in sync
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['analytics'] });
     },
