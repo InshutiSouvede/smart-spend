@@ -742,11 +742,14 @@ def _run_migrations(conn) -> None:
                     SELECT 1 
                     FROM information_schema.columns 
                     WHERE table_name = %s AND column_name = %s
-                )
+                ) AS col_exists
             """, (table, column))
             result = cursor.fetchone()
             cursor.close()
-            return result[0] if result else False
+            if not result:
+                return False
+            # RealDictCursor returns a dict, so use column name not index
+            return result['col_exists']
         else:
             rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
             return any(row["name"] == column for row in rows)
@@ -926,8 +929,10 @@ def init_db() -> None:
                 conn.executescript(_SCHEMA_VIEWS)
                 logger.info("SQLite database initialized at '%s'", settings.database_path)
     except Exception as e:
-        logger.error("Failed to initialize database: %s", str(e))
+        logger.error("Failed to initialize database: %s: %s", type(e).__name__, e)
         logger.error("Database type: %s", DB_TYPE)
         if DB_TYPE == 'postgresql':
             logger.error("DATABASE_URL: %s", os.getenv('DATABASE_URL', 'NOT_SET')[:50] + '...')
+        import traceback
+        logger.error("Traceback: %s", traceback.format_exc())
         raise

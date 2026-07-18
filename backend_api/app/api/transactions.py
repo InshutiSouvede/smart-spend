@@ -161,6 +161,14 @@ def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> No
     now = datetime.now(timezone.utc).isoformat()
 
     # Upsert income row (category = NULL)
+    # PostgreSQL: ON CONFLICT won't match NULL values, so use DELETE+INSERT
+    conn.execute(
+        """
+        DELETE FROM monthly_financial_aggregates
+        WHERE user_id = ? AND year = ? AND month = ? AND category IS NULL
+        """,
+        (user_id, year, month),
+    )
     conn.execute(
         """
         INSERT INTO monthly_financial_aggregates
@@ -168,11 +176,6 @@ def _rebuild_monthly_aggregates(conn, user_id: str, year: int, month: int) -> No
              total_income_rwf, income_transaction_count,
              average_income_amount_rwf, updated_at)
         VALUES (?, ?, ?, NULL, ?, ?, ?, ?)
-        ON CONFLICT(user_id, year, month, category) DO UPDATE SET
-            total_income_rwf          = excluded.total_income_rwf,
-            income_transaction_count  = excluded.income_transaction_count,
-            average_income_amount_rwf = excluded.average_income_amount_rwf,
-            updated_at                = excluded.updated_at
         """,
         (user_id, year, month, float(income_row["total"]),
          int(income_row["cnt"]), float(income_row["avg"]), now),
