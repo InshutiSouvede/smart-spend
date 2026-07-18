@@ -41,7 +41,13 @@
         {
           "photosPermission": "Allow SmartSpend to access your photos to upload receipts."
         }
-      ]
-    ]
+      ],
+      "./plugins/withSmsAndroid"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "de617a44-ef10-4d65-82ad-9f60b9a43b30"
+      }
+    }
   }
 }

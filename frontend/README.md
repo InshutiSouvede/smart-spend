@@ -83,21 +83,41 @@ Columns: `date, type, amount_rwf, fee_rwf, to_who, from_who, reference, provider
 
 ---
 
-## SMS import — dev build required
+## SMS import — EAS Build recommended ✅
 
-`react-native-get-sms-android` is a native module not available in Expo Go. In Expo Go the SMS Import screen shows a notice and skips device SMS reading.
+`react-native-get-sms-android` is a native module not available in Expo Go. **Use EAS Build for full SMS functionality.**
 
-To enable SMS reading, build a dev client:
+### Quick Start with EAS (Recommended)
+
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login to Expo
+eas login
+
+# Build development APK (includes SMS support)
+npm run eas:build:dev
+
+# Or build locally (faster)
+npm run eas:dev
+```
+
+📖 **See [EAS_BUILD_GUIDE.md](./EAS_BUILD_GUIDE.md) for complete setup instructions.**
+
+### How it works
+
+EAS Build automatically:
+- ✅ Links `react-native-get-sms-android` native module
+- ✅ Configures Android permissions (READ_SMS, RECEIVE_SMS)
+- ✅ Creates development builds for testing
+- ✅ Supports hot-reload with dev client
+- ✅ No manual `expo prebuild` needed!
+
+### Alternative: Manual build
 
 ```bash
 npx expo run:android
-```
-
-Or use EAS:
-```bash
-npm install -g eas-cli
-eas login
-eas build --profile development --platform android
 ```
 
 ---

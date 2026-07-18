@@ -12,7 +12,11 @@
     "prebuild:production": "expo prebuild --clean --platform android && node scripts/add-proguard-rules.js",
     "build:release": "cd android && .\\gradlew assembleRelease",
     "build:apk": "npm run prebuild:production && npm run build:release",
-    "postinstall": "node scripts/add-proguard-rules.js || exit 0"
+    "postinstall": "node scripts/add-proguard-rules.js || exit 0",
+    "eas:build:dev": "eas build --profile development --platform android",
+    "eas:build:preview": "eas build --profile preview --platform android",
+    "eas:build:production": "eas build --profile production --platform android",
+    "eas:dev": "eas build --profile development --platform android --local"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
@@ -45,6 +49,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@react-native-community/cli": "^20.2.0",
     "@types/react": "~18.3.12",
     "typescript": "~5.3.3"
   },

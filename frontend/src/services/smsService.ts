@@ -1,182 +1,427 @@
 /**
  * SMS reading service for Android.
  *
- * IMPORTANT — REQUIRES NATIVE BUILD:
- * ───────────────────────────────────
- * Reading the device SMS inbox requires `react-native-get-sms-android`.
- * This package is included in package.json and will be automatically linked
- * when you run `npx expo prebuild` to generate the native Android project.
+ * Reading the device SMS inbox requires the native
+ * `react-native-get-sms-android` package.
  *
- * Steps to enable SMS:
- *   1. Run: npx expo prebuild --platform android --clean
- *   2. Build and run: npx expo run:android
+ * The package exposes its Android bridge as:
  *
- * The SMS module will be automatically linked via Expo autolinking.
- * SMS Import is Android-only (iOS does not allow SMS access).
+ *   NativeModules.Sms
+ *
+ * This service accesses that native module directly so that module
+ * availability can be checked reliably in both development and release APKs.
+ *
+ * SMS reading is Android-only. iOS does not allow applications to read the
+ * device SMS inbox.
  */
 
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
-import SmsAndroid from 'react-native-get-sms-android';
+import {
+  Alert,
+  NativeModules,
+  PermissionsAndroid,
+  Platform,
+} from 'react-native';
+
+// ─── Native module types ──────────────────────────────────────────────────────
+
+interface NativeSmsModule {
+  list(
+    filter: string,
+    failureCallback: (error: string) => void,
+    successCallback: (count: number, smsList: string) => void,
+  ): void;
+}
+
+/**
+ * `react-native-get-sms-android` exports `NativeModules.Sms`.
+ *
+ * Accessing it directly avoids confusion between:
+ * - the npm package name;
+ * - the local import variable name;
+ * - the actual Android native-module name.
+ */
+const SmsNativeModule: NativeSmsModule | null =
+  Platform.OS === 'android'
+    ? (NativeModules.Sms as NativeSmsModule | null) ?? null
+    : null;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface DeviceSMS {
   _id: string;
   thread_id: string;
-  address: string; // sender phone number or short code
-  date: string;    // milliseconds since epoch (as string)
+  address: string;
+  date: string;
   body: string;
 }
 
 export interface SMSConversation {
   address: string;
   threadId: string;
-  displayName: string; // same as address unless contacts are resolved
+  displayName: string;
   latestDate: number;
   messages: DeviceSMS[];
+}
+
+export interface ReadSMSFilter {
+  /** Inclusive start date in milliseconds since Unix epoch. */
+  minDate?: number;
+
+  /** Inclusive end date in milliseconds since Unix epoch. */
+  maxDate?: number;
+
+  /** Exact sender address or short code. */
+  address?: string;
+
+  /** Maximum number of messages to return. Defaults to 500. */
+  maxCount?: number;
 }
 
 // ─── Module availability ──────────────────────────────────────────────────────
 
 /**
- * SMS reading is available on Android after running `expo prebuild`.
- * The module is automatically linked via Expo autolinking.
+ * True only when:
+ * - the app is running on Android;
+ * - NativeModules.Sms exists;
+ * - the native `list` method is available.
  */
-export const isSMSNativeAvailable: boolean = Platform.OS === 'android';
+export const isSMSNativeAvailable: boolean =
+  Platform.OS === 'android' &&
+  SmsNativeModule != null &&
+  typeof SmsNativeModule.list === 'function';
 
-// ─── Permission ───────────────────────────────────────────────────────────────
+/**
+ * Returns useful information about the native SMS module.
+ *
+ * This is intended for temporary debugging when testing a release APK.
+ */
+export function getSMSDiagnostics(): {
+  platform: string;
+  moduleExists: boolean;
+  listMethodExists: boolean;
+  smsRelatedModules: string[];
+} {
+  const smsRelatedModules = Object.keys(NativeModules).filter(name =>
+    name.toLowerCase().includes('sms'),
+  );
+
+  return {
+    platform: Platform.OS,
+    moduleExists: Boolean(NativeModules.Sms),
+    listMethodExists: typeof NativeModules.Sms?.list === 'function',
+    smsRelatedModules,
+  };
+}
+
+/**
+ * Shows native-module diagnostics in an alert.
+ *
+ * You can temporarily call this from the SMS screen before reading messages.
+ */
+export function showSMSDiagnostics(): void {
+  const diagnostics = getSMSDiagnostics();
+
+  Alert.alert(
+    'SMS diagnostics',
+    [
+      `Platform: ${diagnostics.platform}`,
+      `NativeModules.Sms exists: ${diagnostics.moduleExists}`,
+      `Sms.list exists: ${diagnostics.listMethodExists}`,
+      `SMS-related modules: ${
+        diagnostics.smsRelatedModules.length > 0
+          ? diagnostics.smsRelatedModules.join(', ')
+          : 'none'
+      }`,
+    ].join('\n'),
+  );
+}
+
+// ─── Permissions ──────────────────────────────────────────────────────────────
 
 export async function requestSMSPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') {
-    Alert.alert('Not supported', 'Reading SMS is only available on Android.');
+    Alert.alert(
+      'Not supported',
+      'Reading SMS is only available on Android.',
+    );
+
     return false;
   }
-  const result = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.READ_SMS,
-    {
-      title: 'Read SMS Permission',
-      message:
-        'SmartSpend needs access to your SMS inbox to find MoMo transaction messages. ' +
-        'Your messages are never uploaded without your explicit confirmation.',
-      buttonPositive: 'Allow',
-      buttonNegative: 'Deny',
-    },
-  );
-  return result === PermissionsAndroid.RESULTS.GRANTED;
+
+  try {
+    const result = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+      {
+        title: 'Read SMS Permission',
+        message:
+          'SmartSpend needs access to your SMS inbox to find MoMo transaction messages. ' +
+          'Your messages are never uploaded without your explicit confirmation.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Deny',
+      },
+    );
+
+    return result === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (error) {
+    console.error('Failed to request READ_SMS permission:', error);
+    return false;
+  }
 }
 
 export async function checkSMSPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
-  return PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_SMS);
+  if (Platform.OS !== 'android') {
+    return false;
+  }
+
+  try {
+    return await PermissionsAndroid.check(
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+    );
+  } catch (error) {
+    console.error('Failed to check READ_SMS permission:', error);
+    return false;
+  }
 }
 
 // ─── Reading SMS ──────────────────────────────────────────────────────────────
 
-export interface ReadSMSFilter {
-  /** Inclusive start date (ms since epoch). */
-  minDate?: number;
-  /** Inclusive end date (ms since epoch). */
-  maxDate?: number;
-  /** Filter by sender address (exact match). */
-  address?: string;
-  /** Maximum number of messages to return (default 500). */
-  maxCount?: number;
-}
-
-/** Read SMS messages from the device inbox. Android only. */
-export function readSMS(filter: ReadSMSFilter = {}): Promise<DeviceSMS[]> {
+/**
+ * Reads SMS messages from the Android inbox.
+ */
+export function readSMS(
+  filter: ReadSMSFilter = {},
+): Promise<DeviceSMS[]> {
   if (Platform.OS !== 'android') {
     return Promise.reject(
       new Error('SMS reading is only available on Android.'),
     );
   }
 
-  // Check if SmsAndroid module is available
-  if (!SmsAndroid || typeof SmsAndroid.list !== 'function') {
+  if (!SmsNativeModule || typeof SmsNativeModule.list !== 'function') {
+    const diagnostics = getSMSDiagnostics();
+
+    console.error('Native SMS module diagnostics:', diagnostics);
+
     return Promise.reject(
       new Error(
-        'SMS module not available. Make sure you have run "npx expo prebuild" ' +
-        'and built the native Android app with "npx expo run:android".'
+        'The native SMS module is missing from this APK. ' +
+          `NativeModules.Sms exists: ${diagnostics.moduleExists}. ` +
+          `Sms.list exists: ${diagnostics.listMethodExists}. ` +
+          `Detected SMS-related modules: ${
+            diagnostics.smsRelatedModules.length > 0
+              ? diagnostics.smsRelatedModules.join(', ')
+              : 'none'
+          }.`,
       ),
     );
   }
 
-  const filterObj: Record<string, unknown> = {
+  const filterObject: Record<string, unknown> = {
     box: 'inbox',
     maxCount: filter.maxCount ?? 500,
   };
-  if (filter.minDate !== undefined) filterObj.minDate = filter.minDate;
-  if (filter.maxDate !== undefined) filterObj.maxDate = filter.maxDate;
-  if (filter.address !== undefined) filterObj.address = filter.address;
 
-  return new Promise((resolve, reject) => {
+  if (filter.minDate !== undefined) {
+    filterObject.minDate = filter.minDate;
+  }
+
+  if (filter.maxDate !== undefined) {
+    filterObject.maxDate = filter.maxDate;
+  }
+
+  if (filter.address !== undefined) {
+    filterObject.address = filter.address;
+  }
+
+  return new Promise<DeviceSMS[]>((resolve, reject) => {
     try {
-      SmsAndroid.list(
-        JSON.stringify(filterObj),
-        (fail: string) => {
-          console.error('SmsAndroid.list failed:', fail);
-          reject(new Error(fail || 'Failed to read SMS'));
+      SmsNativeModule.list(
+        JSON.stringify(filterObject),
+
+        (failure: string) => {
+          console.error('NativeModules.Sms.list failed:', failure);
+
+          reject(
+            new Error(
+              failure?.trim() || 'Failed to read SMS messages.',
+            ),
+          );
         },
+
         (_count: number, smsList: string) => {
+          if (
+            !smsList ||
+            smsList.trim() === '' ||
+            smsList === 'null'
+          ) {
+            resolve([]);
+            return;
+          }
+
           try {
-            if (!smsList || smsList.trim() === '' || smsList === 'null') {
-              console.log('SmsAndroid returned empty or null result, returning empty array');
-              resolve([]);
+            const parsed: unknown = JSON.parse(smsList);
+
+            if (!Array.isArray(parsed)) {
+              console.error(
+                'Unexpected SMS response. Expected an array:',
+                parsed,
+              );
+
+              reject(
+                new Error(
+                  'The SMS module returned an unexpected response.',
+                ),
+              );
+
               return;
             }
-            const parsed = JSON.parse(smsList);
-            resolve(Array.isArray(parsed) ? parsed : []);
-          } catch (err) {
-            console.error('Failed to parse SMS list:', err);
-            resolve([]);
+
+            const messages = parsed.filter(
+              (item): item is DeviceSMS =>
+                item !== null &&
+                typeof item === 'object' &&
+                typeof (item as DeviceSMS).address === 'string' &&
+                typeof (item as DeviceSMS).body === 'string',
+            );
+
+            resolve(messages);
+          } catch (error) {
+            console.error('Failed to parse SMS response:', error);
+
+            reject(
+              new Error(
+                `Failed to parse SMS response: ${
+                  error instanceof Error
+                    ? error.message
+                    : String(error)
+                }`,
+              ),
+            );
           }
         },
       );
-    } catch (err) {
-      console.error('Error calling SmsAndroid.list:', err);
-      reject(new Error('Failed to read SMS: ' + (err instanceof Error ? err.message : String(err))));
+    } catch (error) {
+      console.error('Error calling NativeModules.Sms.list:', error);
+
+      reject(
+        new Error(
+          `Failed to read SMS: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        ),
+      );
     }
   });
 }
 
 // ─── Grouping helpers ─────────────────────────────────────────────────────────
 
-/** Group a flat list of SMS messages into conversations keyed by sender address. */
-export function groupByConversation(messages: DeviceSMS[]): SMSConversation[] {
-  // Handle null, undefined, or empty arrays
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+/**
+ * Groups a flat list of SMS messages by sender address.
+ */
+export function groupByConversation(
+  messages: DeviceSMS[],
+): SMSConversation[] {
+  if (!Array.isArray(messages) || messages.length === 0) {
     return [];
   }
 
-  const map = new Map<string, SMSConversation>();
+  const conversationMap = new Map<string, SMSConversation>();
 
-  for (const msg of messages) {
-    const key = msg.address ?? 'Unknown';
-    if (!map.has(key)) {
-      map.set(key, {
-        address: key,
-        threadId: msg.thread_id,
-        displayName: key,
+  for (const message of messages) {
+    const address = message.address?.trim() || 'Unknown';
+
+    if (!conversationMap.has(address)) {
+      conversationMap.set(address, {
+        address,
+        threadId: message.thread_id,
+        displayName: address,
         latestDate: 0,
         messages: [],
       });
     }
-    const conv = map.get(key)!;
-    conv.messages.push(msg);
-    const d = parseInt(msg.date, 10);
-    if (!isNaN(d) && d > conv.latestDate) conv.latestDate = d;
+
+    const conversation = conversationMap.get(address);
+
+    if (!conversation) {
+      continue;
+    }
+
+    conversation.messages.push(message);
+
+    const timestamp = Number.parseInt(message.date, 10);
+
+    if (
+      Number.isFinite(timestamp) &&
+      timestamp > conversation.latestDate
+    ) {
+      conversation.latestDate = timestamp;
+    }
   }
 
-  return Array.from(map.values()).sort((a, b) => b.latestDate - a.latestDate);
+  for (const conversation of conversationMap.values()) {
+    conversation.messages.sort((first, second) => {
+      const firstDate = Number.parseInt(first.date, 10) || 0;
+      const secondDate = Number.parseInt(second.date, 10) || 0;
+
+      return secondDate - firstDate;
+    });
+  }
+
+  return Array.from(conversationMap.values()).sort(
+    (first, second) => second.latestDate - first.latestDate,
+  );
 }
 
-/** Format a Unix ms timestamp as a short relative label for display. */
-export function formatSMSDate(ms: number): string {
-  const d = new Date(ms);
+/**
+ * Formats a Unix timestamp in milliseconds as a short date label.
+ */
+export function formatSMSDate(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds)) {
+    return 'Unknown date';
+  }
+
+  const date = new Date(milliseconds);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date';
+  }
+
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+
+  const startOfMessageDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+
+  const differenceInDays = Math.floor(
+    (startOfToday.getTime() - startOfMessageDay.getTime()) /
+      86_400_000,
+  );
+
+  if (differenceInDays === 0) {
+    return 'Today';
+  }
+
+  if (differenceInDays === 1) {
+    return 'Yesterday';
+  }
+
+  if (differenceInDays > 1 && differenceInDays < 7) {
+    return `${differenceInDays}d ago`;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
 }

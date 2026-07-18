@@ -34,6 +34,7 @@ import {
   readSMS,
   groupByConversation,
   formatSMSDate,
+  showSMSDiagnostics,
   type DeviceSMS,
   type SMSConversation,
 } from '../services/smsService';
@@ -175,38 +176,35 @@ export function SMSImportScreen() {
   // ─── Dev-build notice ─────────────────────────────────────────────────────
 
   if (!isSMSNativeAvailable) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <View style={styles.notice}>
-          <Ionicons name="phone-portrait-outline" size={48} color={colors.primary} />
-          <Text style={styles.noticeTitle}>Development Build Required</Text>
-          <Text style={styles.noticeBody}>
-            Reading SMS messages requires the{' '}
-            <Text style={styles.bold}>react-native-get-sms-android</Text> native module, which is
-            not available in the standard Expo Go app.
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <View style={styles.notice}>
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={colors.primary}
+        />
+
+        <Text style={styles.noticeTitle}>
+          SMS Reader Unavailable
+        </Text>
+
+        <Text style={styles.noticeBody}>
+          The native SMS reader is not available in this installed APK.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={showSMSDiagnostics}
+        >
+          <Text style={styles.buttonText}>
+            Show Diagnostics
           </Text>
-          <Text style={styles.noticeBody}>To enable SMS import:</Text>
-          <View style={styles.steps}>
-            {[
-              'npm install -g eas-cli',
-              'npx eas build:configure',
-              'npx eas build --profile development --platform android',
-              'Install the APK on your Android device',
-            ].map((step, i) => (
-              <Text key={i} style={styles.step}>
-                {i + 1}. <Text style={styles.code}>{step}</Text>
-              </Text>
-            ))}
-          </View>
-          {Platform.OS !== 'android' && (
-            <Text style={[styles.noticeBody, { color: colors.warning, marginTop: spacing.md }]}>
-              ⚠ SMS reading is Android-only.
-            </Text>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
 
   // ─── Permission request ───────────────────────────────────────────────────
 
