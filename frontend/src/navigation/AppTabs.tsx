@@ -144,7 +144,8 @@ export function AppTabs() {
         component={TransactionsStack}
         options={{ title: 'Transactions', headerShown: false }}
         listeners={({ navigation }) => ({
-          tabPress: () => {
+          tabPress: (e) => {
+            e.preventDefault();
             navigation.navigate('TransactionsTab', { screen: 'TransactionsList' });
           },
         })}
