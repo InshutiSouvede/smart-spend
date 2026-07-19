@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,7 +69,18 @@ function TransactionsStack() {
       <TxStack.Screen
         name="UnmatchedExpenses"
         component={UnmatchedExpensesScreen}
-        options={{ title: 'Unmatched Expenses' }}
+        options={({ navigation }) => ({
+          title: 'Unmatched Expenses',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('TransactionsList')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginRight: 8 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
     </TxStack.Navigator>
   );
@@ -127,7 +139,16 @@ export function AppTabs() {
     >
       <Tab.Screen name="HomeTab"         component={HomeScreen}        options={{ title: 'Dashboard' }} />
       <Tab.Screen name="AnalyticsTab"    component={AnalyticsScreen}   options={{ title: 'Analytics' }} />
-      <Tab.Screen name="TransactionsTab" component={TransactionsStack} options={{ title: 'Transactions', headerShown: false }} />
+      <Tab.Screen
+        name="TransactionsTab"
+        component={TransactionsStack}
+        options={{ title: 'Transactions', headerShown: false }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate('TransactionsTab', { screen: 'TransactionsList' });
+          },
+        })}
+      />
       <Tab.Screen name="ReceiptsTab"     component={ReceiptsStack}     options={{ title: 'Receipts', headerShown: false }} />
       <Tab.Screen name="ExportTab"       component={ExportScreen}      options={{ title: 'Export' }} />
       <Tab.Screen name="ProfileTab"      component={ProfileScreen}     options={{ title: 'Profile' }} />

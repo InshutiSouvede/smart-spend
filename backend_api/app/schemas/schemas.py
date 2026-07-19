@@ -452,6 +452,8 @@ class AnalyticsSummary(BaseModel):
     net_balance: float
     overspend: bool
     transaction_count: int
+    income_count: int = 0
+    expense_count: int = 0
     category_breakdown: List[CategorySummary]
 
 

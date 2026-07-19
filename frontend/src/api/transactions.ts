@@ -27,7 +27,9 @@ export const transactionsApi = {
       .then((r) => r.data),
 
   sync: (payload: SMSIngestRequest) =>
-    apiClient.post<SMSSyncResponse>('/transactions/sms/sync', payload).then((r) => r.data),
+    apiClient.post<SMSSyncResponse>('/transactions/sms/sync', payload, {
+      timeout: 120_000,  // Large imports can take >30s; allow up to 2 minutes
+    }).then((r) => r.data),
 
   correctCategory: (payload: CategoryCorrectionRequest) =>
     apiClient

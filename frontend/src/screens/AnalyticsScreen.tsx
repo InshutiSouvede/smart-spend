@@ -168,7 +168,7 @@ export function AnalyticsScreen() {
             <Text style={[styles.summaryValue, { color: colors.income }]}>
               {summaryLoading ? '…' : `${formatRWF(summary?.total_income ?? 0)} RWF`}
             </Text>
-            <Text style={styles.summaryCount}>{summary?.transaction_count ?? 0} transactions</Text>
+            <Text style={styles.summaryCount}>{summary?.income_count ?? 0} transactions</Text>
           </View>
           <View style={[styles.summaryCard, { borderLeftColor: colors.expense }]}>
             <Text style={styles.summaryLabel}>Expenses</Text>
@@ -176,7 +176,7 @@ export function AnalyticsScreen() {
               {summaryLoading ? '…' : `${formatRWF(summary?.total_expense ?? 0)} RWF`}
             </Text>
             <Text style={styles.summaryCount}>
-              {summary?.overspend ? 'Overspending' : 'Within budget'}
+              {summary?.expense_count ?? 0} transactions · {summary?.overspend ? 'Overspending' : 'Within budget'}
             </Text>
           </View>
         </View>

@@ -26,7 +26,12 @@ CATEGORY_NUM_COLS = [
 ]
 
 # All columns the category DataFrame must have
-CATEGORY_DF_COLS = [CATEGORY_TEXT_COL] + CATEGORY_NUM_COLS
+CATEGORY_DF_COLS = [CATEGORY_TEXT_COL] + CATEGORY_NUM_COLS + [
+    "price_range_very_cheap", "price_range_cheap", "price_range_medium",
+    "price_range_expensive", "price_range_very_expensive",
+    "is_weekend", "is_month_start", "is_month_end",
+    "text_length", "word_count",
+]
 
 # 15-feature set shared by both forecast models (matches trained XGBoost models)
 PREDICTION_FEATURES = [
@@ -59,13 +64,34 @@ def _build_category_df(features: dict) -> pd.DataFrame:
         str(features.get("merchant_name") or ""),
         str(features.get("to_who") or ""),
     ]))
+    total_cost = float(features.get("total_cost_rwf") or 0.0)
+    weekday = int(features.get("purchase_weekday") or 0)
+    month = int(features.get("purchase_month") or 0)
+
+    # Price range one-hot encoding (bins: 0-2000, 2000-10000, 10000-50000, 50000-200000, 200000+)
+    price_range_very_cheap = 1.0 if total_cost <= 2000 else 0.0
+    price_range_cheap = 1.0 if 2000 < total_cost <= 10000 else 0.0
+    price_range_medium = 1.0 if 10000 < total_cost <= 50000 else 0.0
+    price_range_expensive = 1.0 if 50000 < total_cost <= 200000 else 0.0
+    price_range_very_expensive = 1.0 if total_cost > 200000 else 0.0
+
     return pd.DataFrame([{
-        CATEGORY_TEXT_COL:  text,
-        "quantity":         float(features.get("quantity") or 1.0),
-        "unit_cost_rwf":    float(features.get("unit_cost_rwf") or 0.0),
-        "total_cost_rwf":   float(features.get("total_cost_rwf") or 0.0),
-        "purchase_month":   int(features.get("purchase_month") or 0),
-        "purchase_weekday": int(features.get("purchase_weekday") or 0),
+        CATEGORY_TEXT_COL:              text,
+        "quantity":                     float(features.get("quantity") or 1.0),
+        "unit_cost_rwf":               float(features.get("unit_cost_rwf") or 0.0),
+        "total_cost_rwf":              total_cost,
+        "purchase_month":              month,
+        "purchase_weekday":            weekday,
+        "price_range_very_cheap":      price_range_very_cheap,
+        "price_range_cheap":           price_range_cheap,
+        "price_range_medium":          price_range_medium,
+        "price_range_expensive":       price_range_expensive,
+        "price_range_very_expensive":  price_range_very_expensive,
+        "is_weekend":                  1.0 if weekday in (5, 6) else 0.0,
+        "is_month_start":             1.0 if month in (1, 2, 3) else 0.0,
+        "is_month_end":               1.0 if month in (10, 11, 12) else 0.0,
+        "text_length":                float(len(text)),
+        "word_count":                 float(len(text.split())),
     }])
 
 

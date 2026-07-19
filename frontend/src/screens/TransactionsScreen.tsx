@@ -37,8 +37,52 @@ export function TransactionsScreen() {
   const [recentlyChanged, setRecentlyChanged] = useState<Set<number>>(new Set());
   const changeTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
+  // ─── Month filter state ────────────────────────────────────────────────────
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  const fromDate = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+  const toDate = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  const goToPreviousMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() - 1);
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    if (newDate >= twelveMonthsAgo) {
+      setSelectedMonth(newDate);
+    }
+  };
+
+  const goToNextMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() + 1);
+    const now = new Date();
+    if (newDate <= now) {
+      setSelectedMonth(newDate);
+    }
+  };
+
+  const isCurrentMonth =
+    selectedMonth.getMonth() === new Date().getMonth() &&
+    selectedMonth.getFullYear() === new Date().getFullYear();
+
+  const isTwelveMonthsAgo = () => {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    return selectedMonth <= twelveMonthsAgo;
+  };
+
+  const monthLabel = selectedMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  const txParams = {
+    ...(filter !== 'all' ? { transaction_type: filter as 'income' | 'expense' } : {}),
+    from_date: fromDate,
+    to_date: toDate,
+  };
+
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useTransactions(filter === 'all' ? {} : { transaction_type: filter });
+    useTransactions(txParams);
 
   const { data: unmatchedData, isLoading: unmatchedLoading } = useInfiniteQuery({
     queryKey: ['transactions', 'unmatched'],
@@ -104,6 +148,36 @@ export function TransactionsScreen() {
             </Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      {/* Month navigation */}
+      <View style={styles.monthNav}>
+        <TouchableOpacity
+          onPress={goToPreviousMonth}
+          disabled={isTwelveMonthsAgo()}
+          style={[styles.monthNavBtn, isTwelveMonthsAgo() && styles.monthNavBtnDisabled]}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={isTwelveMonthsAgo() ? colors.textMuted : colors.primary}
+          />
+        </TouchableOpacity>
+        <View style={styles.monthLabelContainer}>
+          <Text style={styles.monthLabelText}>{monthLabel}</Text>
+          {isCurrentMonth && <Text style={styles.monthBadge}>Current</Text>}
+        </View>
+        <TouchableOpacity
+          onPress={goToNextMonth}
+          disabled={isCurrentMonth}
+          style={[styles.monthNavBtn, isCurrentMonth && styles.monthNavBtnDisabled]}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={isCurrentMonth ? colors.textMuted : colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {isError && (
@@ -251,6 +325,43 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.primaryLight },
   tabText: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
   tabTextActive: { color: colors.primary, fontWeight: '700' },
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  monthNavBtn: {
+    padding: spacing.xs,
+    borderRadius: radius.full,
+  },
+  monthNavBtnDisabled: {
+    opacity: 0.4,
+  },
+  monthLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  monthLabelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  monthBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
   list: {
     padding: spacing.lg,
     paddingBottom: 100,

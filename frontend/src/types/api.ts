@@ -182,6 +182,8 @@ export interface AnalyticsSummary {
   net_balance: number;
   overspend: boolean;
   transaction_count: number;
+  income_count: number;
+  expense_count: number;
   category_breakdown: CategorySummary[];
 }
 

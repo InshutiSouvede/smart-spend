@@ -451,8 +451,9 @@ def list_transactions(
         conditions.append("transaction_time >= ?")
         params.append(from_date)
     if to_date:
+        to_date_inclusive = f"{to_date}T23:59:59" if 'T' not in to_date else to_date
         conditions.append("transaction_time <= ?")
-        params.append(to_date)
+        params.append(to_date_inclusive)
 
     where = " AND ".join(conditions)
     offset = (page - 1) * page_size

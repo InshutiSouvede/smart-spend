@@ -61,6 +61,7 @@ def get_summary(
             (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_income = float(income_row["total"])
+        income_count = int(income_row["cnt"])
 
         expense_row = conn.execute(
             "SELECT COALESCE(SUM(amount_rwf), 0) AS total, COUNT(*) AS cnt"
@@ -70,7 +71,8 @@ def get_summary(
             (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_expense = float(expense_row["total"])
-        tx_count = int(income_row["cnt"]) + int(expense_row["cnt"])
+        expense_count = int(expense_row["cnt"])
+        tx_count = income_count + expense_count
 
         # Category breakdown: use item costs when available, otherwise transaction amounts
         # This ensures totals match the expense summary at the top
@@ -120,6 +122,8 @@ def get_summary(
         net_balance=round(total_income - total_expense, 2),
         overspend=total_expense > total_income,
         transaction_count=tx_count,
+        income_count=income_count,
+        expense_count=expense_count,
         category_breakdown=category_breakdown,
     )
 
@@ -270,6 +274,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
     days_remaining = days_in_month - today.day
     period_start   = f"{today.year}-{today.month:02d}-01"
     period_end     = today.isoformat()
+    period_end_inclusive = f"{period_end}T23:59:59"
     period_label   = today.strftime("%B %Y")
 
     with get_db() as conn:
@@ -277,7 +282,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
             "SELECT COALESCE(SUM(amount_rwf), 0) AS total FROM sms_transactions"
             " WHERE user_id = ? AND transaction_type = 'income'"
             " AND transaction_time >= ? AND transaction_time <= ?",
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_income = float(income_row["total"])
 
@@ -285,7 +290,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
             "SELECT COALESCE(SUM(amount_rwf), 0) AS total FROM sms_transactions"
             " WHERE user_id = ? AND transaction_type = 'expense'"
             " AND transaction_time >= ? AND transaction_time <= ?",
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchone()
         total_expense = float(expense_row["total"])
 
@@ -310,7 +315,7 @@ def get_spending_status(user_id: str = Depends(get_current_user_id)) -> Spending
               AND st.transaction_time >= ? AND st.transaction_time <= ?
             GROUP BY category ORDER BY total DESC
             """,
-            (user_id, period_start, period_end),
+            (user_id, period_start, period_end_inclusive),
         ).fetchall()
 
         # Historical 3-month averages
