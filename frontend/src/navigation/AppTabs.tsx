@@ -64,7 +64,18 @@ function TransactionsStack() {
       <TxStack.Screen
         name="ItemDetails"
         component={ItemDetailsScreen}
-        options={{ title: 'Purchase Details' }}
+        options={({ navigation }) => ({
+          title: 'Purchase Details',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.popToTop()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginRight: 8 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <TxStack.Screen
         name="UnmatchedExpenses"
@@ -73,7 +84,7 @@ function TransactionsStack() {
           title: 'Unmatched Expenses',
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate('TransactionsList')}
+              onPress={() => navigation.popToTop()}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{ marginRight: 8 }}
             >

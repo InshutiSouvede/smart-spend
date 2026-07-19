@@ -104,7 +104,7 @@ export function ItemDetailsScreen() {
       ]);
 
       Alert.alert('Success', 'Purchase details saved successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        { text: 'OK', onPress: () => navigation.popToTop() },
       ]);
     } catch (error) {
       Alert.alert('Error', getErrorMessage(error));
