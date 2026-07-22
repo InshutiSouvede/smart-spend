@@ -13,6 +13,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -35,6 +36,7 @@ export function SignupScreen() {
   const navigation = useNavigation<Nav>();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
@@ -103,18 +105,46 @@ export function SignupScreen() {
                 control={control}
                 name={name}
                 render={({ field: { onChange, value, onBlur } }) => (
-                  <TextInput
-                    style={[styles.input, errors[name] && styles.inputError]}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder={placeholder}
-                    placeholderTextColor={colors.textMuted}
-                    secureTextEntry={secure}
-                    keyboardType={keyboard}
-                    autoCapitalize={name === 'email' ? 'none' : 'words'}
-                    autoComplete={name === 'email' ? 'email' : name === 'password' ? 'password-new' : 'name'}
-                  />
+                  name === 'password' ? (
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        style={[styles.input, styles.inputFlex, errors[name] && styles.inputError]}
+                        value={value}
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        placeholder={placeholder}
+                        placeholderTextColor={colors.textMuted}
+                        secureTextEntry={!showPassword}
+                        keyboardType={keyboard}
+                        autoCapitalize="none"
+                        autoComplete="password-new"
+                      />
+                      <TouchableOpacity
+                        style={styles.eyeBtn}
+                        onPress={() => setShowPassword((p) => !p)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color={colors.textMuted}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TextInput
+                      style={[styles.input, errors[name] && styles.inputError]}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder={placeholder}
+                      placeholderTextColor={colors.textMuted}
+                      secureTextEntry={secure}
+                      keyboardType={keyboard}
+                      autoCapitalize={name === 'email' ? 'none' : 'words'}
+                      autoComplete={name === 'email' ? 'email' : 'name'}
+                    />
+                  )
                 )}
               />
               {errors[name] ? (
@@ -235,6 +265,19 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.error,
+  },
+  inputRow: {
+    position: 'relative',
+  },
+  inputFlex: {
+    paddingRight: 48,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   fieldError: {
     fontFamily: fonts.bodyRegular,
