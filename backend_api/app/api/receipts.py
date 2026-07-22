@@ -345,7 +345,7 @@ async def upload_receipt(
     # Initialize variables that will be used outside the with block
     ocr_confidence = 0.0
     validation_result = None
-    parser_source = "paddleocr-enhanced"
+    parser_source = "tesseract-enhanced"
     completeness_score = 0.0
     ocr_mode = "paddleocr"
 
@@ -475,7 +475,7 @@ async def upload_receipt(
                 uploaded_at=now,
                 ocr_confidence=ocr_confidence,
                 validation_warnings=validation_warnings,
-                parser_source="paddleocr-enhanced",
+                parser_source="tesseract-enhanced",
                 completeness_score=0.1,
             )
         
@@ -551,7 +551,7 @@ async def upload_receipt(
                 uploaded_at=now,
                 ocr_confidence=ocr_confidence,
                 validation_warnings=no_items_warnings,
-                parser_source="paddleocr-enhanced",
+                parser_source="tesseract-enhanced",
                 completeness_score=0.3 if merchant_name and total_amount_rwf else 0.1,
             )
 
@@ -664,7 +664,7 @@ async def upload_receipt(
         validation_result = validator.validate(receipt_data)
         validation_warnings_json = json.dumps(validation_result.warnings) if validation_result.warnings else None
         completeness_score = validation_result.confidence
-        parser_source = "paddleocr-enhanced"
+        parser_source = "tesseract-enhanced"
         
         # Update database with validation results
         conn.execute(

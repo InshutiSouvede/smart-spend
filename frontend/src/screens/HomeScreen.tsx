@@ -56,6 +56,8 @@ export function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const navigation = useNavigation<Nav>();
   const [trendView, setTrendView] = React.useState<TrendView>('daily');
+  const [selectedIdx, setSelectedIdx] = React.useState<number | null>(null);
+  React.useEffect(() => { setSelectedIdx(null); }, [trendView]);
 
   const {
     data: status,
@@ -84,28 +86,46 @@ export function HomeScreen() {
 
   const risk = status ? RISK_CONFIG[status.risk_level as keyof typeof RISK_CONFIG] ?? RISK_CONFIG.no_data : null;
 
-  const trendData = useMemo(() => {
+  const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTH_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const { trendData, trendMeta } = useMemo(() => {
+    type Meta = { label: string; income: number; expense: number };
     if (trendView === 'daily') {
-      if (!daily || daily.length === 0) return null;
+      if (!daily || daily.length === 0) return { trendData: null, trendMeta: [] as Meta[] };
       const sorted = [...daily].reverse();
       return {
-        labels: sorted.map((d) => new Date(d.date).getDate().toString()),
-        datasets: [
-          { data: sorted.map((d) => d.total_income), color: () => colors.income, strokeWidth: 2 },
-          { data: sorted.map((d) => d.total_expense), color: () => colors.expense, strokeWidth: 2 },
-        ],
-        legend: ['Income', 'Expense'],
+        trendData: {
+          labels: sorted.map((d, i) => i % 5 === 0 ? `${new Date(d.date).getDate()}` : ''),
+          datasets: [
+            { data: sorted.map((d) => d.total_income), color: () => colors.income, strokeWidth: 2 },
+            { data: sorted.map((d) => d.total_expense), color: () => colors.expense, strokeWidth: 2 },
+          ],
+          legend: ['Income', 'Expense'],
+        },
+        trendMeta: sorted.map((d) => ({
+          label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          income: d.total_income,
+          expense: d.total_expense,
+        })),
       };
     } else {
-      if (!monthly || monthly.length === 0) return null;
+      if (!monthly || monthly.length === 0) return { trendData: null, trendMeta: [] as Meta[] };
       const sorted = [...monthly].reverse();
       return {
-        labels: sorted.map((m) => m.period.slice(5)),
-        datasets: [
-          { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
-          { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
-        ],
-        legend: ['Income', 'Expense'],
+        trendData: {
+          labels: sorted.map((m) => MONTH_SHORT[parseInt(m.period.slice(5), 10) - 1]),
+          datasets: [
+            { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
+            { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
+          ],
+          legend: ['Income', 'Expense'],
+        },
+        trendMeta: sorted.map((m) => ({
+          label: `${MONTH_LONG[parseInt(m.period.slice(5), 10) - 1]} ${m.period.slice(0, 4)}`,
+          income: m.total_income,
+          expense: m.total_expense,
+        })),
       };
     }
   }, [trendView, daily, monthly]);
@@ -284,11 +304,12 @@ export function HomeScreen() {
               </View>
             </View>
             <View style={styles.chartContainer}>
+              <Text style={styles.yAxisHint}>↑ RWF</Text>
               <LineChart
                 data={trendData}
                 width={CHART_WIDTH - spacing.xl * 2}
-                height={160}
-                withDots={false}
+                height={185}
+                withDots
                 withInnerLines={false}
                 withOuterLines={false}
                 chartConfig={{
@@ -302,11 +323,52 @@ export function HomeScreen() {
                   decimalPlaces: 0,
                   propsForLabels: { fontFamily: fonts.bodyRegular, fontSize: 10 },
                   propsForBackgroundLines: { stroke: colors.border },
+                  propsForDots: { r: '3', strokeWidth: '1.5', stroke: colors.surface },
+                  formatYLabel: (v) => {
+                    const n = parseFloat(v);
+                    if (isNaN(n)) return v;
+                    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                    if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+                    return String(Math.round(n));
+                  },
                 }}
+                onDataPointClick={({ index }) =>
+                  setSelectedIdx((prev) => (prev === index ? null : index))
+                }
                 style={{ borderRadius: radius.md }}
                 bezier
               />
+              <Text style={styles.xAxisHint}>
+                {trendView === 'daily' ? 'Day of month →' : 'Month →'}
+              </Text>
             </View>
+            {selectedIdx !== null && trendMeta[selectedIdx] != null && (
+              <View style={styles.selectedInfo}>
+                <View style={styles.selectedInfoHeader}>
+                  <Text style={styles.selectedInfoDate}>{trendMeta[selectedIdx].label}</Text>
+                  <TouchableOpacity onPress={() => setSelectedIdx(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.selectedInfoValues}>
+                  <View style={styles.selectedInfoItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
+                    <Text style={styles.selectedInfoLabel}>Income</Text>
+                    <Text style={[styles.selectedInfoValue, { color: colors.income }]}>
+                      {formatRWF(trendMeta[selectedIdx].income)}
+                    </Text>
+                  </View>
+                  <View style={styles.selectedInfoDivider} />
+                  <View style={styles.selectedInfoItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
+                    <Text style={styles.selectedInfoLabel}>Expense</Text>
+                    <Text style={[styles.selectedInfoValue, { color: colors.expense }]}>
+                      {formatRWF(trendMeta[selectedIdx].expense)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
             <View style={styles.legend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
@@ -316,6 +378,7 @@ export function HomeScreen() {
                 <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
                 <Text style={styles.legendText}>Expense</Text>
               </View>
+              <Text style={styles.tapHint}>Tap a point for details</Text>
             </View>
           </View>
         )}
@@ -714,5 +777,75 @@ const styles = StyleSheet.create({
   },
   pillTextActive: {
     color: colors.textPrimary,
+  },
+
+  yAxisHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  xAxisHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 10,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  selectedInfo: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  selectedInfoDate: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  selectedInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  selectedInfoValues: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectedInfoItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  selectedInfoLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginRight: 2,
+  },
+  selectedInfoValue: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+  },
+  selectedInfoDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.sm,
+  },
+
+  tapHint: {
+    marginLeft: 'auto' as any,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: 'italic',
   },
 });

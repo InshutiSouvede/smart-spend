@@ -43,6 +43,9 @@ import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, fonts } from '../theme';
 
+/** Number of messages sent per API request to avoid timeouts. */
+const BATCH_SIZE = 50;
+
 function isoToMs(iso: string | null | undefined): number {
   if (!iso) return Date.now() - 30 * 24 * 60 * 60 * 1000;
   return new Date(iso).getTime();
@@ -61,8 +64,9 @@ export function SMSImportScreen() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
-  const { mutateAsync: syncSMS, isPending: uploading } = useSyncSMS();
+  const { mutateAsync: syncSMS } = useSyncSMS();
 
   useEffect(() => {
     if (!isSMSNativeAvailable) return;
@@ -126,42 +130,71 @@ export function SMSImportScreen() {
   const handleUpload = async () => {
     if (!consentChecked) return;
     setUploadError(null);
+
+    // Map all selected messages to the API shape up front.
+    const allMessages = selectedMessages.map((m) => ({
+      raw_sms_text: m.body,
+      source_message_id: String(m._id),
+      sender: m.address,
+      sms_time: new Date(parseInt(m.date, 10)).toISOString(),
+    }));
+
+    // Split into BATCH_SIZE chunks so each request completes well within
+    // the server timeout even on slow connections.
+    const batches: (typeof allMessages)[] = [];
+    for (let i = 0; i < allMessages.length; i += BATCH_SIZE) {
+      batches.push(allMessages.slice(i, i + BATCH_SIZE));
+    }
+
+    setBatchProgress({ current: 0, total: batches.length });
+
+    // Accumulate results across all batches.
+    let totalImported = 0;
+    let totalDuplicates = 0;
+    let totalFailed = 0;
+    let totalSensitive = 0;
+    let lastImportAt: string | null | undefined = null;
+
     try {
-      const payload = {
-        consent_confirmed: true,
-        messages: selectedMessages.map((m) => ({
-          raw_sms_text: m.body,
-          source_message_id: String(m._id),
-          sender: m.address,
-          sms_time: new Date(parseInt(m.date, 10)).toISOString(),
-        })),
-      };
-      console.log('=== SMS Upload Debug ===');
-      console.log('Total messages:', payload.messages.length);
-      console.log('First message:', JSON.stringify(payload.messages[0], null, 2));
-      console.log('Sample raw_sms_text type:', typeof payload.messages[0]?.raw_sms_text);
-      console.log('Full payload:', JSON.stringify(payload, null, 2));
-      const res = await syncSMS(payload);
-      if (res.last_import_at) {
-        await setLastSmsImportAt(res.last_import_at);
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress({ current: i + 1, total: batches.length });
+        const res = await syncSMS({
+          consent_confirmed: true,
+          messages: batches[i],
+        });
+        totalImported   += res.imported.length;
+        totalDuplicates += res.duplicates_skipped;
+        totalFailed     += res.failed.length;
+        totalSensitive  += res.sensitive_warnings.length;
+        if (res.last_import_at) lastImportAt = res.last_import_at;
       }
+
+      if (lastImportAt) {
+        await setLastSmsImportAt(lastImportAt);
+      }
+
+      setBatchProgress(null);
       setPreviewVisible(false);
       setSelected(new Set());
       setConsentChecked(false);
 
       const summary = [
-        `${res.imported.length} imported`,
-        res.duplicates_skipped > 0 ? `${res.duplicates_skipped} duplicates skipped` : null,
-        res.sensitive_warnings.length > 0
-          ? `${res.sensitive_warnings.length} sensitive messages not stored`
-          : null,
-        res.failed.length > 0 ? `${res.failed.length} could not be parsed` : null,
+        `${totalImported} imported`,
+        totalDuplicates > 0 ? `${totalDuplicates} duplicates skipped` : null,
+        totalSensitive > 0 ? `${totalSensitive} sensitive messages not stored` : null,
+        totalFailed > 0 ? `${totalFailed} could not be parsed` : null,
       ]
         .filter(Boolean)
         .join('\n');
       Alert.alert('Import complete', summary);
     } catch (e) {
-      setUploadError(getErrorMessage(e));
+      // Some batches may have succeeded before the error — report that to the
+      // user instead of showing a misleading generic network error.
+      const saved = totalImported > 0
+        ? `\n\n${totalImported} message${totalImported !== 1 ? 's were' : ' was'} already saved before this error.`
+        : '';
+      setBatchProgress(null);
+      setUploadError(`${getErrorMessage(e)}${saved}`);
     }
   };
 
@@ -378,13 +411,32 @@ export function SMSImportScreen() {
           </ScrollView>
 
           <View style={styles.modalFooter}>
+            {batchProgress !== null && (
+              <View style={styles.batchProgressContainer}>
+                <Text style={styles.batchProgressText}>
+                  Processing batch {batchProgress.current} of {batchProgress.total} — please be patient…
+                </Text>
+                <View style={styles.batchProgressBar}>
+                  <View
+                    style={[
+                      styles.batchProgressFill,
+                      {
+                        width: `${Math.round(
+                          (batchProgress.current / batchProgress.total) * 100,
+                        )}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
             <TouchableOpacity
-              style={[styles.uploadButton, (!consentChecked || uploading) && styles.uploadButtonDisabled]}
+              style={[styles.uploadButton, (!consentChecked || batchProgress !== null) && styles.uploadButtonDisabled]}
               onPress={handleUpload}
-              disabled={!consentChecked || uploading}
+              disabled={!consentChecked || batchProgress !== null}
               activeOpacity={0.85}
             >
-              {uploading ? (
+              {batchProgress !== null ? (
                 <ActivityIndicator color={colors.textPrimary} />
               ) : (
                 <Text style={styles.uploadButtonText}>Upload {selectedMessages.length} messages</Text>
@@ -640,4 +692,26 @@ const styles = StyleSheet.create({
   },
   uploadButtonDisabled: { opacity: 0.45 },
   uploadButtonText: { fontFamily: fonts.headingSemiBold, color: colors.textPrimary, fontSize: 15 },
+
+  batchProgressContainer: {
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  batchProgressText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  batchProgressBar: {
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  batchProgressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+  },
 });
