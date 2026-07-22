@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { LineChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -23,11 +24,11 @@ import { useAuthStore } from '../store/authStore';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TransactionCard } from '../components/TransactionCard';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { AppTabParamList, TransactionsStackParamList } from '../navigation/AppTabs';
 
 const { width } = Dimensions.get('window');
-const CHART_WIDTH = width - spacing.xl * 2;
+const CHART_WIDTH = width - spacing.lg * 2;
 
 function formatRWF(amount: number): string {
   const abs = Math.abs(amount);
@@ -81,15 +82,14 @@ export function HomeScreen() {
     return 'Good evening';
   })();
 
-  const risk = status ? RISK_CONFIG[status.risk_level] ?? RISK_CONFIG.no_data : null;
+  const risk = status ? RISK_CONFIG[status.risk_level as keyof typeof RISK_CONFIG] ?? RISK_CONFIG.no_data : null;
 
-  // Build trend chart data based on selected view
   const trendData = useMemo(() => {
     if (trendView === 'daily') {
       if (!daily || daily.length === 0) return null;
-      const sorted = [...daily].reverse(); // backend returns DESC, reverse to ASC
+      const sorted = [...daily].reverse();
       return {
-        labels: sorted.map((d) => new Date(d.date).getDate().toString()), // Day of month
+        labels: sorted.map((d) => new Date(d.date).getDate().toString()),
         datasets: [
           { data: sorted.map((d) => d.total_income), color: () => colors.income, strokeWidth: 2 },
           { data: sorted.map((d) => d.total_expense), color: () => colors.expense, strokeWidth: 2 },
@@ -97,11 +97,10 @@ export function HomeScreen() {
         legend: ['Income', 'Expense'],
       };
     } else {
-      // Monthly view
       if (!monthly || monthly.length === 0) return null;
-      const sorted = [...monthly].reverse(); // backend returns DESC, reverse to ASC
+      const sorted = [...monthly].reverse();
       return {
-        labels: sorted.map((m) => m.period.slice(5)), // MM
+        labels: sorted.map((m) => m.period.slice(5)),
         datasets: [
           { data: sorted.map((m) => m.total_income), color: () => colors.income, strokeWidth: 2 },
           { data: sorted.map((m) => m.total_expense), color: () => colors.expense, strokeWidth: 2 },
@@ -116,19 +115,25 @@ export function HomeScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetchStatus} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetchStatus}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
       >
-        {/* Header */}
+        {/* Header row */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>{greeting},</Text>
-            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'} 👋</Text>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.name}>{user?.display_name ?? user?.email ?? 'there'}</Text>
           </View>
           {risk && (
-            <View style={[styles.riskBadge, { backgroundColor: risk.color + '22' }]}>
-              <Ionicons name={risk.icon} size={14} color={risk.color} />
+            <View style={[styles.riskBadge, { backgroundColor: risk.color + '18' }]}>
+              <Ionicons name={risk.icon} size={13} color={risk.color} />
               <Text style={[styles.riskText, { color: risk.color }]}>{risk.label}</Text>
             </View>
           )}
@@ -138,58 +143,65 @@ export function HomeScreen() {
           <ErrorBanner message={getErrorMessage(statusErr)} onRetry={refetchStatus} />
         )}
 
-        {/* Summary cards */}
-        <View style={styles.cards}>
-          <View style={[styles.card, styles.cardIncome]}>
-            <Text style={styles.cardLabel}>Income</Text>
-            <Text style={[styles.cardAmount, { color: colors.income }]}>
-              {statusLoading ? '…' : formatRWF(status?.total_income ?? 0)}
-            </Text>
-          </View>
-          <View style={[styles.card, styles.cardExpense]}>
-            <Text style={styles.cardLabel}>Expenses</Text>
-            <Text style={[styles.cardAmount, { color: colors.expense }]}>
-              {statusLoading ? '…' : formatRWF(status?.total_expense ?? 0)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Net balance */}
-        <View style={styles.netCard}>
-          <Text style={styles.netLabel}>Net · {status?.period ?? '—'}</Text>
-          <Text
-            style={[
-              styles.netAmount,
-              { color: (status?.net_balance ?? 0) >= 0 ? colors.income : colors.expense },
-            ]}
-          >
+        {/* Main summary card — champagne gradient */}
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.summaryCard}
+        >
+          <Text style={styles.summaryPeriod}>Net Balance · {status?.period ?? '—'}</Text>
+          <Text style={styles.summaryAmount}>
             {statusLoading
-              ? '…'
+              ? '—'
               : `${(status?.net_balance ?? 0) >= 0 ? '+' : ''}${formatRWF(status?.net_balance ?? 0)}`}
           </Text>
           {status && status.risk_level !== 'no_data' && (
-            <Text style={styles.netSub}>{status.status_message}</Text>
+            <Text style={styles.summaryStatus}>{status.status_message}</Text>
           )}
-        </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <View style={styles.summaryDotRow}>
+                <View style={[styles.dot, { backgroundColor: colors.income }]} />
+                <Text style={styles.summaryItemLabel}>Income</Text>
+              </View>
+              <Text style={[styles.summaryItemAmount, { color: colors.income }]}>
+                {statusLoading ? '—' : formatRWF(status?.total_income ?? 0)}
+              </Text>
+            </View>
+            <View style={styles.summaryDividerV} />
+            <View style={styles.summaryItem}>
+              <View style={styles.summaryDotRow}>
+                <View style={[styles.dot, { backgroundColor: colors.expense }]} />
+                <Text style={styles.summaryItemLabel}>Expenses</Text>
+              </View>
+              <Text style={[styles.summaryItemAmount, { color: colors.expense }]}>
+                {statusLoading ? '—' : formatRWF(status?.total_expense ?? 0)}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Spending rate */}
         {status && status.risk_level !== 'no_data' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Spending rate</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Spending rate</Text>
+              <Text style={styles.sectionMeta}>{status.days_remaining} days remaining</Text>
+            </View>
             <View style={styles.progressBar}>
               <View
                 style={[
                   styles.progressFill,
                   {
-                    width: `${Math.min(status.expense_rate_pct, 100)}%`,
+                    width: `${Math.min(status.expense_rate_pct, 100)}%` as any,
                     backgroundColor: risk?.color ?? colors.primary,
                   },
                 ]}
               />
             </View>
             <Text style={styles.progressLabel}>
-              {status.expense_rate_pct.toFixed(0)}% of income spent · {' '}
-              {status.days_remaining} days remaining
+              {status.expense_rate_pct.toFixed(0)}% of income spent
             </Text>
           </View>
         )}
@@ -197,52 +209,59 @@ export function HomeScreen() {
         {/* ML Predictions */}
         {(status?.predicted_month_end_expense != null || status?.predicted_month_end_income != null) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ML Forecast (month-end totals)</Text>
-            <View style={styles.cards}>
+            <Text style={[styles.sectionTitle, { marginBottom: spacing.sm }]}>ML Forecast — month-end</Text>
+            <View style={styles.forecastRow}>
               {status?.predicted_month_end_income != null && (
-                <View style={[styles.card, { backgroundColor: colors.successLight }]}>
-                  <Text style={styles.cardLabel}>Forecasted total income</Text>
-                  <Text style={[styles.cardAmount, { color: colors.income }]}>
+                <View style={styles.forecastCard}>
+                  <Text style={styles.forecastLabel}>Income</Text>
+                  <Text style={[styles.forecastAmount, { color: colors.income }]}>
                     {formatRWF(status.predicted_month_end_income)}
                   </Text>
                 </View>
               )}
               {status?.predicted_month_end_expense != null && (
-                <View style={[styles.card, { backgroundColor: colors.errorLight }]}>
-                  <Text style={styles.cardLabel}>Forecasted total expense</Text>
-                  <Text style={[styles.cardAmount, { color: colors.expense }]}>
+                <View style={styles.forecastCard}>
+                  <Text style={styles.forecastLabel}>Expenses</Text>
+                  <Text style={[styles.forecastAmount, { color: colors.expense }]}>
                     {formatRWF(status.predicted_month_end_expense)}
                   </Text>
                 </View>
               )}
             </View>
-            <Text style={styles.predHint}>
-              ML-forecasted month-end balance:{' '}
-              <Text
-                style={{
-                  color:
-                    (status?.projected_net ?? 0) >= 0 ? colors.income : colors.expense,
-                  fontWeight: '600',
-                }}
-              >
+            <Text style={styles.forecastNet}>
+              Projected net balance:{' '}
+              <Text style={{ color: (status?.projected_net ?? 0) >= 0 ? colors.income : colors.expense, fontFamily: fonts.bodySemiBold }}>
                 {(status?.projected_net ?? 0) >= 0 ? '+' : ''}{formatRWF(status?.projected_net ?? 0)}
               </Text>
             </Text>
-            <Text style={[styles.predHint, { fontSize: 11, marginTop: 4, fontStyle: 'italic' }]}>
-              Note: ML predictions are month-end totals based on your spending patterns.
-            </Text>
+            <Text style={styles.forecastHint}>ML predictions are estimated month-end totals based on your spending patterns.</Text>
           </View>
         )}
 
         {/* Top category */}
         {status?.top_category && (
-          <View style={styles.topCatRow}>
-            <Ionicons name="flame-outline" size={16} color={colors.warning} />
+          <View style={styles.topCatCard}>
+            <Ionicons name="flame-outline" size={14} color={colors.primary} />
             <Text style={styles.topCatText}>
-              Top spend: <Text style={{ fontWeight: '700' }}>{status.top_category}</Text>{' '}
-              ({formatRWF(status.top_category_amount)}, {status.top_category_pct.toFixed(0)}%)
+              Top spend:{' '}
+              <Text style={{ fontFamily: fonts.bodySemiBold }}>{status.top_category}</Text>
+              {' '}— {formatRWF(status.top_category_amount)} ({status.top_category_pct.toFixed(0)}%)
             </Text>
           </View>
+        )}
+
+        {/* Unmatched alert */}
+        {(status?.unmatched_expense_count ?? 0) > 0 && (
+          <TouchableOpacity
+            style={styles.alertCard}
+            onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
+          >
+            <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+            <Text style={styles.alertText}>
+              {status!.unmatched_expense_count} expense{status!.unmatched_expense_count > 1 ? 's' : ''} need categorization
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
         )}
 
         {/* Spending trend chart */}
@@ -258,33 +277,36 @@ export function HomeScreen() {
                     style={[styles.pill, trendView === view && styles.pillActive]}
                   >
                     <Text style={[styles.pillText, trendView === view && styles.pillTextActive]}>
-                      {view.charAt(0).toUpperCase() + view.slice(1)}
+                      {view === 'daily' ? 'Daily' : 'Monthly'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-            <LineChart
-              data={trendData}
-              width={CHART_WIDTH}
-              height={160}
-              withDots={false}
-              withInnerLines={false}
-              withOuterLines={false}
-              chartConfig={{
-                backgroundGradientFrom: colors.surface,
-                backgroundGradientTo: colors.surface,
-                color: (opacity = 1, index) =>
-                  index === 0
-                    ? `rgba(34,197,94,${opacity})`
-                    : `rgba(239,68,68,${opacity})`,
-                labelColor: () => colors.textSecondary,
-                decimalPlaces: 0,
-                propsForLabels: { fontSize: 10 },
-              }}
-              style={{ borderRadius: radius.md }}
-              bezier
-            />
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={trendData}
+                width={CHART_WIDTH - spacing.xl * 2}
+                height={160}
+                withDots={false}
+                withInnerLines={false}
+                withOuterLines={false}
+                chartConfig={{
+                  backgroundGradientFrom: colors.surface,
+                  backgroundGradientTo: colors.surface,
+                  color: (opacity = 1, index) =>
+                    index === 0
+                      ? `rgba(45,90,39,${opacity})`
+                      : `rgba(163,69,55,${opacity})`,
+                  labelColor: () => colors.textMuted,
+                  decimalPlaces: 0,
+                  propsForLabels: { fontFamily: fonts.bodyRegular, fontSize: 10 },
+                  propsForBackgroundLines: { stroke: colors.border },
+                }}
+                style={{ borderRadius: radius.md }}
+                bezier
+              />
+            </View>
             <View style={styles.legend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
@@ -298,73 +320,62 @@ export function HomeScreen() {
           </View>
         )}
 
-        {/* Unmatched alert */}
-        {(status?.unmatched_expense_count ?? 0) > 0 && (
-          <TouchableOpacity
-            style={styles.alertCard}
-            onPress={() => navigation.navigate('TransactionsTab', { screen: 'UnmatchedExpenses' })}
-          >
-            <Ionicons name="receipt-outline" size={18} color={colors.warning} />
-            <Text style={styles.alertText}>
-              {status!.unmatched_expense_count} expense{status!.unmatched_expense_count > 1 ? 's' : ''} need categorization
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.warning} />
-          </TouchableOpacity>
-        )}
-
         {/* Recent transactions */}
         {recentTx.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent activity</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('TransactionsTab')}>
+              <TouchableOpacity onPress={() => navigation.navigate('TransactionsTab' as any)}>
                 <Text style={styles.seeAll}>See all</Text>
               </TouchableOpacity>
             </View>
-            {recentTx.map((tx) => (
-              <TransactionCard
-                key={tx.id}
-                tx={tx}
-                onPress={(t) => {
-                  navigation.navigate('TransactionsTab', {
-                    screen: 'ItemDetails',
-                    params: {
-                      smsTransactionId: t.id,
-                      amount: t.amount_rwf,
-                      merchant: t.to_who || undefined,
-                    },
-                  });
-                }}
-              />
-            ))}
+            <View style={styles.txList}>
+              {recentTx.map((tx) => (
+                <TransactionCard
+                  key={tx.id}
+                  tx={tx}
+                  onPress={(t) => {
+                    navigation.navigate('TransactionsTab' as any, {
+                      screen: 'ItemDetails',
+                      params: {
+                        smsTransactionId: t.id,
+                        amount: t.amount_rwf,
+                        merchant: t.to_who || undefined,
+                      },
+                    });
+                  }}
+                />
+              ))}
+            </View>
           </View>
         )}
 
         {/* Quick actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick actions</Text>
-          <View style={styles.actions}>
+          <Text style={[styles.sectionTitle, { marginBottom: spacing.sm }]}>Quick actions</Text>
+          <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.action}
-              onPress={() => navigation.navigate('TransactionsTab')}
+              style={styles.actionPrimary}
+              onPress={() => navigation.navigate('TransactionsTab' as any)}
             >
-              <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-              <Text style={styles.actionText}>Import SMS</Text>
+              <Ionicons name="phone-portrait-outline" size={16} color={colors.textPrimary} />
+              <Text style={styles.actionPrimaryText}>Import SMS</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.action, { backgroundColor: colors.textSecondary }]}
-              onPress={() => navigation.navigate('ReceiptsTab')}
+              style={styles.actionSecondary}
+              onPress={() => navigation.navigate('ReceiptsTab' as any)}
             >
-              <Ionicons name="camera-outline" size={18} color="#fff" />
-              <Text style={styles.actionText}>Upload Receipt</Text>
+              <Ionicons name="camera-outline" size={16} color={colors.textPrimary} />
+              <Text style={styles.actionSecondaryText}>Upload Receipt</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            style={[styles.action, { backgroundColor: colors.surface, marginTop: spacing.sm }]}
-            onPress={() => navigation.navigate('AnalyticsTab')}
+            style={styles.actionTertiary}
+            onPress={() => navigation.navigate('AnalyticsTab' as any)}
           >
-            <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.primary }]}>View Full Analytics</Text>
+            <Ionicons name="bar-chart-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.actionTertiaryText}>View Analytics</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -375,17 +386,26 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
-  content: { padding: spacing.xl, paddingBottom: 40 },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: 48, paddingTop: spacing.md },
 
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  greeting: { fontSize: 14, color: colors.textSecondary },
-  name: { ...typography.h2, color: colors.textPrimary },
-
+  greeting: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  name: {
+    fontFamily: fonts.headingBold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: colors.textPrimary,
+  },
   riskBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -394,112 +414,305 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  riskText: { fontSize: 12, fontWeight: '600' },
-
-  cards: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
-  card: {
-    flex: 1,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+  riskText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
   },
-  cardIncome: { backgroundColor: colors.successLight },
-  cardExpense: { backgroundColor: colors.errorLight },
-  cardLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
-  cardAmount: { fontSize: 18, fontWeight: '700' },
 
-  netCard: {
-    backgroundColor: colors.surface,
+  // Summary gradient card
+  summaryCard: {
     borderRadius: radius.lg,
-    padding: spacing.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+  },
+  summaryPeriod: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: spacing.xxs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryAmount: {
+    fontFamily: fonts.headingBold,
+    fontSize: 36,
+    lineHeight: 44,
+    letterSpacing: -0.5,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+  },
+  summaryStatus: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  summaryRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(17,17,17,0.08)',
   },
-  netLabel: { fontSize: 13, color: colors.textSecondary },
-  netAmount: { fontSize: 28, fontWeight: '700', marginTop: 4 },
-  netSub: { fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' },
+  summaryItem: {
+    flex: 1,
+  },
+  summaryDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 3,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  summaryItemLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  summaryItemAmount: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  summaryDividerV: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(17,17,17,0.1)',
+    marginHorizontal: spacing.md,
+  },
 
-  section: { marginBottom: spacing.lg },
+  section: { marginBottom: spacing.xl },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  sectionTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.md },
-  seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  sectionTitle: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.textPrimary,
+  },
+  sectionMeta: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  seeAll: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
 
   progressBar: {
-    height: 8,
+    height: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.border,
+    backgroundColor: colors.surfaceContainer,
     overflow: 'hidden',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
-  progressFill: { height: '100%', borderRadius: radius.full },
-  progressLabel: { fontSize: 12, color: colors.textSecondary },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  progressLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
 
-  predHint: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.sm },
-
-  topCatRow: {
+  forecastRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#fef3c7',
+    marginBottom: spacing.sm,
+  },
+  forecastCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  topCatText: { flex: 1, fontSize: 13, color: '#92400e' },
+  forecastLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  forecastAmount: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 15,
+  },
+  forecastNet: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  forecastHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+  },
 
-  legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, color: colors.textSecondary },
+  topCatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.xs,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  topCatText: {
+    flex: 1,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
 
   alertCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: '#fffbeb',
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    gap: spacing.xs,
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.xs,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: colors.border,
   },
-  alertText: { flex: 1, fontSize: 13, color: '#92400e' },
+  alertText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
 
-  actions: { flexDirection: 'row', gap: spacing.md },
-  action: {
+  chartContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    overflow: 'hidden',
+  },
+  legend: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+
+  txList: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  actionPrimary: {
     flex: 1,
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 12,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xxs,
+    minHeight: 44,
   },
-  actionText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  actionPrimaryText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 13,
+  },
+  actionSecondary: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xs,
+    paddingVertical: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xxs,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+  },
+  actionSecondaryText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 13,
+  },
+  actionTertiary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 44,
+  },
+  actionTertiaryText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
 
-  pillRow: { flexDirection: 'row', gap: spacing.xs },
+  pillRow: { flexDirection: 'row', gap: spacing.xxs },
   pill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.full,
-    backgroundColor: colors.border,
+    backgroundColor: colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  pillActive: { backgroundColor: colors.primary },
-  pillText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  pillTextActive: { color: '#fff' },
+  pillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  pillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  pillTextActive: {
+    color: colors.textPrimary,
+  },
 });

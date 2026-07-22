@@ -42,7 +42,7 @@ export function useCategoryCorrection() {
       // Optimistically update every cached transaction page
       qc.setQueriesData<InfiniteData<PaginatedResponse<SMSTransactionOut>>>(
         { queryKey: ['transactions'] },
-        (old) => {
+        (old: InfiniteData<PaginatedResponse<SMSTransactionOut>> | undefined) => {
           if (!old) return old;
           return {
             ...old,

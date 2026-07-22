@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Modal,
   View,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import { useCategories } from '../hooks/useModels';
 
 interface Props {
@@ -27,15 +27,16 @@ export function CategoryPicker({ visible, current, onClose, onSelect, isSubmitti
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={styles.sheet}>
+        <View style={styles.handle} />
         <View style={styles.header}>
-          <Text style={styles.title}>Correct category</Text>
+          <Text style={styles.title}>Select category</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={22} color={colors.textSecondary} />
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.lg }} />
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
         ) : (
           <FlatList
             data={categories ?? []}
@@ -48,17 +49,17 @@ export function CategoryPicker({ visible, current, onClose, onSelect, isSubmitti
                   onPress={() => !isSubmitting && onSelect(item)}
                   disabled={isSubmitting}
                 >
+                  {selected && (
+                    <Ionicons name="checkmark" size={16} color={colors.primary} />
+                  )}
                   <Text style={[styles.rowText, selected && styles.rowTextSelected]}>
                     {item}
                   </Text>
-                  {selected && (
-                    <Ionicons name="checkmark" size={18} color={colors.primary} />
-                  )}
                 </TouchableOpacity>
               );
             }}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            contentContainerStyle={{ paddingBottom: spacing.xl }}
+            contentContainerStyle={{ paddingBottom: spacing.xxxl }}
           />
         )}
 
@@ -76,44 +77,75 @@ export function CategoryPicker({ visible, current, onClose, onSelect, isSubmitti
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(17,17,17,0.4)',
   },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     maxHeight: '65%',
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: spacing.xs,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  title: { ...typography.h3, color: colors.textPrimary },
+  title: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+    minHeight: 44,
   },
-  rowSelected: { backgroundColor: colors.primaryLight },
-  rowText: { fontSize: 15, color: colors.textPrimary },
-  rowTextSelected: { color: colors.primary, fontWeight: '600' },
-  separator: { height: 1, backgroundColor: colors.divider },
+  rowSelected: {
+    backgroundColor: colors.primaryLight,
+  },
+  rowText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 15,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  rowTextSelected: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.textPrimary,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.xl,
+  },
   submitting: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
     padding: spacing.md,
-    paddingHorizontal: spacing.lg,
+    gap: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  submittingText: { color: colors.textSecondary, fontSize: 14 },
+  submittingText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
 });

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import { colors } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 
 interface Props {
   visible: boolean;
@@ -29,21 +29,30 @@ export function LoadingOverlay({ visible, message = 'Loading…' }: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(17,17,17,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   box: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingVertical: 28,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xxl,
     paddingHorizontal: 36,
     alignItems: 'center',
-    gap: 14,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    // Subtle floating shadow
+    shadowColor: '#111111',
+    shadowOpacity: 0.04,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 6,
   },
   text: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 14,
+    lineHeight: 20,
     color: colors.textSecondary,
   },
 });

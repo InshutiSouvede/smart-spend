@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../api/auth';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 
 export function ProfileScreen() {
   const { clearAuth, user } = useAuthStore();
@@ -65,17 +65,19 @@ export function ProfileScreen() {
     ]);
   };
 
+  const initials = displayedName !== '—' ? displayedName[0].toUpperCase() : '?';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar placeholder */}
-        <View style={styles.avatarRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLetter}>
-              {displayedName !== '—' ? displayedName[0].toUpperCase() : '?'}
-            </Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.screenTitle}>Profile</Text>
+
+        {/* Avatar + Name card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarLetter}>{initials}</Text>
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.nameBlock}>
             {editing ? (
               <TextInput
                 style={styles.nameInput}
@@ -91,11 +93,11 @@ export function ProfileScreen() {
             )}
             <Text style={styles.email}>{displayedEmail}</Text>
           </View>
-          {!editing ? (
-            <TouchableOpacity onPress={handleStartEdit} style={styles.editBtn}>
-              <Ionicons name="pencil-outline" size={18} color={colors.primary} />
+          {!editing && (
+            <TouchableOpacity onPress={handleStartEdit} style={styles.editBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="pencil-outline" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
 
         {editing && (
@@ -119,7 +121,7 @@ export function ProfileScreen() {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.textPrimary} size="small" />
                 ) : (
                   <Text style={styles.saveBtnText}>Save</Text>
                 )}
@@ -128,24 +130,24 @@ export function ProfileScreen() {
           </>
         )}
 
-        {/* Info rows */}
+        {/* Info section */}
         <View style={styles.section}>
           <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
+            <Ionicons name="mail-outline" size={16} color={colors.textMuted} />
             <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{displayedEmail}</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{displayedEmail}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <Ionicons name="shield-checkmark-outline" size={18} color={colors.textSecondary} />
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.textMuted} />
             <Text style={styles.infoLabel}>Auth mode</Text>
             <Text style={styles.infoValue}>{profile?.auth_mode ?? '—'}</Text>
           </View>
         </View>
 
-        {/* Logout */}
+        {/* Sign out */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
+          <Ionicons name="log-out-outline" size={16} color={colors.error} />
           <Text style={styles.logoutText}>Sign out</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -155,96 +157,167 @@ export function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: 40 },
-  avatarRow: {
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 48,
+    paddingTop: spacing.md,
+    gap: spacing.md,
+  },
+  screenTitle: {
+    fontFamily: fonts.headingBold,
+    fontSize: 24,
+    lineHeight: 32,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    borderWidth: 2,
+    borderColor: colors.border,
   },
-  avatarLetter: { fontSize: 22, fontWeight: '700', color: colors.primary },
-  name: { ...typography.h3, color: colors.textPrimary },
+  avatarLetter: {
+    fontFamily: fonts.headingBold,
+    fontSize: 20,
+    color: colors.primary,
+  },
+  nameBlock: { flex: 1 },
+  name: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.textPrimary,
+  },
   nameInput: {
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: colors.primary,
+    fontFamily: fonts.headingSemiBold,
     fontSize: 17,
-    fontWeight: '600',
     color: colors.textPrimary,
     paddingBottom: 4,
   },
-  email: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  editBtn: { padding: spacing.sm },
+  email: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  editBtn: {
+    padding: spacing.xs,
+  },
+
   editActions: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   cancelBtn: {
     flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.xs,
+    paddingVertical: 11,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
+  cancelBtnText: {
+    fontFamily: fonts.bodyMedium,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
   saveBtn: {
     flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.xs,
+    paddingVertical: 11,
     alignItems: 'center',
     backgroundColor: colors.primary,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#fff', fontWeight: '700' },
+  saveBtnText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+
   errorBox: {
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: '#F0CACA',
     padding: spacing.md,
   },
-  errorText: { fontSize: 13, color: colors.error },
+  errorText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.error,
+  },
+
   section: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
+    minHeight: 52,
   },
-  infoLabel: { flex: 1, fontSize: 14, color: colors.textSecondary },
-  infoValue: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
-  divider: { height: 1, backgroundColor: colors.divider, marginLeft: spacing.lg + 18 + spacing.sm },
+  infoLabel: {
+    fontFamily: fonts.bodyMedium,
+    flex: 1,
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  infoValue: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.textPrimary,
+    maxWidth: '55%',
+    textAlign: 'right',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing.md + 16 + spacing.sm,
+  },
+
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.errorLight,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xs,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.error + '40',
+    minHeight: 50,
   },
-  logoutText: { fontSize: 15, fontWeight: '700', color: colors.error },
+  logoutText: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 14,
+    color: colors.error,
+  },
 });

@@ -20,7 +20,7 @@ import { UnmatchedExpenseCard } from '../components/UnmatchedExpenseCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { TransactionsStackParamList } from '../navigation/AppTabs';
 import type { SMSTransactionOut } from '../types/api';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -37,7 +37,6 @@ export function TransactionsScreen() {
   const [recentlyChanged, setRecentlyChanged] = useState<Set<number>>(new Set());
   const changeTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
-  // ─── Month filter state ────────────────────────────────────────────────────
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
   const fromDate = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-01`;
@@ -49,18 +48,14 @@ export function TransactionsScreen() {
     newDate.setMonth(newDate.getMonth() - 1);
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    if (newDate >= twelveMonthsAgo) {
-      setSelectedMonth(newDate);
-    }
+    if (newDate >= twelveMonthsAgo) setSelectedMonth(newDate);
   };
 
   const goToNextMonth = () => {
     const newDate = new Date(selectedMonth);
     newDate.setMonth(newDate.getMonth() + 1);
     const now = new Date();
-    if (newDate <= now) {
-      setSelectedMonth(newDate);
-    }
+    if (newDate <= now) setSelectedMonth(newDate);
   };
 
   const isCurrentMonth =
@@ -106,15 +101,9 @@ export function TransactionsScreen() {
     if (!correcting) return;
     const changedPdId = correcting.pdId;
     try {
-      await correctCategory({
-        purchase_detail_id: changedPdId,
-        corrected_category: category,
-      });
+      await correctCategory({ purchase_detail_id: changedPdId, corrected_category: category });
       setCorrecting(null);
-
-      // Highlight the changed transaction briefly
       setRecentlyChanged((prev) => new Set(prev).add(changedPdId));
-      // Clear any existing timer for this item
       const existing = changeTimers.current.get(changedPdId);
       if (existing) clearTimeout(existing);
       changeTimers.current.set(
@@ -144,7 +133,7 @@ export function TransactionsScreen() {
             onPress={() => setFilter(f)}
           >
             <Text style={[styles.tabText, filter === f && styles.tabTextActive]}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'All' : f === 'income' ? 'Income' : 'Expenses'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -156,11 +145,12 @@ export function TransactionsScreen() {
           onPress={goToPreviousMonth}
           disabled={isTwelveMonthsAgo()}
           style={[styles.monthNavBtn, isTwelveMonthsAgo() && styles.monthNavBtnDisabled]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons
             name="chevron-back"
-            size={20}
-            color={isTwelveMonthsAgo() ? colors.textMuted : colors.primary}
+            size={18}
+            color={isTwelveMonthsAgo() ? colors.textMuted : colors.textPrimary}
           />
         </TouchableOpacity>
         <View style={styles.monthLabelContainer}>
@@ -171,17 +161,18 @@ export function TransactionsScreen() {
           onPress={goToNextMonth}
           disabled={isCurrentMonth}
           style={[styles.monthNavBtn, isCurrentMonth && styles.monthNavBtnDisabled]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons
             name="chevron-forward"
-            size={20}
-            color={isCurrentMonth ? colors.textMuted : colors.primary}
+            size={18}
+            color={isCurrentMonth ? colors.textMuted : colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
 
       {isError && (
-        <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
           <ErrorBanner message={getErrorMessage(error)} onRetry={refetch} />
         </View>
       )}
@@ -199,13 +190,13 @@ export function TransactionsScreen() {
             return (
               <TransactionCard
                 tx={item}
-                onPress={(tx) => {
+                onPress={(tx) =>
                   navigation.navigate('ItemDetails', {
                     smsTransactionId: tx.id,
                     amount: tx.amount_rwf,
                     merchant: tx.to_who || undefined,
-                  });
-                }}
+                  })
+                }
                 onCategoryFix={(pdId, current) => setCorrecting({ pdId, current })}
                 highlight={pdId != null && recentlyChanged.has(pdId)}
               />
@@ -214,7 +205,6 @@ export function TransactionsScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
-              {/* Unmatched Expenses Section */}
               {filter === 'all' && !unmatchedLoading && unmatchedCount > 0 && (
                 <View style={styles.unmatchedSection}>
                   <TouchableOpacity
@@ -223,17 +213,15 @@ export function TransactionsScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.unmatchedHeaderLeft}>
-                      <Ionicons name="alert-circle" size={20} color={colors.warning} />
-                      <Text style={styles.unmatchedTitle}>
-                        Unmatched Expenses
-                      </Text>
+                      <Ionicons name="alert-circle" size={18} color={colors.warning} />
+                      <Text style={styles.unmatchedTitle}>Unmatched Expenses</Text>
                       <View style={styles.unmatchedBadge}>
                         <Text style={styles.unmatchedBadgeText}>{unmatchedCount}</Text>
                       </View>
                     </View>
                     <Ionicons
                       name={showUnmatched ? 'chevron-up' : 'chevron-down'}
-                      size={20}
+                      size={18}
                       color={colors.textMuted}
                     />
                   </TouchableOpacity>
@@ -248,16 +236,15 @@ export function TransactionsScreen() {
                           onPress={() => navigation.navigate('UnmatchedExpenses')}
                         >
                           <Text style={styles.viewAllButtonText}>
-                            View All {unmatchedCount} Unmatched Expenses
+                            View all {unmatchedCount} unmatched expenses
                           </Text>
-                          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+                          <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} />
                         </TouchableOpacity>
                       )}
                     </View>
                   )}
                 </View>
               )}
-              {/* Section Divider */}
               {filter === 'all' && unmatchedCount > 0 && (
                 <View style={styles.sectionDivider}>
                   <View style={styles.dividerLine} />
@@ -269,15 +256,25 @@ export function TransactionsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>No transactions yet.</Text>
+              <Ionicons name="list-outline" size={40} color={colors.textMuted} />
+              <Text style={styles.emptyText}>No transactions</Text>
               <Text style={styles.emptyHint}>Import your MoMo SMS to get started.</Text>
             </View>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
           ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} /> : null
+            isFetchingNextPage ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
+            ) : null
           }
         />
       )}
@@ -288,11 +285,10 @@ export function TransactionsScreen() {
         onPress={() => navigation.navigate('SMSImport')}
         activeOpacity={0.85}
       >
-        <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+        <Ionicons name="cloud-upload-outline" size={18} color={colors.textPrimary} />
         <Text style={styles.fabText}>Import SMS</Text>
       </TouchableOpacity>
 
-      {/* Category correction picker */}
       <CategoryPicker
         visible={correcting !== null}
         current={correcting?.current}
@@ -306,55 +302,69 @@ export function TransactionsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+
   tabs: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    gap: spacing.xxs,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.full,
     alignItems: 'center',
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  tabActive: { backgroundColor: colors.primaryLight },
-  tabText: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
-  tabTextActive: { color: colors.primary, fontWeight: '700' },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  tabTextActive: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.textPrimary,
+  },
+
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    minHeight: 44,
   },
   monthNavBtn: {
-    padding: spacing.xs,
+    padding: spacing.xxs,
     borderRadius: radius.full,
+    minWidth: 32,
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  monthNavBtnDisabled: {
-    opacity: 0.4,
-  },
+  monthNavBtnDisabled: { opacity: 0.35 },
   monthLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   monthLabelText: {
+    fontFamily: fonts.headingSemiBold,
     fontSize: 15,
-    fontWeight: '600',
     color: colors.textPrimary,
   },
   monthBadge: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
-    fontWeight: '700',
     color: colors.primary,
     backgroundColor: colors.primaryLight,
     paddingHorizontal: 6,
@@ -362,50 +372,55 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     overflow: 'hidden',
   },
+
   list: {
-    padding: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingHorizontal: 0,
     paddingBottom: 100,
   },
+
   unmatchedSection: {
-    marginBottom: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   unmatchedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 52,
   },
   unmatchedHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   unmatchedTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 14,
     color: colors.textPrimary,
   },
   unmatchedBadge: {
-    backgroundColor: colors.warning,
+    backgroundColor: colors.primary,
     borderRadius: radius.full,
-    minWidth: 22,
-    height: 22,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
   },
   unmatchedBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.textPrimary,
   },
   unmatchedList: {
-    gap: spacing.sm,
+    gap: spacing.xxs,
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -413,22 +428,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderRadius: radius.xs,
+    padding: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.primary,
-    marginTop: spacing.xs,
+    borderColor: colors.border,
+    marginTop: spacing.xxs,
+    minHeight: 44,
   },
   viewAllButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
+
   sectionDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-    marginTop: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    marginTop: spacing.xxs,
   },
   dividerLine: {
     flex: 1,
@@ -436,21 +454,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
     color: colors.textMuted,
-    marginHorizontal: spacing.md,
+    marginHorizontal: spacing.sm,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
+
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
     minHeight: 200,
+    gap: spacing.xs,
   },
-  emptyText: { ...typography.h3, color: colors.textSecondary, textAlign: 'center' },
-  emptyHint: { fontSize: 13, color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' },
+  emptyText: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -461,12 +494,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    gap: spacing.sm,
+    gap: spacing.xs,
     elevation: 4,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    shadowColor: '#111111',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
+    minHeight: 44,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  fabText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
 });

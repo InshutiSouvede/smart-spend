@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { authApi } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { AuthStackParamList } from '../navigation/AuthStack';
 
 const schema = z.object({
@@ -49,35 +49,17 @@ export function LoginScreen() {
     try {
       console.log('[LOGIN] Attempting login with email:', data.email);
       const res = await authApi.login(data);
-      
-      console.log('[LOGIN] ✓ Login API response received');
       console.log('[LOGIN] Auth mode:', res.auth_mode);
-      console.log('[LOGIN] User ID:', res.user_id);
-      console.log('[LOGIN] Token type:', res.token_type);
-      console.log('[LOGIN] Has access_token:', !!res.access_token);
-      
-      if (res.access_token) {
-        console.log('[LOGIN] Token length:', res.access_token.length);
-        console.log('[LOGIN] Token preview:', res.access_token.substring(0, 30) + '...');
-        console.log('[LOGIN] Token looks like JWT:', res.access_token.startsWith('eyJ'));
-      } else {
-        console.error('[LOGIN] ❌ No access_token in response!');
-        console.error('[LOGIN] ❌ This means backend is in mock mode or Supabase login failed');
-      }
-      
       if (!res.access_token) {
         throw new Error(`Authentication failed: No access token received (auth_mode: ${res.auth_mode}). Check backend MOCK_AUTH_ENABLED setting.`);
       }
-      
-      console.log('[LOGIN] Saving token to SecureStore...');
       await setAuth(res.access_token, {
         user_id: res.user_id,
         email: res.email,
         display_name: res.display_name,
       });
-      console.log('[LOGIN] ✓ Token saved successfully');
     } catch (e) {
-      console.error('[LOGIN] ❌ Login failed:', e);
+      console.error('[LOGIN] Failed:', e);
       setApiError(getErrorMessage(e));
     }
   };
@@ -88,8 +70,10 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.logo}>SmartSpend</Text>
+        {/* Brand mark */}
+        <View style={styles.brand}>
+          <Text style={styles.logoMark}>SS</Text>
+          <Text style={styles.logoText}>SmartSpend</Text>
           <Text style={styles.tagline}>Track your MoMo transactions</Text>
         </View>
 
@@ -100,6 +84,8 @@ export function LoginScreen() {
         ) : null}
 
         <View style={styles.form}>
+          <Text style={styles.formTitle}>Sign in</Text>
+
           <Text style={styles.label}>Email</Text>
           <Controller
             control={control}
@@ -146,17 +132,17 @@ export function LoginScreen() {
             activeOpacity={0.85}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.switchRow}>
           <Text style={styles.switchText}>
-            Don't have an account?{' '}
-            <Text style={styles.switchLink}>Sign up</Text>
+            Don't have an account?{'  '}
+            <Text style={styles.switchLink}>Create account</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -169,88 +155,123 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxxl,
   },
-  header: {
+  brand: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
   },
-  logo: {
-    ...typography.h1,
+  logoMark: {
+    fontFamily: fonts.headingBold,
+    fontSize: 32,
     color: colors.primary,
+    width: 56,
+    height: 56,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    lineHeight: 56,
+    marginBottom: spacing.sm,
+  },
+  logoText: {
+    fontFamily: fonts.headingBold,
+    fontSize: 24,
+    lineHeight: 32,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   tagline: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   errorBox: {
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: '#F0CACA',
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   errorText: {
+    fontFamily: fonts.bodyRegular,
     color: colors.error,
     fontSize: 13,
+    lineHeight: 18,
   },
   form: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  formTitle: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.textPrimary,
+    marginBottom: spacing.xl,
   },
   label: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 6,
+    lineHeight: 18,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
   },
   input: {
-    borderWidth: 1.5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
+    paddingVertical: spacing.sm,
+    fontFamily: fonts.bodyRegular,
     fontSize: 15,
     color: colors.textPrimary,
-    backgroundColor: colors.background,
+    minHeight: 48,
   },
   inputError: {
     borderColor: colors.error,
   },
   fieldError: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 12,
     color: colors.error,
-    marginTop: 4,
+    marginTop: spacing.xxs,
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
+    fontFamily: fonts.headingSemiBold,
     fontSize: 15,
-    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  switchRow: {
+    alignItems: 'center',
+    marginTop: spacing.xl,
   },
   switchText: {
-    textAlign: 'center',
+    fontFamily: fonts.bodyRegular,
     fontSize: 14,
     color: colors.textSecondary,
   },
   switchLink: {
-    color: colors.primary,
-    fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
+    color: colors.textPrimary,
   },
 });

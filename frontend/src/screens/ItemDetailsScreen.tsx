@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { transactionsApi } from '../api/transactions';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { TransactionsStackParamList } from '../navigation/AppTabs';
 
 type RouteProps = RouteProp<TransactionsStackParamList, 'ItemDetails'>;
@@ -63,18 +63,15 @@ export function ItemDetailsScreen() {
   };
 
   const handleSubmit = async () => {
-    // Validation
     if (!merchantName.trim()) {
       Alert.alert('Validation Error', 'Please enter a merchant name.');
       return;
     }
-
     const validItems = items.filter((item) => item.item_name.trim() !== '');
     if (validItems.length === 0) {
       Alert.alert('Validation Error', 'Please enter at least one item name.');
       return;
     }
-
     for (const item of validItems) {
       if (!item.total_cost_rwf || parseFloat(item.total_cost_rwf) <= 0) {
         Alert.alert('Validation Error', 'Please enter a valid total cost for all items.');
@@ -94,7 +91,6 @@ export function ItemDetailsScreen() {
         })),
       });
 
-      // Invalidate all relevant caches to refresh the data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['transactions', 'unmatched'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
@@ -120,18 +116,20 @@ export function ItemDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Header summary */}
         <View style={styles.headerCard}>
-          <Text style={styles.headerTitle}>What did you buy?</Text>
+          <Text style={styles.headerLabel}>Transaction amount</Text>
           <Text style={styles.headerAmount}>{amount.toLocaleString()} RWF</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={styles.headerHint}>
             Tell us what this expense was for. You can add multiple items.
           </Text>
         </View>
 
-        {/* Merchant Name */}
+        {/* Merchant */}
         <View style={styles.section}>
-          <Text style={styles.label}>
+          <Text style={styles.fieldLabel}>
             Merchant / Store Name <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
@@ -147,8 +145,8 @@ export function ItemDetailsScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Items Purchased</Text>
-            <TouchableOpacity onPress={addItem} style={styles.addButton}>
-              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+            <TouchableOpacity style={styles.addButton} onPress={addItem}>
+              <Ionicons name="add" size={14} color={colors.textPrimary} />
               <Text style={styles.addButtonText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -158,15 +156,13 @@ export function ItemDetailsScreen() {
               <View style={styles.itemHeader}>
                 <Text style={styles.itemNumber}>Item {index + 1}</Text>
                 {items.length > 1 && (
-                  <TouchableOpacity onPress={() => removeItem(item.id)}>
-                    <Ionicons name="trash-outline" size={18} color={colors.expense} />
+                  <TouchableOpacity onPress={() => removeItem(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
                   </TouchableOpacity>
                 )}
               </View>
 
-              <Text style={styles.inputLabel}>
-                Item Name <Text style={styles.required}>*</Text>
-              </Text>
+              <Text style={styles.inputLabel}>Item Name <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 value={item.item_name}
@@ -187,7 +183,6 @@ export function ItemDetailsScreen() {
                     placeholderTextColor={colors.textMuted}
                   />
                 </View>
-
                 <View style={styles.halfInput}>
                   <Text style={styles.inputLabel}>Unit Cost (RWF)</Text>
                   <TextInput
@@ -201,9 +196,7 @@ export function ItemDetailsScreen() {
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>
-                Total Cost (RWF) <Text style={styles.required}>*</Text>
-              </Text>
+              <Text style={styles.inputLabel}>Total Cost (RWF) <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 value={item.total_cost_rwf}
@@ -216,37 +209,37 @@ export function ItemDetailsScreen() {
           ))}
         </View>
 
-        {/* Total Summary */}
+        {/* Summary */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Items Total:</Text>
+            <Text style={styles.summaryLabel}>Items total</Text>
             <Text style={styles.summaryValue}>{totalAmount.toLocaleString()} RWF</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Transaction Amount:</Text>
+          <View style={[styles.summaryRow, { borderBottomWidth: 0 }]}>
+            <Text style={styles.summaryLabel}>Transaction amount</Text>
             <Text style={styles.summaryValue}>{amount.toLocaleString()} RWF</Text>
           </View>
           {Math.abs(totalAmount - amount) > 0.01 && (
-            <View style={[styles.summaryRow, styles.warningRow]}>
-              <Ionicons name="warning-outline" size={16} color={colors.warning} />
+            <View style={styles.warningRow}>
+              <Ionicons name="warning-outline" size={14} color={colors.warning} />
               <Text style={styles.warningText}>
-                Totals don't match. Difference: {Math.abs(totalAmount - amount).toLocaleString()} RWF
+                Totals don't match — difference: {Math.abs(totalAmount - amount).toLocaleString()} RWF
               </Text>
             </View>
           )}
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
+          activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.textPrimary} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle-outline" size={18} color={colors.textPrimary} />
               <Text style={styles.submitButtonText}>Save Purchase Details</Text>
             </>
           )}
@@ -258,55 +251,95 @@ export function ItemDetailsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xl, paddingBottom: 40 },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 48 },
 
   headerCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: colors.primary, marginBottom: 4 },
-  headerAmount: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
-  headerSubtitle: { fontSize: 13, color: colors.textSecondary },
+  headerLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xxs,
+  },
+  headerAmount: {
+    fontFamily: fonts.headingBold,
+    fontSize: 28,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  headerHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
 
-  section: { marginBottom: spacing.lg },
+  section: { marginBottom: spacing.xl },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  sectionTitle: { ...typography.h3, color: colors.textPrimary },
-
-  label: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: spacing.sm },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, marginBottom: 4, marginTop: spacing.sm },
-  required: { color: colors.expense },
-
-  input: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 15,
+  sectionTitle: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 16,
     color: colors.textPrimary,
   },
-
-  row: { flexDirection: 'row', gap: spacing.md },
-  halfInput: { flex: 1 },
-
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    backgroundColor: colors.primary,
+    borderRadius: radius.xs,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    minHeight: 32,
   },
-  addButtonText: { color: colors.primary, fontWeight: '600', fontSize: 13 },
+  addButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.textPrimary,
+  },
+
+  fieldLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  inputLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    marginTop: spacing.sm,
+  },
+  required: { color: colors.error },
+
+  input: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    borderRadius: radius.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 15,
+    color: colors.textPrimary,
+    minHeight: 46,
+  },
+
+  row: { flexDirection: 'row', gap: spacing.sm },
+  halfInput: { flex: 1 },
 
   itemCard: {
     backgroundColor: colors.surface,
@@ -320,45 +353,76 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xxs,
+    paddingBottom: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  itemNumber: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  itemNumber: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
 
   summaryCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: spacing.xl,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  summaryLabel: { fontSize: 14, color: colors.textSecondary },
-  summaryValue: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-
+  summaryLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  summaryValue: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
   warningRow: {
-    backgroundColor: '#fffbeb',
-    borderRadius: radius.sm,
-    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
-    marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.warningLight,
   },
-  warningText: { flex: 1, fontSize: 12, color: '#92400e' },
+  warningText: {
+    fontFamily: fonts.bodyRegular,
+    flex: 1,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
 
   submitButton: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 16,
+    borderRadius: radius.xs,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
+    minHeight: 52,
   },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  submitButtonDisabled: { opacity: 0.5 },
+  submitButtonText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { useUploadReceipt } from '../hooks/useReceipts';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 
 const MAX_DIMENSION = 2048;
 
@@ -45,8 +45,6 @@ export function ReceiptUploadScreen() {
 
   const { mutateAsync: uploadReceipt, isPending: uploading } = useUploadReceipt();
 
-  // ─── Gallery picker ───────────────────────────────────────────────────────
-
   const pickFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -65,8 +63,6 @@ export function ReceiptUploadScreen() {
     setMimeType(resized.mimeType);
     setStage('preview');
   };
-
-  // ─── Camera capture ───────────────────────────────────────────────────────
 
   const openCamera = async () => {
     if (!cameraPermission?.granted) {
@@ -89,8 +85,6 @@ export function ReceiptUploadScreen() {
     setStage('preview');
   };
 
-  // ─── Upload ───────────────────────────────────────────────────────────────
-
   const handleUpload = async () => {
     if (!imageUri) return;
     setUploadError(null);
@@ -102,45 +96,38 @@ export function ReceiptUploadScreen() {
     }
   };
 
-  // ─── Done state ───────────────────────────────────────────────────────────
-
+  // Done state
   if (stage === 'done') {
     return (
       <SafeAreaView style={[styles.safe, styles.center]} edges={['bottom']}>
-        <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+        <View style={styles.successCircle}>
+          <Ionicons name="checkmark" size={36} color={colors.income} />
+        </View>
         <Text style={styles.doneTitle}>Receipt uploaded!</Text>
         <Text style={styles.doneHint}>
           Our OCR engine is processing your receipt. It will appear in your receipts list shortly.
         </Text>
         <TouchableOpacity
-          style={styles.button}
+          style={styles.primaryButton}
           onPress={() => {
             setStage('pick');
             setImageUri(null);
             navigation.goBack();
           }}
         >
-          <Text style={styles.buttonText}>Done</Text>
+          <Text style={styles.primaryButtonText}>Done</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // ─── Camera view ─────────────────────────────────────────────────────────
-
+  // Camera view
   if (stage === 'camera') {
     return (
       <View style={styles.cameraContainer}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          ref={setCameraRef}
-        />
+        <CameraView style={StyleSheet.absoluteFill} facing="back" ref={setCameraRef} />
         <SafeAreaView style={styles.cameraControls} edges={['bottom']}>
-          <TouchableOpacity
-            style={styles.cameraCancel}
-            onPress={() => setStage('pick')}
-          >
+          <TouchableOpacity style={styles.cameraCancel} onPress={() => setStage('pick')}>
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.captureButton} onPress={capturePhoto}>
@@ -152,8 +139,7 @@ export function ReceiptUploadScreen() {
     );
   }
 
-  // ─── Preview ──────────────────────────────────────────────────────────────
-
+  // Preview state
   if (stage === 'preview' && imageUri) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -172,22 +158,22 @@ export function ReceiptUploadScreen() {
             onPress={() => setStage('pick')}
             disabled={uploading}
           >
-            <Ionicons name="refresh-outline" size={18} color={colors.primary} />
+            <Ionicons name="refresh-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.secondaryButtonText}>Choose different photo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, uploading && styles.buttonDisabled]}
+            style={[styles.primaryButton, uploading && styles.buttonDisabled]}
             onPress={handleUpload}
             disabled={uploading}
             activeOpacity={0.85}
           >
             {uploading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-                <Text style={styles.buttonText}>Upload Receipt</Text>
+                <Ionicons name="cloud-upload-outline" size={16} color={colors.textPrimary} />
+                <Text style={styles.primaryButtonText}>Upload Receipt</Text>
               </>
             )}
           </TouchableOpacity>
@@ -196,23 +182,23 @@ export function ReceiptUploadScreen() {
     );
   }
 
-  // ─── Pick stage (default) ─────────────────────────────────────────────────
-
+  // Pick stage (default)
   return (
     <SafeAreaView style={[styles.safe, styles.center]} edges={['bottom']}>
-      <Ionicons name="receipt-outline" size={56} color={colors.primary} style={{ marginBottom: spacing.lg }} />
+      <View style={styles.iconWrap}>
+        <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
+      </View>
       <Text style={styles.pickTitle}>Add a receipt</Text>
       <Text style={styles.pickHint}>Take a photo or choose from your gallery.</Text>
 
       <View style={styles.pickActions}>
-        <TouchableOpacity style={styles.pickButton} onPress={openCamera}>
+        <TouchableOpacity style={styles.pickCard} onPress={openCamera}>
           <Ionicons name="camera-outline" size={28} color={colors.primary} />
-          <Text style={styles.pickButtonLabel}>Take Photo</Text>
+          <Text style={styles.pickCardLabel}>Take Photo</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.pickButton} onPress={pickFromGallery}>
+        <TouchableOpacity style={styles.pickCard} onPress={pickFromGallery}>
           <Ionicons name="images-outline" size={28} color={colors.primary} />
-          <Text style={styles.pickButtonLabel}>Choose from Gallery</Text>
+          <Text style={styles.pickCardLabel}>Choose from Gallery</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -227,30 +213,55 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.md,
   },
-  pickTitle: { ...typography.h2, color: colors.textPrimary, textAlign: 'center' },
-  pickHint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pickTitle: {
+    fontFamily: fonts.headingBold,
+    fontSize: 22,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  pickHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
   pickActions: {
     flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.lg,
+    width: '100%',
   },
-  pickButton: {
+  pickCard: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    borderRadius: radius.md,
+    padding: spacing.xl,
     alignItems: 'center',
     gap: spacing.sm,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    elevation: 1,
+    minHeight: 100,
+    justifyContent: 'center',
   },
-  pickButtonLabel: {
+  pickCardLabel: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
     color: colors.textPrimary,
     textAlign: 'center',
   },
+
   cameraContainer: { flex: 1, backgroundColor: '#000' },
   cameraControls: {
     position: 'absolute',
@@ -285,53 +296,90 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: '#fff',
   },
+
   previewContent: {
     padding: spacing.xl,
     paddingBottom: 40,
     gap: spacing.md,
   },
-  previewLabel: { ...typography.h3, color: colors.textPrimary },
+  previewLabel: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
   previewImage: {
     width: '100%',
     height: 340,
-    borderRadius: radius.lg,
-    backgroundColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainer,
   },
   errorBox: {
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: '#F0CACA',
     padding: spacing.md,
   },
-  errorText: { fontSize: 13, color: colors.error },
+  errorText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.error,
+  },
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    gap: spacing.xs,
+    paddingVertical: 11,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    backgroundColor: colors.surface,
+    minHeight: 44,
   },
-  secondaryButtonText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
-  button: {
+  secondaryButtonText: {
+    fontFamily: fonts.bodyMedium,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  primaryButton: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 14,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
+    minHeight: 50,
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  doneTitle: { ...typography.h2, color: colors.textPrimary, textAlign: 'center' },
+  primaryButtonText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 15,
+  },
+
+  successCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.successLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  doneTitle: {
+    fontFamily: fonts.headingBold,
+    fontSize: 22,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
   doneHint: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: 320,
+    maxWidth: 300,
   },
 });

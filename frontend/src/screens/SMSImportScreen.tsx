@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SMS Import screen.
  *
  * Flow:
@@ -41,16 +41,12 @@ import {
 import { useSyncSMS } from '../hooks/useTransactions';
 import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
-
-// ─── Date filter helpers ──────────────────────────────────────────────────────
+import { colors, spacing, radius, fonts } from '../theme';
 
 function isoToMs(iso: string | null | undefined): number {
-  if (!iso) return Date.now() - 30 * 24 * 60 * 60 * 1000; // default 30 days
+  if (!iso) return Date.now() - 30 * 24 * 60 * 60 * 1000;
   return new Date(iso).getTime();
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function SMSImportScreen() {
   const lastImportAt = useAuthStore((s) => s.lastSmsImportAt);
@@ -60,15 +56,14 @@ export function SMSImportScreen() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [conversations, setConversations] = useState<SMSConversation[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<Set<string>>(new Set()); // set of message _id
-  const [filterFromMs, setFilterFromMs] = useState<number | null>(null); // null = all messages
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filterFromMs, setFilterFromMs] = useState<number | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { mutateAsync: syncSMS, isPending: uploading } = useSyncSMS();
 
-  // Check permission on mount
   useEffect(() => {
     if (!isSMSNativeAvailable) return;
     checkSMSPermission().then(setPermissionGranted);
@@ -85,9 +80,7 @@ export function SMSImportScreen() {
     setLoadingMessages(true);
     try {
       const filter: { minDate?: number; maxCount: number } = { maxCount: 500 };
-      if (filterFromMs !== null) {
-        filter.minDate = filterFromMs;
-      }
+      if (filterFromMs !== null) filter.minDate = filterFromMs;
       const msgs = await readSMS(filter);
       setConversations(groupByConversation(msgs));
     } catch (e) {
@@ -101,10 +94,7 @@ export function SMSImportScreen() {
     if (permissionGranted) loadMessages();
   }, [permissionGranted, loadMessages]);
 
-  // ─── Selection helpers ────────────────────────────────────────────────────
-
   const allIdsInConv = (conv: SMSConversation) => conv.messages.map((m) => m._id);
-
   const isConvFullySelected = (conv: SMSConversation) =>
     allIdsInConv(conv).every((id) => selected.has(id));
 
@@ -132,8 +122,6 @@ export function SMSImportScreen() {
     const all = conversations.flatMap((c) => c.messages);
     return all.filter((m) => selected.has(m._id));
   }, [conversations, selected]);
-
-  // ─── Upload ───────────────────────────────────────────────────────────────
 
   const handleUpload = async () => {
     if (!consentChecked) return;
@@ -177,95 +165,76 @@ export function SMSImportScreen() {
     }
   };
 
-  // ─── Dev-build notice ─────────────────────────────────────────────────────
-
+  // Dev-build notice
   if (!isSMSNativeAvailable) {
-  return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <View style={styles.notice}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={48}
-          color={colors.primary}
-        />
-
-        <Text style={styles.noticeTitle}>
-          SMS Reader Unavailable
-        </Text>
-
-        <Text style={styles.noticeBody}>
-          The native SMS reader is not available in this installed APK.
-        </Text>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={showSMSDiagnostics}
-        >
-          <Text style={styles.buttonText}>
-            Show Diagnostics
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-  // ─── Permission request ───────────────────────────────────────────────────
-
-  if (permissionGranted === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.notice}>
-          <Ionicons name="lock-closed-outline" size={48} color={colors.primary} />
-          <Text style={styles.noticeTitle}>SMS Permission Needed</Text>
+          <View style={styles.noticeIcon}>
+            <Ionicons name="alert-circle-outline" size={32} color={colors.textSecondary} />
+          </View>
+          <Text style={styles.noticeTitle}>SMS Reader Unavailable</Text>
           <Text style={styles.noticeBody}>
-            SmartSpend needs permission to read your SMS inbox to find MoMo transaction messages.
-            Your messages are{' '}
-            <Text style={styles.bold}>never uploaded without your explicit confirmation.</Text>
+            The native SMS reader is not available in this build.
           </Text>
-          <TouchableOpacity style={styles.button} onPress={handleRequestPermission}>
-            <Text style={styles.buttonText}>Grant Permission</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={showSMSDiagnostics}>
+            <Text style={styles.primaryButtonText}>Show Diagnostics</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ─── Date filter bar ──────────────────────────────────────────────────────
+  // Permission request
+  if (permissionGranted === false) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
+        <View style={styles.notice}>
+          <View style={styles.noticeIcon}>
+            <Ionicons name="lock-closed-outline" size={32} color={colors.textSecondary} />
+          </View>
+          <Text style={styles.noticeTitle}>SMS Permission Needed</Text>
+          <Text style={styles.noticeBody}>
+            SmartSpend needs permission to read your SMS inbox to find MoMo transaction messages.
+            Your messages are <Text style={styles.bold}>never uploaded without your explicit confirmation.</Text>
+          </Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleRequestPermission}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.textPrimary} />
+            <Text style={styles.primaryButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const FilterBar = () => (
     <View style={styles.filterBar}>
       <Text style={styles.filterLabel}>
-        Showing from: {filterFromMs !== null ? new Date(filterFromMs).toLocaleDateString() : 'All time'}
+        From: {filterFromMs !== null ? new Date(filterFromMs).toLocaleDateString() : 'All time'}
       </Text>
       <View style={styles.filterActions}>
         <TouchableOpacity
           onPress={() => setFilterFromMs(null)}
           style={[styles.chip, filterFromMs === null && styles.chipActive]}
         >
-          <Text style={[styles.chipText, filterFromMs === null && styles.chipTextActive]}>
-            All
-          </Text>
+          <Text style={[styles.chipText, filterFromMs === null && styles.chipTextActive]}>All</Text>
         </TouchableOpacity>
         {[7, 30, 90].map((days) => {
           const ms = Date.now() - days * 86_400_000;
+          const isActive = filterFromMs !== null && Math.abs(filterFromMs - ms) < 86_400_000;
           return (
             <TouchableOpacity
               key={days}
               onPress={() => setFilterFromMs(ms)}
-              style={[styles.chip, filterFromMs !== null && Math.abs(filterFromMs - ms) < 86_400_000 && styles.chipActive]}
+              style={[styles.chip, isActive && styles.chipActive]}
             >
-              <Text style={[styles.chipText, filterFromMs !== null && Math.abs(filterFromMs - ms) < 86_400_000 && styles.chipTextActive]}>
-                {days}d
-              </Text>
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{days}d</Text>
             </TouchableOpacity>
           );
         })}
       </View>
     </View>
   );
-
-  // ─── Main list ────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -278,6 +247,7 @@ export function SMSImportScreen() {
         </View>
       ) : conversations.length === 0 ? (
         <View style={styles.center}>
+          <Ionicons name="chatbox-outline" size={40} color={colors.textMuted} />
           <Text style={styles.emptyText}>No SMS messages found in this date range.</Text>
         </View>
       ) : (
@@ -292,7 +262,6 @@ export function SMSImportScreen() {
 
             return (
               <View style={styles.convBlock}>
-                {/* Conversation header */}
                 <TouchableOpacity
                   style={styles.convHeader}
                   onPress={() =>
@@ -306,87 +275,53 @@ export function SMSImportScreen() {
                   activeOpacity={0.75}
                 >
                   <TouchableOpacity
-                    style={[
-                      styles.checkbox,
-                      (fullySelected || someSelected) && styles.checkboxActive,
-                    ]}
+                    style={[styles.checkbox, (fullySelected || someSelected) && styles.checkboxActive]}
                     onPress={() => toggleConversation(conv)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    {fullySelected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                    {!fullySelected && someSelected && (
-                      <View style={styles.checkboxPartial} />
-                    )}
+                    {fullySelected && <Ionicons name="checkmark" size={12} color={colors.textPrimary} />}
+                    {!fullySelected && someSelected && <View style={styles.checkboxPartial} />}
                   </TouchableOpacity>
-
                   <View style={styles.convInfo}>
-                    <Text style={styles.convAddress} numberOfLines={1}>
-                      {conv.displayName}
-                    </Text>
+                    <Text style={styles.convAddress} numberOfLines={1}>{conv.displayName}</Text>
                     <Text style={styles.convMeta}>
-                      {conv.messages.length} message{conv.messages.length !== 1 ? 's' : ''} ·{' '}
-                      {formatSMSDate(conv.latestDate)}
+                      {conv.messages.length} message{conv.messages.length !== 1 ? 's' : ''} · {formatSMSDate(conv.latestDate)}
                     </Text>
                   </View>
-
-                  <Ionicons
-                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={colors.textMuted}
-                  />
+                  <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
                 </TouchableOpacity>
 
-                {/* Expanded messages */}
-                {isExpanded &&
-                  conv.messages.map((msg) => (
-                    <TouchableOpacity
-                      key={msg._id}
-                      style={[styles.msgRow, selected.has(msg._id) && styles.msgRowSelected]}
-                      onPress={() => toggleMessage(msg._id)}
-                      activeOpacity={0.75}
-                    >
-                      <View
-                        style={[
-                          styles.checkbox,
-                          selected.has(msg._id) && styles.checkboxActive,
-                          { width: 18, height: 18 },
-                        ]}
-                      >
-                        {selected.has(msg._id) && (
-                          <Ionicons name="checkmark" size={12} color="#fff" />
-                        )}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.msgBody} numberOfLines={2}>
-                          {msg.body}
-                        </Text>
-                        <Text style={styles.msgDate}>
-                          {new Date(parseInt(msg.date, 10)).toLocaleString()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                {isExpanded && conv.messages.map((msg) => (
+                  <TouchableOpacity
+                    key={msg._id}
+                    style={[styles.msgRow, selected.has(msg._id) && styles.msgRowSelected]}
+                    onPress={() => toggleMessage(msg._id)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.checkbox, selected.has(msg._id) && styles.checkboxActive, { width: 18, height: 18 }]}>
+                      {selected.has(msg._id) && <Ionicons name="checkmark" size={11} color={colors.textPrimary} />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.msgBody} numberOfLines={2}>{msg.body}</Text>
+                      <Text style={styles.msgDate}>{new Date(parseInt(msg.date, 10)).toLocaleString()}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
             );
           }}
         />
       )}
 
-      {/* Bottom action bar */}
       {selected.size > 0 && (
         <View style={styles.actionBar}>
           <Text style={styles.selectedCount}>{selected.size} selected</Text>
-          <TouchableOpacity
-            style={styles.previewButton}
-            onPress={() => setPreviewVisible(true)}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.previewButton} onPress={() => setPreviewVisible(true)} activeOpacity={0.85}>
             <Text style={styles.previewButtonText}>Preview & Upload</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Preview / Consent Modal */}
       <Modal
         visible={previewVisible}
         animationType="slide"
@@ -397,7 +332,7 @@ export function SMSImportScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Review before upload</Text>
             <TouchableOpacity onPress={() => setPreviewVisible(false)}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <Ionicons name="close" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
@@ -406,9 +341,7 @@ export function SMSImportScreen() {
               <Text style={styles.summaryText}>
                 You are about to upload{' '}
                 <Text style={styles.bold}>{selectedMessages.length} messages</Text> from{' '}
-                <Text style={styles.bold}>
-                  {new Set(selectedMessages.map((m) => m.address)).size} sender(s)
-                </Text>{' '}
+                <Text style={styles.bold}>{new Set(selectedMessages.map((m) => m.address)).size} sender(s)</Text>{' '}
                 to SmartSpend for analysis.
               </Text>
             </View>
@@ -430,12 +363,12 @@ export function SMSImportScreen() {
               </View>
             )}
 
-            {/* Consent checkbox */}
             <View style={styles.consentRow}>
               <Switch
                 value={consentChecked}
                 onValueChange={setConsentChecked}
-                trackColor={{ true: colors.primary }}
+                trackColor={{ true: colors.primary, false: colors.border }}
+                thumbColor={consentChecked ? colors.textPrimary : colors.surface}
                 ios_backgroundColor={colors.border}
               />
               <Text style={styles.consentLabel}>
@@ -446,16 +379,13 @@ export function SMSImportScreen() {
 
           <View style={styles.modalFooter}>
             <TouchableOpacity
-              style={[
-                styles.uploadButton,
-                (!consentChecked || uploading) && styles.uploadButtonDisabled,
-              ]}
+              style={[styles.uploadButton, (!consentChecked || uploading) && styles.uploadButtonDisabled]}
               onPress={handleUpload}
               disabled={!consentChecked || uploading}
               activeOpacity={0.85}
             >
               {uploading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.textPrimary} />
               ) : (
                 <Text style={styles.uploadButtonText}>Upload {selectedMessages.length} messages</Text>
               )}
@@ -467,10 +397,9 @@ export function SMSImportScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+
   notice: {
     flex: 1,
     padding: spacing.xl,
@@ -478,26 +407,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
   },
-  noticeTitle: { ...typography.h2, color: colors.textPrimary, textAlign: 'center' },
+  noticeIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  noticeTitle: {
+    fontFamily: fonts.headingBold,
+    fontSize: 20,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
   noticeBody: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
+    maxWidth: 300,
   },
-  bold: { fontWeight: '700' },
-  steps: { alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.sm },
-  step: { fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
-  code: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: colors.primary },
-  button: {
+  bold: { fontFamily: fonts.bodySemiBold },
+  primaryButton: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 13,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
-    marginTop: spacing.md,
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    minHeight: 48,
   },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  primaryButtonText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 15,
+  },
+
   filterBar: {
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
@@ -508,32 +460,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  filterLabel: { fontSize: 12, color: colors.textSecondary },
-  filterActions: { flexDirection: 'row', gap: spacing.sm },
+  filterLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    flexShrink: 1,
+  },
+  filterActions: { flexDirection: 'row', gap: spacing.xs },
   chip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderMuted,
   },
   chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  chipText: { fontSize: 12, color: colors.textSecondary },
-  chipTextActive: { color: colors.primary, fontWeight: '600' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  loadingText: { marginTop: spacing.sm, color: colors.textSecondary, fontSize: 14 },
-  emptyText: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textMuted },
+  chipTextActive: { fontFamily: fonts.bodySemiBold, color: colors.textPrimary },
+
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.sm },
+  loadingText: { fontFamily: fonts.bodyRegular, marginTop: spacing.xs, color: colors.textMuted, fontSize: 14 },
+  emptyText: { fontFamily: fonts.bodyRegular, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
+
   list: { padding: spacing.md, paddingBottom: 100 },
   convBlock: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   convHeader: {
     flexDirection: 'row',
@@ -544,36 +500,39 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.border,
+    borderRadius: radius.xs,
+    borderWidth: 1.5,
+    borderColor: colors.borderMuted,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    backgroundColor: colors.surface,
   },
   checkboxActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   checkboxPartial: {
     width: 10,
     height: 10,
     borderRadius: 2,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.textPrimary,
   },
   convInfo: { flex: 1 },
-  convAddress: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  convMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  convAddress: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.textPrimary },
+  convMeta: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.textMuted, marginTop: 1 },
+
   msgRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.divider,
+    borderTopColor: colors.border,
     gap: spacing.sm,
     backgroundColor: colors.background,
   },
   msgRowSelected: { backgroundColor: colors.primaryLight },
-  msgBody: { fontSize: 13, color: colors.textPrimary, lineHeight: 18 },
-  msgDate: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  msgBody: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textPrimary, lineHeight: 18 },
+  msgDate: { fontFamily: fonts.bodyRegular, fontSize: 11, color: colors.textMuted, marginTop: 2 },
+
   actionBar: {
     position: 'absolute',
     bottom: 0,
@@ -589,14 +548,17 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     elevation: 8,
   },
-  selectedCount: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  selectedCount: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.textPrimary },
   previewButton: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingVertical: 10,
     paddingHorizontal: spacing.lg,
+    minHeight: 40,
+    justifyContent: 'center',
   },
-  previewButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  previewButtonText: { fontFamily: fonts.headingSemiBold, color: colors.textPrimary, fontSize: 14 },
+
   modal: { flex: 1, backgroundColor: colors.background },
   modalHeader: {
     flexDirection: 'row',
@@ -607,39 +569,48 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  modalTitle: { ...typography.h3, color: colors.textPrimary },
+  modalTitle: { fontFamily: fonts.headingSemiBold, fontSize: 18, color: colors.textPrimary },
   modalScroll: { flex: 1 },
+
   summaryBox: {
     backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  summaryText: { fontSize: 14, color: colors.primary, lineHeight: 22 },
+  summaryText: { fontFamily: fonts.bodyRegular, fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
   },
   previewMsg: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  previewSender: { fontSize: 12, fontWeight: '600', color: colors.primary, marginBottom: 4 },
-  previewBody: { fontSize: 13, color: colors.textPrimary, lineHeight: 18 },
-  moreText: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginVertical: spacing.md },
+  previewSender: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.textSecondary, marginBottom: 3 },
+  previewBody: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textPrimary, lineHeight: 18 },
+  moreText: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textMuted, textAlign: 'center', marginVertical: spacing.md },
+
   errorBox: {
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: '#F0CACA',
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  errorText: { fontSize: 13, color: colors.error },
+  errorText: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.error },
+
   consentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -647,16 +618,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     padding: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
+    borderRadius: radius.xs,
+    borderWidth: 1,
     borderColor: colors.border,
   },
-  consentLabel: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
+  consentLabel: { fontFamily: fonts.bodyRegular, flex: 1, fontSize: 13, color: colors.textPrimary, lineHeight: 20 },
+
   modalFooter: {
     padding: spacing.lg,
     borderTopWidth: 1,
@@ -665,10 +632,12 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 14,
     alignItems: 'center',
+    minHeight: 50,
+    justifyContent: 'center',
   },
   uploadButtonDisabled: { opacity: 0.45 },
-  uploadButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  uploadButtonText: { fontFamily: fonts.headingSemiBold, color: colors.textPrimary, fontSize: 15 },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { SMSTransactionOut } from '../types/api';
 import { transactionsApi } from '../api/transactions';
 import { getErrorMessage } from '../api/client';
@@ -35,14 +35,9 @@ interface Props {
 }
 
 function formatDate(iso?: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'Unknown date';
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export function UnmatchedExpenseCard({ tx }: Props) {
@@ -83,20 +78,17 @@ export function UnmatchedExpenseCard({ tx }: Props) {
       Alert.alert('Validation Error', 'Please enter a merchant name.');
       return;
     }
-
     const validItems = items.filter((item) => item.item_name.trim() !== '');
     if (validItems.length === 0) {
       Alert.alert('Validation Error', 'Please enter at least one item name.');
       return;
     }
-
     for (const item of validItems) {
       if (!item.total_cost_rwf || parseFloat(item.total_cost_rwf) <= 0) {
         Alert.alert('Validation Error', 'Please enter a valid total cost for all items.');
         return;
       }
     }
-
     setLoading(true);
     try {
       await transactionsApi.submitItemDetails(tx.id, {
@@ -108,13 +100,11 @@ export function UnmatchedExpenseCard({ tx }: Props) {
           total_cost_rwf: parseFloat(item.total_cost_rwf),
         })),
       });
-
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['transactions', 'unmatched'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
         queryClient.invalidateQueries({ queryKey: ['analytics'] }),
       ]);
-
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setExpanded(false);
     } catch (error) {
@@ -131,28 +121,27 @@ export function UnmatchedExpenseCard({ tx }: Props) {
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.header} onPress={toggleExpand} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.headerRow} onPress={toggleExpand} activeOpacity={0.7}>
         <View style={styles.iconCircle}>
-          <Ionicons name="help-circle-outline" size={24} color={colors.warning} />
+          <Ionicons name="help-circle-outline" size={22} color={colors.warning} />
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.amount}>{Math.round(tx.amount_rwf).toLocaleString()} RWF</Text>
-          <Text style={styles.merchant}>{tx.to_who || 'Unknown merchant'}</Text>
+          <Text style={styles.merchant} numberOfLines={1}>{tx.to_who || 'Unknown merchant'}</Text>
           <Text style={styles.date}>{formatDate(tx.transaction_time)}</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
+          size={18}
           color={colors.textMuted}
         />
       </TouchableOpacity>
 
       {expanded && (
-        <View style={styles.expandedContent}>
+        <View style={styles.form}>
           <View style={styles.divider} />
 
-          {/* Merchant Name */}
-          <Text style={styles.label}>
+          <Text style={styles.fieldLabel}>
             Merchant / Store Name <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
@@ -164,12 +153,11 @@ export function UnmatchedExpenseCard({ tx }: Props) {
             editable={!loading}
           />
 
-          {/* Items */}
           <View style={styles.itemsHeader}>
             <Text style={styles.sectionTitle}>Items Purchased</Text>
             <TouchableOpacity onPress={addItem} style={styles.addButton} disabled={loading}>
-              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={styles.addButtonText}>Add</Text>
+              <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+              <Text style={styles.addButtonText}>Add item</Text>
             </TouchableOpacity>
           </View>
 
@@ -179,11 +167,10 @@ export function UnmatchedExpenseCard({ tx }: Props) {
                 <Text style={styles.itemNumber}>Item {index + 1}</Text>
                 {items.length > 1 && (
                   <TouchableOpacity onPress={() => removeItem(item.id)} disabled={loading}>
-                    <Ionicons name="trash-outline" size={16} color={colors.expense} />
+                    <Ionicons name="trash-outline" size={14} color={colors.expense} />
                   </TouchableOpacity>
                 )}
               </View>
-
               <TextInput
                 style={styles.input}
                 value={item.item_name}
@@ -192,7 +179,6 @@ export function UnmatchedExpenseCard({ tx }: Props) {
                 placeholderTextColor={colors.textMuted}
                 editable={!loading}
               />
-
               <View style={styles.row}>
                 <TextInput
                   style={[styles.input, styles.halfInput]}
@@ -216,27 +202,25 @@ export function UnmatchedExpenseCard({ tx }: Props) {
             </View>
           ))}
 
-          {/* Summary */}
           {Math.abs(totalAmount - tx.amount_rwf) > 0.01 && totalAmount > 0 && (
             <View style={styles.warningBox}>
-              <Ionicons name="warning-outline" size={16} color={colors.warning} />
+              <Ionicons name="warning-outline" size={14} color={colors.warning} />
               <Text style={styles.warningText}>
                 Totals don't match. Difference: {Math.abs(totalAmount - tx.amount_rwf).toLocaleString()} RWF
               </Text>
             </View>
           )}
 
-          {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                <Ionicons name="checkmark-circle-outline" size={16} color={colors.textPrimary} />
                 <Text style={styles.submitButtonText}>Save Details</Text>
               </>
             )}
@@ -250,47 +234,51 @@ export function UnmatchedExpenseCard({ tx }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    marginBottom: spacing.md,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning,
     overflow: 'hidden',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    gap: spacing.md,
+    gap: spacing.sm,
+    minHeight: 64,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fffbeb',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.warningLight,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   headerInfo: {
     flex: 1,
   },
   amount: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 15,
+    lineHeight: 20,
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   merchant: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   date: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 12,
     color: colors.textMuted,
   },
-  expandedContent: {
+  form: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
   },
@@ -299,53 +287,55 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginBottom: spacing.md,
   },
-  label: {
+  fieldLabel: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   required: {
     color: colors.expense,
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontFamily: fonts.bodyRegular,
     fontSize: 14,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+    minHeight: 44,
   },
   itemsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     marginBottom: spacing.xs,
   },
   sectionTitle: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
     color: colors.textPrimary,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   addButtonText: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 12,
     color: colors.primary,
-    fontWeight: '600',
   },
   itemCard: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radius.xs,
+    padding: spacing.xs,
+    marginBottom: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -353,16 +343,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   itemNumber: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMuted,
   },
   row: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   halfInput: {
     flex: 1,
@@ -370,33 +360,34 @@ const styles = StyleSheet.create({
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: '#fffbeb',
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: spacing.xxs,
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.xs,
+    padding: spacing.xs,
+    marginBottom: spacing.xs,
   },
   warningText: {
+    fontFamily: fonts.bodyRegular,
     flex: 1,
     fontSize: 12,
-    color: colors.warning,
+    color: colors.textSecondary,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: spacing.xxs,
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm + 2,
-    marginTop: spacing.xs,
+    borderRadius: radius.xs,
+    paddingVertical: 12,
+    marginTop: spacing.xxs,
   },
   submitButtonDisabled: {
     opacity: 0.6,
   },
   submitButtonText: {
+    fontFamily: fonts.headingSemiBold,
     fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
+    color: colors.textPrimary,
   },
 });

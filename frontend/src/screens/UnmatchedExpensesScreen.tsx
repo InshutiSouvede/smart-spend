@@ -1,10 +1,9 @@
-import React, { useCallback } from 'react';
+﻿import React, { useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -12,13 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-
 import { useInfiniteQuery } from '@tanstack/react-query';
+
 import { transactionsApi } from '../api/transactions';
 import { UnmatchedExpenseCard } from '../components/UnmatchedExpenseCard';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, fonts } from '../theme';
 import type { TransactionsStackParamList } from '../navigation/AppTabs';
 import type { SMSTransactionOut } from '../types/api';
 
@@ -44,7 +43,7 @@ export function UnmatchedExpensesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       {isError && (
-        <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.md }}>
+        <View style={styles.errorWrap}>
           <ErrorBanner message={getErrorMessage(error)} onRetry={refetch} />
         </View>
       )}
@@ -61,7 +60,7 @@ export function UnmatchedExpensesScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Ionicons name="checkmark-circle-outline" size={64} color={colors.income} />
+              <Ionicons name="checkmark-circle-outline" size={52} color={colors.income} />
               <Text style={styles.emptyTitle}>All caught up!</Text>
               <Text style={styles.emptyText}>
                 All your expenses have been identified and categorized.
@@ -77,7 +76,14 @@ export function UnmatchedExpensesScreen() {
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -86,9 +92,29 @@ export function UnmatchedExpensesScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  list: { padding: spacing.xl, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  errorWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  list: { padding: spacing.lg, paddingBottom: 40 },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 320,
+    gap: spacing.xs,
+  },
   footer: { paddingVertical: spacing.lg },
-  emptyTitle: { ...typography.h2, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.sm },
-  emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', maxWidth: 280 },
+  emptyTitle: {
+    fontFamily: fonts.headingBold,
+    fontSize: 20,
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+  },
+  emptyText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 260,
+  },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { transactionsApi } from '../api/transactions';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 
 type TypeFilter = 'all' | 'income' | 'expense';
 
@@ -29,7 +29,7 @@ function firstOfMonthStr() {
 }
 
 function validateDate(dateStr: string): boolean {
-  if (!dateStr) return true; // Empty is valid (optional)
+  if (!dateStr) return true;
   const regex = /^\d{4}-\d{2}-\d{2}$/;
   if (!regex.test(dateStr)) return false;
   const date = new Date(dateStr);
@@ -45,32 +45,23 @@ export function ExportScreen() {
 
   const validateDates = (): boolean => {
     const newErrors: typeof errors = {};
-
     if (fromDate && !validateDate(fromDate)) {
       newErrors.fromDate = 'Invalid date format. Use YYYY-MM-DD';
     }
-
     if (toDate && !validateDate(toDate)) {
       newErrors.toDate = 'Invalid date format. Use YYYY-MM-DD';
     }
-
     if (fromDate && toDate && validateDate(fromDate) && validateDate(toDate)) {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
-      if (from > to) {
+      if (new Date(fromDate) > new Date(toDate)) {
         newErrors.range = 'From date cannot be after To date';
       }
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleExport = async () => {
-    if (!validateDates()) {
-      return;
-    }
-
+    if (!validateDates()) return;
     setLoading(true);
     try {
       const csv = await transactionsApi.exportCsv({
@@ -78,17 +69,12 @@ export function ExportScreen() {
         to_date: toDate || undefined,
         transaction_type: typeFilter === 'all' ? undefined : typeFilter,
       });
-
       if (!csv || csv.trim().split('\n').length <= 1) {
         Alert.alert('No data', 'No transactions found for the selected filters.');
         return;
       }
-
       await Share.share(
-        {
-          message: csv,
-          title: `SmartSpend_${fromDate}_${toDate}.csv`,
-        },
+        { message: csv, title: `SmartSpend_${fromDate}_${toDate}.csv` },
         { dialogTitle: 'Share CSV export' },
       );
     } catch (e) {
@@ -98,11 +84,9 @@ export function ExportScreen() {
     }
   };
 
-  const rowCount = 0; // We don't know until we download
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Export Transactions</Text>
         <Text style={styles.subtitle}>
           Download your transactions as a CSV file and share or save it.
@@ -110,6 +94,8 @@ export function ExportScreen() {
 
         {/* Date range */}
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Date range</Text>
+
           <Text style={styles.label}>From date</Text>
           <TextInput
             style={[styles.input, errors.fromDate && styles.inputError]}
@@ -144,7 +130,7 @@ export function ExportScreen() {
 
         {/* Type filter */}
         <View style={styles.section}>
-          <Text style={styles.label}>Transaction type</Text>
+          <Text style={styles.sectionTitle}>Transaction type</Text>
           <View style={styles.pillRow}>
             {(['all', 'income', 'expense'] as TypeFilter[]).map((t) => (
               <TouchableOpacity
@@ -153,7 +139,7 @@ export function ExportScreen() {
                 style={[styles.pill, typeFilter === t && styles.pillActive]}
               >
                 <Text style={[styles.pillText, typeFilter === t && styles.pillTextActive]}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'all' ? 'All' : t === 'income' ? 'Income' : 'Expenses'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -163,12 +149,11 @@ export function ExportScreen() {
         {/* CSV columns info */}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-            <Text style={styles.infoTitle}>CSV columns</Text>
+            <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.infoTitle}>CSV columns included</Text>
           </View>
           <Text style={styles.infoText}>
-            date, type, amount_rwf, fee_rwf, to_who, from_who, reference, provider,
-            balance_after_rwf, currency, parse_confidence
+            date · type · amount_rwf · fee_rwf · to_who · from_who · reference · provider · balance_after_rwf · currency · parse_confidence
           </Text>
         </View>
 
@@ -179,9 +164,9 @@ export function ExportScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
-            <Ionicons name="download-outline" size={20} color="#fff" />
+            <Ionicons name="download-outline" size={18} color={colors.textPrimary} />
           )}
           <Text style={styles.exportBtnText}>
             {loading ? 'Generating…' : 'Export to CSV'}
@@ -199,69 +184,128 @@ export function ExportScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xl, paddingBottom: 40 },
-  title: { ...typography.h1, color: colors.textPrimary, marginBottom: spacing.sm },
-  subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 48,
+    paddingTop: spacing.md,
+  },
+  title: {
+    fontFamily: fonts.headingBold,
+    fontSize: 24,
+    lineHeight: 32,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+  },
+  subtitle: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: spacing.xl,
+    lineHeight: 20,
+  },
 
-  section: { marginBottom: spacing.lg },
-  label: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, marginBottom: spacing.sm },
-
+  section: { marginBottom: spacing.xl },
+  sectionTitle: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  label: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingVertical: spacing.sm,
+    fontFamily: fonts.bodyRegular,
     fontSize: 15,
     color: colors.textPrimary,
+    minHeight: 48,
   },
-  inputError: {
-    borderColor: colors.expense,
-  },
+  inputError: { borderColor: colors.error },
   errorText: {
-    color: colors.expense,
+    fontFamily: fonts.bodyRegular,
     fontSize: 12,
-    marginTop: 4,
+    color: colors.error,
+    marginTop: spacing.xxs,
   },
 
-  pillRow: { flexDirection: 'row', gap: spacing.sm },
+  pillRow: { flexDirection: 'row', gap: spacing.xxs },
   pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: radius.full,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   pillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  pillText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  pillTextActive: { color: '#fff' },
+  pillText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  pillTextActive: {
+    color: colors.textPrimary,
+    fontFamily: fonts.bodySemiBold,
+  },
 
   infoCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xs,
     padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.xl,
   },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
-  infoTitle: { fontSize: 13, fontWeight: '600', color: colors.primary },
-  infoText: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    marginBottom: spacing.xxs,
+  },
+  infoTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  infoText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
 
   exportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingVertical: 14,
     marginBottom: spacing.md,
+    minHeight: 50,
   },
   exportBtnDisabled: { opacity: 0.6 },
-  exportBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
+  exportBtnText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 15,
+  },
   hint: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 12,
     color: colors.textMuted,
     textAlign: 'center',

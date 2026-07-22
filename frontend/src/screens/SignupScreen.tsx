@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { authApi } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { AuthStackParamList } from '../navigation/AuthStack';
 
 const schema = z.object({
@@ -49,18 +49,15 @@ export function SignupScreen() {
     setApiError(null);
     try {
       await authApi.register(data);
-      // After registration, log in immediately
       const loginRes = await authApi.login({ email: data.email, password: data.password });
-      console.log('Post-registration login:', { 
-        auth_mode: loginRes.auth_mode, 
+      console.log('Post-registration login:', {
+        auth_mode: loginRes.auth_mode,
         has_token: !!loginRes.access_token,
-        token_preview: loginRes.access_token?.substring(0, 20)
+        token_preview: loginRes.access_token?.substring(0, 20),
       });
-      
       if (!loginRes.access_token) {
         throw new Error(`Authentication failed: No access token received (auth_mode: ${loginRes.auth_mode})`);
       }
-      
       await setAuth(loginRes.access_token, {
         user_id: loginRes.user_id,
         email: loginRes.email,
@@ -72,14 +69,21 @@ export function SignupScreen() {
     }
   };
 
+  const fields = [
+    { name: 'display_name' as const, label: 'Full name', placeholder: 'Your name', secure: false, keyboard: 'default' as const },
+    { name: 'email' as const, label: 'Email', placeholder: 'you@example.com', secure: false, keyboard: 'email-address' as const },
+    { name: 'password' as const, label: 'Password', placeholder: '••••••••', secure: true, keyboard: 'default' as const },
+  ];
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.logo}>SmartSpend</Text>
+        <View style={styles.brand}>
+          <Text style={styles.logoMark}>SS</Text>
+          <Text style={styles.logoText}>SmartSpend</Text>
           <Text style={styles.tagline}>Create your account</Text>
         </View>
 
@@ -90,13 +94,9 @@ export function SignupScreen() {
         ) : null}
 
         <View style={styles.form}>
-          {(
-            [
-              { name: 'display_name' as const, label: 'Full name', placeholder: 'Your name', secure: false, keyboard: 'default' as const },
-              { name: 'email' as const, label: 'Email', placeholder: 'you@example.com', secure: false, keyboard: 'email-address' as const },
-              { name: 'password' as const, label: 'Password', placeholder: '••••••••', secure: true, keyboard: 'default' as const },
-            ]
-          ).map(({ name, label, placeholder, secure, keyboard }, i) => (
+          <Text style={styles.formTitle}>Get started</Text>
+
+          {fields.map(({ name, label, placeholder, secure, keyboard }, i) => (
             <View key={name} style={i > 0 ? { marginTop: spacing.md } : undefined}>
               <Text style={styles.label}>{label}</Text>
               <Controller
@@ -111,12 +111,15 @@ export function SignupScreen() {
                     placeholder={placeholder}
                     placeholderTextColor={colors.textMuted}
                     secureTextEntry={secure}
-                    autoCapitalize={name === 'display_name' ? 'words' : 'none'}
                     keyboardType={keyboard}
+                    autoCapitalize={name === 'email' ? 'none' : 'words'}
+                    autoComplete={name === 'email' ? 'email' : name === 'password' ? 'password-new' : 'name'}
                   />
                 )}
               />
-              {errors[name] ? <Text style={styles.fieldError}>{errors[name]?.message}</Text> : null}
+              {errors[name] ? (
+                <Text style={styles.fieldError}>{errors[name]?.message}</Text>
+              ) : null}
             </View>
           ))}
 
@@ -127,16 +130,16 @@ export function SignupScreen() {
             activeOpacity={0.85}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <Text style={styles.buttonText}>Create Account</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.switchRow}>
           <Text style={styles.switchText}>
-            Already have an account?{' '}
+            Already have an account?{'  '}
             <Text style={styles.switchLink}>Sign in</Text>
           </Text>
         </TouchableOpacity>
@@ -150,66 +153,123 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxxl,
   },
-  header: {
+  brand: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
   },
-  logo: {
-    ...typography.h1,
+  logoMark: {
+    fontFamily: fonts.headingBold,
+    fontSize: 32,
     color: colors.primary,
+    width: 56,
+    height: 56,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    lineHeight: 56,
+    marginBottom: spacing.sm,
+  },
+  logoText: {
+    fontFamily: fonts.headingBold,
+    fontSize: 24,
+    lineHeight: 32,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   tagline: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   errorBox: {
     backgroundColor: colors.errorLight,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: '#F0CACA',
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  errorText: { color: colors.error, fontSize: 13 },
+  errorText: {
+    fontFamily: fonts.bodyRegular,
+    color: colors.error,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   form: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  formTitle: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.textPrimary,
+    marginBottom: spacing.xl,
   },
   label: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 6,
+    lineHeight: 18,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
   },
   input: {
-    borderWidth: 1.5,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
+    paddingVertical: spacing.sm,
+    fontFamily: fonts.bodyRegular,
     fontSize: 15,
     color: colors.textPrimary,
-    backgroundColor: colors.background,
+    minHeight: 48,
   },
-  inputError: { borderColor: colors.error },
-  fieldError: { fontSize: 12, color: colors.error, marginTop: 4 },
+  inputError: {
+    borderColor: colors.error,
+  },
+  fieldError: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.error,
+    marginTop: spacing.xxs,
+  },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.xs,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
+    minHeight: 50,
+    justifyContent: 'center',
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  switchText: { textAlign: 'center', fontSize: 14, color: colors.textSecondary },
-  switchLink: { color: colors.primary, fontWeight: '600' },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  switchRow: {
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  switchText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  switchLink: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.textPrimary,
+  },
 });

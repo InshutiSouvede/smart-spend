@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+﻿import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { useReceipts } from '../hooks/useReceipts';
 import { ReceiptCard } from '../components/ReceiptCard';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { getErrorMessage } from '../api/client';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing, radius, fonts } from '../theme';
 import type { ReceiptsStackParamList } from '../navigation/AppTabs';
 import type { ReceiptSummary } from '../types/api';
 
@@ -53,24 +53,31 @@ export function ReceiptsScreen() {
           keyExtractor={(r) => `receipt-${r.receipt_id}`}
           extraData={allReceipts.length}
           renderItem={({ item }) => (
-            <ReceiptCard 
-              receipt={item} 
+            <ReceiptCard
+              receipt={item}
               onPress={() => navigation.navigate('ReceiptDetail', { receiptId: item.receipt_id })}
             />
           )}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyText}>No receipts yet.</Text>
+              <Ionicons name="receipt-outline" size={44} color={colors.textMuted} />
+              <Text style={styles.emptyText}>No receipts yet</Text>
               <Text style={styles.emptyHint}>
-                Tap the button below to photograph or choose a receipt.
+                Tap the button below to photograph or upload a receipt.
               </Text>
             </View>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
           ListFooterComponent={
             isFetchingNextPage ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
@@ -85,7 +92,7 @@ export function ReceiptsScreen() {
         onPress={() => navigation.navigate('ReceiptUpload')}
         activeOpacity={0.85}
       >
-        <Ionicons name="camera-outline" size={20} color="#fff" />
+        <Ionicons name="camera-outline" size={18} color={colors.textPrimary} />
         <Text style={styles.fabText}>Upload Receipt</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -95,37 +102,58 @@ export function ReceiptsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   errorBanner: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xs,
   },
-  list: { padding: spacing.lg, paddingBottom: 100 },
+  list: {
+    paddingTop: spacing.xs,
+    paddingBottom: 100,
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
     minHeight: 300,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  emptyText: { ...typography.h3, color: colors.textSecondary, textAlign: 'center' },
-  emptyHint: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+  emptyText: {
+    fontFamily: fonts.headingSemiBold,
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 260,
+  },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
     backgroundColor: colors.primary,
-    borderRadius: 999,
+    borderRadius: radius.full,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    gap: spacing.sm,
+    gap: spacing.xs,
     elevation: 4,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    shadowColor: '#111111',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
+    minHeight: 44,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  fabText: {
+    fontFamily: fonts.headingSemiBold,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
 });
