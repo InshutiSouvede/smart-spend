@@ -8,7 +8,7 @@
     "newArchEnabled": false,
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#6366f1"
+      "backgroundColor": "#F8F8F6"
     },
     "ios": {
       "supportsTablet": false,
@@ -17,7 +17,7 @@
     "android": {
       "package": "com.smartspend.app",
       "adaptiveIcon": {
-        "backgroundColor": "#6366f1"
+        "backgroundColor": "#DDA743"
       },
       "permissions": [
         "android.permission.READ_SMS",
