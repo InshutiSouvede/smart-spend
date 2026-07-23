@@ -179,7 +179,7 @@ curl http://127.0.0.1:8000/health
 ```bash
 curl -X POST http://127.0.0.1:8000/transactions/sms/sync \
   -H "Content-Type: application/json" \
-  -d "{\"consent_confirmed\": true, \"raw_sms_messages\": [\"MoMo: RWF 3500 paid to Bourbon Coffee Kigali. Transaction MM100141. Remaining balance RWF 224500.\"]}"
+  -d '{"consent_confirmed": true, "messages": [{"raw_sms_text": "TxId:12345*S*Your payment of 3,500 RWF to Bourbon Coffee Kigali was completed at 2026-06-13 10:54:42. Balance: 224500 RWF. Fee 0 RWF.*EN#", "sender": "MTN"}]}'
 ```
 
 ### 3. Frontend

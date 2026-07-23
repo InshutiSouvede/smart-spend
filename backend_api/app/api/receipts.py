@@ -347,7 +347,7 @@ async def upload_receipt(
     validation_result = None
     parser_source = "tesseract-enhanced"
     completeness_score = 0.0
-    ocr_mode = "paddleocr"
+    ocr_mode = "tesseract"
 
     with get_db() as conn:
         cur = conn.execute(

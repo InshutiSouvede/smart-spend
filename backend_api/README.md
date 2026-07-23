@@ -30,15 +30,14 @@ SmartSpend Backend
 │       ├── sms_parser.py          MoMo SMS parsing (MTN + Airtel)
 │       ├── model_service.py       ML model loading and inference
 │       ├── retraining_service.py  Background retraining jobs (TF-IDF+LR, XGBoost)
-│       └── ocr_service.py        Receipt OCR (Google Vision / mock)
+│       └── ocr_service.py        Receipt OCR (Tesseract / mock)
 ├── data/
 │   ├── smartspend_initial_synthetic_momo_sms_dataset.csv
 │   └── smartspend_initial_synthetic_prediction_demo_dataset.csv
 ├── storage/
 │   ├── models/                    Base ML model files (.joblib)
-│   ├── user_models/               Per-user personalised model files
-│   ├── uploads/                   Uploaded receipt images (per user_id subdirectory)
-│   └── retraining_jobs/           (Reserved for job artefacts)
+│   ├── models/users/{user_id}/    Per-user personalised model files
+│   └── uploads/                   Uploaded receipt images (per user_id subdirectory)
 ├── .env.example
 ├── requirements.txt
 └── README.md
@@ -49,7 +48,7 @@ SmartSpend Backend
 ## Setup Instructions
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.12
 - pip
 - Trained model files in `storage/models/` (run the ML notebooks first — see [ml/README.md](../ml/README.md))
 
@@ -105,9 +104,12 @@ All variables are documented in `.env.example`. Key variables:
 | `MOCK_AUTH_ENABLED` | `true` | Bypass JWT verification for local development |
 | `MOCK_USER_ID` | `demo_user_001` | User ID returned in mock auth mode |
 | `SUPABASE_JWT_SECRET` | — | Required when `MOCK_AUTH_ENABLED=false` |
+| `SUPABASE_URL` | — | Required when `MOCK_AUTH_ENABLED=false` |
+| `SUPABASE_ANON_KEY` | — | Required when `MOCK_AUTH_ENABLED=false` |
 | `CORS_ORIGINS` | localhost ports | JSON array of allowed CORS origins — e.g. `["http://localhost:3000"]` |
-| `GOOGLE_VISION_ENABLED` | `false` | Enable Google Cloud Vision OCR |
-| `GOOGLE_APPLICATION_CREDENTIALS` | — | Path to Google service account JSON |
+| `TESSERACT_OCR_ENABLED` | `true` | Enable Tesseract OCR for receipt parsing |
+| `TESSERACT_LANG` | `eng` | Tesseract language pack |
+| `TESSERACT_CMD` | — | Path to Tesseract binary (Windows only, if not on PATH) |
 | `MIN_CORRECTIONS_FOR_RETRAINING` | `5` | Minimum corrections before retraining |
 
 ---
@@ -219,19 +221,32 @@ To support a new SMS format, add a `_try_*` function to `services/sms_parser.py`
 
 ## OCR Integration
 
-Receipt OCR defaults to mock mode (returns static text for end-to-end testing without consuming Google Vision quota).
+Receipt OCR uses Tesseract running locally. No API key or internet connection is required after the binary is installed.
 
-To enable real OCR:
+**Install the binary:**
 
-```env
-GOOGLE_VISION_ENABLED=true
-GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/google-service-account.json
-```
+| Platform | Command |
+|---|---|
+| Windows | Download from [UB-Mannheim releases](https://github.com/UB-Mannheim/tesseract/wiki) (v5.x) |
+| Linux | `sudo apt-get install -y tesseract-ocr` |
+| macOS | `brew install tesseract` |
 
-Install the additional dependency:
+**Install the Python wrapper** (inside the backend venv):
 
 ```bash
-pip install google-cloud-vision==3.7.2
+pip install pytesseract Pillow
+```
+
+**Windows only** — if Tesseract is not on your PATH, set the binary location in `.env`:
+
+```env
+TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+To disable OCR (returns mock text for testing without the binary):
+
+```env
+TESSERACT_OCR_ENABLED=false
 ```
 
 ---
@@ -281,12 +296,12 @@ curl -X POST http://127.0.0.1:8000/transactions/sms/sync \
 curl http://127.0.0.1:8000/analytics/spending-status
 ```
 
-### Update a transaction category
+### Submit a category correction
 
 ```bash
-curl -X PATCH http://127.0.0.1:8000/transactions/1/category \
+curl -X POST http://127.0.0.1:8000/transactions/corrections \
   -H "Content-Type: application/json" \
-  -d '{"category": "Food & Dining", "trigger_retraining": false}'
+  -d '{"sms_transaction_id": 1, "corrected_category": "Food & Dining"}'
 ```
 
 ---

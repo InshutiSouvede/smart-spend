@@ -13,14 +13,17 @@ This directory contains the training datasets, Jupyter notebooks, and trained mo
 ml/
 ├── 01_categorisation_model.ipynb                       Train and evaluate the TF-IDF + LR categorisation model
 ├── 02_prediction_model.ipynb                           Train and evaluate the XGBoost prediction models
-├── train_enhanced_models.py                            Automated training script
+├── SmartSpend_Model_Training_Notebook.ipynb             Combined walkthrough notebook
+├── train_enhanced_models.py                            Automated (non-interactive) training script
+├── smartspend_initial_models/                          Pre-trained model artefacts (cold-start fallback)
 ├── smartspend_initial_synthetic_momo_sms_dataset.csv
 ├── smartspend_initial_synthetic_prediction_demo_dataset.csv
-├── requirements.txt
-└── README.md
+└── requirements.txt
 ```
 
 Trained model files are saved directly to `../backend_api/storage/models/` so the backend can load them without any manual copy step.
+
+The `smartspend_initial_models/` directory contains a set of pre-trained artefacts (`smartspend_category_model.joblib`, `smartspend_expense_prediction_model.joblib`, `smartspend_income_prediction_model.joblib`) that can be copied to `backend_api/storage/models/` as a cold-start fallback without re-running the notebooks.
 
 ---
 
@@ -89,15 +92,14 @@ A synthetic scaffold dataset for developing and testing the XGBoost month-end pr
 
 ```bash
 cd ml
-python -m venv .venv
 
 # Windows
-.venv\Scripts\activate
+py -3.12 -m venv .venv && .venv\Scripts\Activate.ps1
 # macOS / Linux
-source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 
 pip install -r requirements.txt
-jupyter notebook
+jupyter lab
 ```
 
 ### Step 1 — Train the categorisation model
@@ -130,6 +132,8 @@ This notebook:
 > **Feature consistency:** The 15 feature names used in the notebook must exactly match `PREDICTION_FEATURES` in `backend_api/app/services/model_service.py`. Any mismatch will cause a `feature_names mismatch` error at inference time.
 
 Both notebooks must be run before starting the backend for the first time.
+
+> **Automated alternative:** `train_enhanced_models.py` runs the same training pipeline non-interactively (no Jupyter required). Useful for CI or server environments: `python train_enhanced_models.py`
 
 ---
 
