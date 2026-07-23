@@ -22,6 +22,7 @@ import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, fonts } from '../theme';
 import type { AuthStackParamList } from '../navigation/AuthStack';
+import { PrivacyPolicyModal } from '../components/PrivacyPolicyModal';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -38,6 +39,7 @@ export function SignupScreen() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const {
     control,
@@ -213,6 +215,16 @@ export function SignupScreen() {
             <Text style={styles.switchLink}>Sign in</Text>
           </Text>
         </TouchableOpacity>
+
+        <Text style={styles.policyNote}>
+          By creating an account, you agree to our{' '}
+          <Text style={styles.policyLink} onPress={() => setPrivacyVisible(true)}>
+            Privacy Policy
+          </Text>
+          .
+        </Text>
+
+        <PrivacyPolicyModal visible={privacyVisible} onClose={() => setPrivacyVisible(false)} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -354,5 +366,18 @@ const styles = StyleSheet.create({
   switchLink: {
     fontFamily: fonts.bodySemiBold,
     color: colors.textPrimary,
+  },
+  policyNote: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 18,
+  },
+  policyLink: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });

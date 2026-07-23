@@ -8,10 +8,11 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 import { transactionsApi } from '../api/transactions';
 import { getErrorMessage } from '../api/client';
@@ -73,10 +74,25 @@ export function ExportScreen() {
         Alert.alert('No data', 'No transactions found for the selected filters.');
         return;
       }
-      await Share.share(
-        { message: csv, title: `SmartSpend_${fromDate}_${toDate}.csv` },
-        { dialogTitle: 'Share CSV export' },
-      );
+
+      const filename = `SmartSpend_${fromDate || 'all'}_${toDate || 'all'}.csv`;
+      const fileUri = (FileSystem.cacheDirectory ?? '') + filename;
+
+      await FileSystem.writeAsStringAsync(fileUri, csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert('Sharing unavailable', `CSV saved to cache: ${filename}`);
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Share CSV export',
+        UTI: 'public.comma-separated-values-text',
+      });
     } catch (e) {
       Alert.alert('Export failed', getErrorMessage(e));
     } finally {
@@ -174,8 +190,8 @@ export function ExportScreen() {
         </TouchableOpacity>
 
         <Text style={styles.hint}>
-          The CSV will be shared via your device's share sheet. You can save it to Files,
-          send by email, or open in a spreadsheet app.
+          The CSV file will open in your device's share sheet. You can save it to Files,
+          send by email, or open directly in a spreadsheet app.
         </Text>
       </ScrollView>
     </SafeAreaView>

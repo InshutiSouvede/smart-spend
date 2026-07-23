@@ -76,7 +76,7 @@ export function LoginScreen() {
         <View style={styles.brand}>
           <Text style={styles.logoMark}>SS</Text>
           <Text style={styles.logoText}>SmartSpend</Text>
-          <Text style={styles.tagline}>Track your MoMo transactions</Text>
+          <Text style={styles.tagline}>Track your Mobile Money transactions</Text>
         </View>
 
         {apiError ? (

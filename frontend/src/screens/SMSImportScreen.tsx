@@ -39,6 +39,7 @@ import {
   type SMSConversation,
 } from '../services/smsService';
 import { useSyncSMS } from '../hooks/useTransactions';
+import { PrivacyPolicyModal } from '../components/PrivacyPolicyModal';
 import { useAuthStore } from '../store/authStore';
 import { getErrorMessage } from '../api/client';
 import { colors, spacing, radius, fonts } from '../theme';
@@ -67,6 +68,7 @@ export function SMSImportScreen() {
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { mutateAsync: syncSMS } = useSyncSMS();
+  const [privacyVisible, setPrivacyVisible] = useState(false);
 
   useEffect(() => {
     if (!isSMSNativeAvailable) return;
@@ -405,9 +407,15 @@ export function SMSImportScreen() {
                 ios_backgroundColor={colors.border}
               />
               <Text style={styles.consentLabel}>
-                I confirm I want to upload these messages to SmartSpend for transaction analysis.
+                I confirm I want to upload these messages to SmartSpend for transaction analysis. I have read and agree to the{' '}
+                <Text style={styles.consentLink} onPress={() => setPrivacyVisible(true)}>
+                  Privacy Policy
+                </Text>
+                .
               </Text>
             </View>
+
+            <PrivacyPolicyModal visible={privacyVisible} onClose={() => setPrivacyVisible(false)} />
           </ScrollView>
 
           <View style={styles.modalFooter}>
@@ -675,6 +683,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   consentLabel: { fontFamily: fonts.bodyRegular, flex: 1, fontSize: 13, color: colors.textPrimary, lineHeight: 20 },
+  consentLink: { fontFamily: fonts.bodySemiBold, color: colors.primary, textDecorationLine: 'underline' },
 
   modalFooter: {
     padding: spacing.lg,
